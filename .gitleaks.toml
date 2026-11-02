@@ -1,0 +1,10 @@
+# Keep all upstream secret detection rules enabled.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public verifier identifier; not an authentication credential (2026-11-03)"
+regexTarget = "secret"
+# protection_profiles.py names a required on-prem secret rotation probe.
+# This exact public identifier has no authentication or authorization capability.
+regexes = ['''^onprem-secret-rotation-probe-v1$''']
