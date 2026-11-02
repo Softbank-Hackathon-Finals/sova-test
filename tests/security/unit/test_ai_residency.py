@@ -62,9 +62,9 @@ def gateway(ai, scope, now, **changes):
         policy_provider=Mock(return_value=policy),
         endpoint_provider=Mock(return_value=endpoint),
         classify=Mock(return_value=DataClass.CONFIDENTIAL),
-        authorize=Mock(),
-        authenticate_policy=Mock(),
-        authenticate_endpoint=Mock(),
+        authorize=Mock(return_value=None),
+        authenticate_policy=Mock(return_value=None),
+        authenticate_endpoint=Mock(return_value=None),
         invoke=Mock(return_value="요약 결과"),
         clock=lambda: now,
     )
