@@ -25,6 +25,7 @@ from sova_security.application.patch_execution import PatchExecutionGuard
 from sova_security.application.remediation import RehearsalAdmissionService
 from sova_security.contracts.evidence import VerificationResult as R
 from sova_security.domain.patch_execution import compile_patch, PatchRuntimeObservation
+from security_patch_support import patch_rescan
 
 
 @pytest.fixture
@@ -138,6 +139,13 @@ def setup_patch(tmp_path, now):
     )
 
     def observe(command, current_binding):
+        state["reassessment"], _, _ = patch_rescan(
+            inputs,
+            assessment,
+            request.proposal,
+            current_binding.artifacts[0],
+            state["at"],
+        )
         return PatchRuntimeObservation(
             scope,
             plan.fingerprint,
@@ -151,6 +159,7 @@ def setup_patch(tmp_path, now):
             state["runtime"],
             state["at"],
             binding.valid_until,
+            state["reassessment"].fingerprint,
         )
 
     def hold(command, reason):
@@ -162,6 +171,7 @@ def setup_patch(tmp_path, now):
         patch_guard=guard,
         binding_for=lambda _: state["binding"],
         observe_runtime=observe,
+        reassessment_for=lambda _: state["reassessment"],
         authenticate_runtime=lambda *_: state["trusted"],
         authenticate_binding=lambda *_: None,
         authorize=lambda *_: None,
