@@ -1,0 +1,13 @@
+"""Tenant context is supplied by a trusted authenticated boundary."""
+
+from typing import Protocol
+from sova.security.domain.governance import SecurityHold, HoldRelease, StoredHold
+
+
+class SecurityHoldRepository(Protocol):
+    tenant_id: str
+
+    def open_hold(self, hold: SecurityHold) -> StoredHold: ...
+    def get_hold(self, application_id: str, hold_id: str) -> StoredHold: ...
+    def active_holds(self, application_id: str) -> tuple[StoredHold, ...]: ...
+    def release_hold(self, application_id: str, release: HoldRelease) -> StoredHold: ...
