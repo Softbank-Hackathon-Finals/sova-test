@@ -181,6 +181,8 @@ def test_release_requires_separate_security_authorities(scope, now):
         "security:hold",
         "security:release-request",
         "security:release-approve",
+        "security:release-request",
+        "security:release-approve",
     ]
 
 
