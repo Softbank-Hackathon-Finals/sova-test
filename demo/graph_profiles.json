@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "applications": [
+    {
+      "id": "service-desk",
+      "name": "업무 서비스",
+      "description": "핵심 저장 경로와 선택적 후처리·감사 경로가 분기된 등록 예제",
+      "entry": "gateway",
+      "fault_default": "processor",
+      "isolation_default": ["processor", "archive"],
+      "nodes": [
+        {"id": "gateway", "name": "진입점", "kind": "service", "description": "인증 확인 후 업무 API를 호출하는 독립 HTTP 프로세스", "dependencies": [{"target": "identity", "required": true}, {"target": "api", "required": true}]},
+        {"id": "identity", "name": "인증 서비스", "kind": "service", "description": "내부 호출 토큰을 검사하는 시험 서비스 · 사용자 로그인 제품 아님", "dependencies": []},
+        {"id": "api", "name": "업무 API", "kind": "service", "description": "업무 저장은 필수, 후처리와 감사는 선택 의존성인 시험 API", "dependencies": [{"target": "database", "required": true}, {"target": "processor", "required": false}, {"target": "audit", "required": false}]},
+        {"id": "database", "name": "업무 데이터", "kind": "storage", "description": "독립 HTTP 프로세스가 관리하는 로컬 SQLite 시험 저장소", "dependencies": []},
+        {"id": "processor", "name": "후처리 서비스", "kind": "service", "description": "별도 HTTP 호출로 결과를 보관하는 동기 후처리 · 비동기 큐 아님", "dependencies": [{"target": "archive", "required": true}]},
+        {"id": "archive", "name": "결과 보관", "kind": "storage", "description": "후처리 결과의 로컬 SQLite 시험 저장소", "dependencies": []},
+        {"id": "audit", "name": "감사 수집", "kind": "storage", "description": "로컬 SQLite 기록 예제 · 불변 보존이나 보안 감사 제품 아님", "dependencies": []}
+      ]
+    },
+    {
+      "id": "document-service",
+      "name": "문서 처리 서비스",
+      "description": "저장과 분석이 모두 필수인 별도의 4개 노드 등록 예제",
+      "entry": "portal",
+      "fault_default": "analyzer",
+      "isolation_default": ["analyzer"],
+      "nodes": [
+        {"id": "portal", "name": "문서 진입점", "kind": "service", "description": "등록된 문서 API만 호출하는 독립 시험 프로세스", "dependencies": [{"target": "documents", "required": true}]},
+        {"id": "documents", "name": "문서 API", "kind": "service", "description": "문서 저장과 분석을 순서대로 호출하는 시험 API", "dependencies": [{"target": "document-store", "required": true}, {"target": "analyzer", "required": true}]},
+        {"id": "document-store", "name": "문서 저장", "kind": "storage", "description": "문서 요청의 해시를 저장하는 로컬 SQLite 시험 저장소", "dependencies": []},
+        {"id": "analyzer", "name": "분석 서비스", "kind": "service", "description": "내부 HTTP 응답 시험 · 실제 AI 모델 호출 없음", "dependencies": []}
+      ]
+    }
+  ]
+}
