@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="이전 실행 구조: 승인부터 실제 결과 확인까지">
+<defs>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#2457ff"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#079447"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#ef2929"/></marker>
+<marker id="orange" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#f97316"/></marker>
+<marker id="purple" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#a435ff"/></marker>
+<marker id="gray" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#909bb0"/></marker>
+</defs>
+<g font-family="Apple SD Gothic Neo,Malgun Gothic,Noto Sans KR,Arial,sans-serif"><rect width="1600" height="1000" fill="white"/>
+<text x="48" y="64" fill="#0f172a" font-size="37" text-anchor="start" font-weight="700">이전 실행 구조: 승인부터 실제 결과 확인까지</text>
+<text x="48" y="105" fill="#64748b" font-size="20" text-anchor="start" font-weight="400">업무 상태와 외부 효과를 분리하고, 현재 권한·정책·근거를 확인한 뒤 변경한다.</text>
+<path d="M1290 32H1344" stroke="#2457ff" stroke-width="2.5" fill="none" marker-end="url(#blue)"/>
+<text x="1360" y="38" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">요청 · 제어 흐름</text>
+<path d="M1290 61H1344" stroke="#079447" stroke-width="2.5" fill="none" marker-end="url(#green)"/>
+<text x="1360" y="67" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">데이터 · 실제 관측</text>
+<path d="M1290 90H1344" stroke="#ef2929" stroke-width="2.5" fill="none" marker-end="url(#red)" stroke-dasharray="7 6"/>
+<text x="1360" y="96" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">차단 · 검증 경계</text>
+<rect x="1290" y="109" width="54" height="24" rx="5" fill="white" stroke="#f97316" stroke-width="1.7"/>
+<text x="1360" y="127" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">직접 구현 · 판단</text>
+<text x="48" y="976" fill="#64748b" font-size="15" text-anchor="start" font-weight="400">설계 보충안 · 목표 구조이며 구현 완료를 의미하지 않음</text>
+<rect x="48" y="185" width="420" height="745" rx="17" fill="#fbfcfe" stroke="#909bb0" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="72" y="224" fill="#0f172a" font-size="24" text-anchor="start" font-weight="700">계획 · 검증 · 승인</text>
+<text x="72" y="253" fill="#64748b" font-size="17" text-anchor="start" font-weight="400">변경한 입력에는 새 검증·승인 필요</text>
+<rect x="540" y="185" width="480" height="745" rx="17" fill="#fbfcfe" stroke="#909bb0" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="564" y="224" fill="#0f172a" font-size="24" text-anchor="start" font-weight="700">제어 · 실행</text>
+<text x="564" y="253" fill="#64748b" font-size="17" text-anchor="start" font-weight="400">PostgreSQL을 실행 상태의 정본으로 사용</text>
+<rect x="1092" y="185" width="460" height="745" rx="17" fill="#fbfcfe" stroke="#909bb0" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="1116" y="224" fill="#0f172a" font-size="24" text-anchor="start" font-weight="700">정책 · 외부 자원 · 기록</text>
+<text x="1116" y="253" fill="#64748b" font-size="17" text-anchor="start" font-weight="400">기능 제공과 실제 검증을 구분</text>
+<polyline points="258,400 258,480" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="258,590 258,670" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="440,725 504,725 504,345 568,345" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="780,400 780,480" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="780,590 780,670" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="1120,345 992,345" fill="none" stroke="#ef2929" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#red)" stroke-dasharray="7 6"/>
+<polyline points="992,725 1056,725 1056,558 1120,558" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="1524,558 1540,558 1540,862 992,862" fill="none" stroke="#079447" stroke-width="3" stroke-linejoin="round" marker-end="url(#green)"/>
+<rect x="76" y="290" width="364" height="110" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="98" y="323" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">불변 계획 · 입력 결합</text>
+<text x="98" y="354" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">소스 · patch · 테스트 · 이미지</text>
+<text x="98" y="380" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">환경 · 정책 revision · 기한</text>
+<rect x="76" y="480" width="364" height="110" rx="12" fill="white" stroke="#a435ff" stroke-width="1.8"/>
+<text x="98" y="513" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">리허설 · 독립 검증</text>
+<text x="98" y="544" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">제한된 작업 환경에서 수정</text>
+<text x="98" y="570" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">별도 검증기와 근거 결합</text>
+<rect x="76" y="670" width="364" height="110" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="98" y="703" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">사람 승인</text>
+<text x="98" y="734" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">정확한 계획 · 범위 · 한도</text>
+<text x="98" y="760" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">새 승인이 보안 보류를 지우지 않음</text>
+<rect x="568" y="290" width="424" height="110" rx="12" fill="white" stroke="#f97316" stroke-width="1.8"/>
+<text x="590" y="323" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">실행 직전 검증</text>
+<text x="590" y="354" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">현재 승인 · 근거 · 정책 · 보류</text>
+<text x="590" y="380" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">앱 실행권 · epoch · 만료</text>
+<rect x="568" y="480" width="424" height="110" rx="12" fill="white" stroke="#f97316" stroke-width="1.8"/>
+<text x="590" y="513" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">외부 효과 의도 선기록</text>
+<text x="590" y="544" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">PREPARED → IN_FLIGHT</text>
+<text x="590" y="570" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">외부 호출 전에 DB에 확정</text>
+<rect x="568" y="670" width="424" height="110" rx="12" fill="white" stroke="#f97316" stroke-width="1.8"/>
+<text x="590" y="703" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">범위 제한 Executor</text>
+<text x="590" y="734" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">등록 자원 · 허용 동작만 실행</text>
+<text x="590" y="760" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">호출 중 DB 행 잠금 해제</text>
+<rect x="568" y="820" width="424" height="85" rx="12" fill="white" stroke="#f97316" stroke-width="1.8"/>
+<text x="590" y="853" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">실제 상태 readback</text>
+<text x="590" y="884" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">응답 문자열만으로 성공 처리 금지</text>
+<rect x="1120" y="290" width="404" height="110" rx="12" fill="white" stroke="#ef2929" stroke-width="1.8"/>
+<text x="1142" y="323" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">현재 정책 · 독립 보안 보류</text>
+<text x="1142" y="354" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">승인 취소 · 권한 회수도 반영</text>
+<text x="1142" y="380" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">미확인된 필수 조건은 차단</text>
+<rect x="1120" y="480" width="404" height="155" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="1142" y="513" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">실제 변경 대상</text>
+<text x="1142" y="544" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">DB · PgBouncer · Edge</text>
+<text x="1142" y="570" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">객체 저장소 · 서비스 신원</text>
+<text x="1142" y="596" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">일반 writer와 실제 자원 검증</text>
+<rect x="1120" y="710" width="404" height="110" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="1142" y="743" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">제어 DB · 감사 기록</text>
+<text x="1142" y="774" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">의도 · 관측 · 완료 · 복구 이력</text>
+<text x="1142" y="800" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">미해결 효과는 일반 재실행 차단</text>
+<rect x="442.5" y="430" width="119" height="29" fill="white" rx="4"/>
+<text x="502" y="450" fill="#2457ff" font-size="18" text-anchor="middle" font-weight="700">승인된 작업</text>
+<rect x="1062.0" y="842" width="146" height="29" fill="white" rx="4"/>
+<text x="1135" y="862" fill="#079447" font-size="18" text-anchor="middle" font-weight="700">실제 상태 관측</text>
+<text x="258" y="860" fill="#64748b" font-size="17" text-anchor="middle" font-weight="400">완료 주장은 검증한 범위로 제한</text>
+</g></svg>

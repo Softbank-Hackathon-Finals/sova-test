@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="실행 안전성: 응답이 사라져도 중복 실행 방지">
+<defs>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#2457ff"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#079447"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#ef2929"/></marker>
+<marker id="orange" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#f97316"/></marker>
+<marker id="purple" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#a435ff"/></marker>
+<marker id="gray" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#909bb0"/></marker>
+</defs>
+<g font-family="Apple SD Gothic Neo,Malgun Gothic,Noto Sans KR,Arial,sans-serif"><rect width="1600" height="1000" fill="white"/>
+<text x="48" y="64" fill="#0f172a" font-size="37" text-anchor="start" font-weight="700">실행 안전성: 응답이 사라져도 중복 실행 방지</text>
+<text x="48" y="105" fill="#64748b" font-size="20" text-anchor="start" font-weight="400">정상 호출과 응답 유실을 구분한다. 불명확한 변경은 재호출보다 조회·조정을 우선한다.</text>
+<path d="M1290 32H1344" stroke="#2457ff" stroke-width="2.5" fill="none" marker-end="url(#blue)"/>
+<text x="1360" y="38" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">요청 · 제어 흐름</text>
+<path d="M1290 61H1344" stroke="#079447" stroke-width="2.5" fill="none" marker-end="url(#green)"/>
+<text x="1360" y="67" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">데이터 · 실제 관측</text>
+<path d="M1290 90H1344" stroke="#ef2929" stroke-width="2.5" fill="none" marker-end="url(#red)" stroke-dasharray="7 6"/>
+<text x="1360" y="96" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">차단 · 검증 경계</text>
+<rect x="1290" y="109" width="54" height="24" rx="5" fill="white" stroke="#f97316" stroke-width="1.7"/>
+<text x="1360" y="127" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">직접 구현 · 판단</text>
+<text x="48" y="976" fill="#64748b" font-size="15" text-anchor="start" font-weight="400">설계 보충안 · 목표 구조이며 구현 완료를 의미하지 않음</text>
+<rect x="75" y="700" width="1450" height="195" rx="17" fill="#fbfcfe" stroke="#f97316" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="99" y="739" fill="#0f172a" font-size="24" text-anchor="start" font-weight="700">복구 경로 · 실행 여부가 불명확한 변경은 UNKNOWN으로 보존</text>
+<text x="99" y="768" fill="#64748b" font-size="17" text-anchor="start" font-weight="400">미해결 효과가 있으면 일반 실행권 인계·새 변경을 차단한다.</text>
+<polyline points="220,275 220,675" fill="none" stroke="#909bb0" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#gray)" stroke-dasharray="7 6"/>
+<polyline points="610,275 610,675" fill="none" stroke="#909bb0" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#gray)" stroke-dasharray="7 6"/>
+<polyline points="1000,275 1000,675" fill="none" stroke="#909bb0" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#gray)" stroke-dasharray="7 6"/>
+<polyline points="1390,275 1390,675" fill="none" stroke="#909bb0" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#gray)" stroke-dasharray="7 6"/>
+<polyline points="220,320 610,320" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="220,405 1000,405" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="220,490 610,490" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="220,575 1390,575" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="1390,650 220,650" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)" stroke-dasharray="7 6"/>
+<polyline points="220,840 610,840" fill="none" stroke="#f97316" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#orange)" stroke-dasharray="7 6"/>
+<polyline points="1000,840 1390,840" fill="none" stroke="#079447" stroke-width="3" stroke-linejoin="round" marker-end="url(#green)"/>
+<rect x="75" y="185" width="290" height="90" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="220.0" y="218" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">조정 워커</text>
+<text x="220.0" y="249" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">작업 실행 · 복구</text>
+<rect x="465" y="185" width="290" height="90" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="610.0" y="218" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">제어 PostgreSQL</text>
+<text x="610.0" y="249" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">실행권 · 효과 원장</text>
+<rect x="855" y="185" width="290" height="90" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="1000.0" y="218" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">실행 게이트</text>
+<text x="1000.0" y="249" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">승인 · 보류 · revision</text>
+<rect x="1245" y="185" width="290" height="90" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="1390.0" y="218" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">외부 자원</text>
+<text x="1390.0" y="249" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">DB · Pooler · Edge</text>
+<rect x="283.5" y="287" width="263" height="29" fill="white" rx="4"/>
+<text x="415" y="307" fill="#2457ff" font-size="18" text-anchor="middle" font-weight="700">① 실행권 · 효과 의도 저장</text>
+<rect x="451.5" y="372" width="317" height="29" fill="white" rx="4"/>
+<text x="610" y="392" fill="#2457ff" font-size="18" text-anchor="middle" font-weight="700">② 현재 승인 · 보류 · 기한 검사</text>
+<rect x="328.5" y="457" width="173" height="29" fill="white" rx="4"/>
+<text x="415" y="477" fill="#2457ff" font-size="18" text-anchor="middle" font-weight="700">③ IN_FLIGHT 확정</text>
+<rect x="709.5" y="542" width="191" height="29" fill="white" rx="4"/>
+<text x="805" y="562" fill="#2457ff" font-size="18" text-anchor="middle" font-weight="700">④ 제한된 변경 요청</text>
+<rect x="687.0" y="617" width="236" height="29" fill="white" rx="4"/>
+<text x="805" y="637" fill="#2457ff" font-size="18" text-anchor="middle" font-weight="700">⑤ 응답 유실 · 타임아웃</text>
+<rect x="364.5" y="810" width="101" height="29" fill="white" rx="4"/>
+<text x="415" y="830" fill="#f97316" font-size="18" text-anchor="middle" font-weight="700">원장 보존</text>
+<rect x="1104.0" y="810" width="182" height="29" fill="white" rx="4"/>
+<text x="1195" y="830" fill="#079447" font-size="18" text-anchor="middle" font-weight="700">조회 전용 readback</text>
+<text x="805" y="490" fill="#64748b" font-size="17" text-anchor="start" font-weight="400">외부 호출 동안 DB 잠금 해제</text>
+<text x="99" y="790" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">조회·조정 → 실제 적용 확인 / 미적용 확인 / 미확인 유지</text>
+<text x="800" y="940" fill="#64748b" font-size="19" text-anchor="middle" font-weight="400">epoch는 제어면 실행권이다. 외부 자원의 지연 명령 차단·fencing은 별도로 확인한다.</text>
+</g></svg>

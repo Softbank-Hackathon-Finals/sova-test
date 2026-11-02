@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="DB · 첨부파일 이전: 같은 경계에서 보존을 확인한다">
+<defs>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#2457ff"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#079447"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#ef2929"/></marker>
+<marker id="orange" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#f97316"/></marker>
+<marker id="purple" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#a435ff"/></marker>
+<marker id="gray" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#909bb0"/></marker>
+</defs>
+<g font-family="Apple SD Gothic Neo,Malgun Gothic,Noto Sans KR,Arial,sans-serif"><rect width="1600" height="1000" fill="white"/>
+<text x="48" y="64" fill="#0f172a" font-size="37" text-anchor="start" font-weight="700">DB · 첨부파일 이전: 같은 경계에서 보존을 확인한다</text>
+<text x="48" y="105" fill="#64748b" font-size="20" text-anchor="start" font-weight="400">DB 행만 옮겨서는 완료되지 않는다. 객체 내용·참조·진행 중 쓰기와 복구 경로를 함께 확인한다.</text>
+<path d="M1290 32H1344" stroke="#2457ff" stroke-width="2.5" fill="none" marker-end="url(#blue)"/>
+<text x="1360" y="38" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">요청 · 제어 흐름</text>
+<path d="M1290 61H1344" stroke="#079447" stroke-width="2.5" fill="none" marker-end="url(#green)"/>
+<text x="1360" y="67" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">데이터 · 실제 관측</text>
+<path d="M1290 90H1344" stroke="#ef2929" stroke-width="2.5" fill="none" marker-end="url(#red)" stroke-dasharray="7 6"/>
+<text x="1360" y="96" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">차단 · 검증 경계</text>
+<rect x="1290" y="109" width="54" height="24" rx="5" fill="white" stroke="#f97316" stroke-width="1.7"/>
+<text x="1360" y="127" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">직접 구현 · 판단</text>
+<text x="48" y="976" fill="#64748b" font-size="15" text-anchor="start" font-weight="400">설계 보충안 · 목표 구조이며 구현 완료를 의미하지 않음</text>
+<rect x="48" y="195" width="620" height="500" rx="17" fill="#fbfcfe" stroke="#909bb0" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="72" y="234" fill="#0f172a" font-size="24" text-anchor="start" font-weight="700">출발 환경 · 기존 업무 서비스</text>
+<text x="72" y="263" fill="#64748b" font-size="17" text-anchor="start" font-weight="400">API · worker · 배치 · 직접 SQL · 업로드</text>
+<rect x="932" y="195" width="620" height="500" rx="17" fill="#fbfcfe" stroke="#909bb0" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="956" y="234" fill="#0f172a" font-size="24" text-anchor="start" font-weight="700">목적 환경 · 이전 대상 서비스</text>
+<text x="956" y="263" fill="#64748b" font-size="17" text-anchor="start" font-weight="400">새 writer를 열기 전 최종 대조와 복구 준비</text>
+<polyline points="640,363 960,363" fill="none" stroke="#079447" stroke-width="3" stroke-linejoin="round" marker-end="url(#green)"/>
+<polyline points="640,533 960,533" fill="none" stroke="#079447" stroke-width="3" stroke-linejoin="round" marker-end="url(#green)"/>
+<polyline points="360,835 20,835 20,363 76,363" fill="none" stroke="#f97316" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#orange)" stroke-dasharray="7 6"/>
+<polyline points="1240,835 1580,835 1580,363 1524,363" fill="none" stroke="#f97316" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#orange)" stroke-dasharray="7 6"/>
+<rect x="76" y="305" width="564" height="115" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="98" y="338" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">PostgreSQL · 출발지</text>
+<text x="98" y="369" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">기존 업무 데이터 · 단일 writer</text>
+<text x="98" y="395" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">정확한 복제 경로에 barrier 기록</text>
+<rect x="960" y="305" width="564" height="115" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="982" y="338" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">PostgreSQL · 목적지</text>
+<text x="982" y="369" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">초기 복사 · 변경분 동기화</text>
+<text x="982" y="395" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">행 · PK · 내용 · 시퀀스 검증</text>
+<rect x="76" y="475" width="564" height="115" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="98" y="508" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">첨부파일 · 출발 저장소</text>
+<text x="98" y="539" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">객체 ID · 버전 · 크기 · checksum</text>
+<text x="98" y="565" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">신규 업로드 · 변경 · 삭제 상태</text>
+<rect x="960" y="475" width="564" height="115" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="982" y="508" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">첨부파일 · 목적 저장소</text>
+<text x="982" y="539" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">객체 복사 · 최종 변경 반영</text>
+<text x="982" y="565" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">DB 참조와 실제 객체의 일치</text>
+<rect x="360" y="755" width="880" height="160" rx="12" fill="white" stroke="#f97316" stroke-width="1.8"/>
+<text x="800.0" y="788" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">직접 구현 · 전환 판단과 검증</text>
+<text x="800.0" y="819" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">쓰기 제한 → 모든 writer 봉쇄 → 최종 경계 → DB·객체 대조</text>
+<text x="800.0" y="845" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">역방향 복구 준비 확인 → 목적지 writer·경로 전환 → 신규 업무 검증</text>
+<text x="800.0" y="871" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">결과 불명확: SAFE_HOLD · 무손실 복구가 불가능하면 자동 복귀 금지</text>
+<rect x="700.0" y="324" width="200" height="29" fill="white" rx="4"/>
+<text x="800" y="344" fill="#079447" font-size="18" text-anchor="middle" font-weight="700">논리 복제 · barrier</text>
+<rect x="691.0" y="494" width="218" height="29" fill="white" rx="4"/>
+<text x="800" y="514" fill="#079447" font-size="18" text-anchor="middle" font-weight="700">객체 복사 · 변경 추적</text>
+<text x="358" y="649" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">전환 전: 원본 일반 쓰기 봉쇄 · 진행 작업 배출</text>
+<text x="1242" y="649" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">전환 후: 신규 쓰기·첨부까지 역방향 복구 대상</text>
+<text x="800" y="725" fill="#f97316" font-size="19" text-anchor="middle" font-weight="700">되돌리기 = 목적지 봉쇄 + 역방향 동기화 + 최종 대조 + 출발지 복원</text>
+</g></svg>

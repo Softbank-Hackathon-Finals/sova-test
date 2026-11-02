@@ -1,0 +1,22 @@
+[
+  {
+    "name": "01-execution-architecture",
+    "title": "이전 실행 구조: 승인부터 실제 결과 확인까지"
+  },
+  {
+    "name": "02-effect-journal",
+    "title": "실행 안전성: 응답이 사라져도 중복 실행 방지"
+  },
+  {
+    "name": "03-execution-gates",
+    "title": "실행 직전 검증: 승인만으로 변경하지 않는다"
+  },
+  {
+    "name": "04-independent-verification",
+    "title": "리허설 · 독립 검증: 평가 기준을 에이전트와 분리"
+  },
+  {
+    "name": "05-data-transition",
+    "title": "DB · 첨부파일 이전: 같은 경계에서 보존을 확인한다"
+  }
+]

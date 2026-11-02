@@ -1,0 +1,585 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" type="device" version="24.7.17">
+  <diagram name="이전 실행 구조: 승인부터 실제 결과 확인까지" id="01-execution-architecture">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="이전 실행 구조: 승인부터 실제 결과 확인까지" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=37;fontColor=#0f172a;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="24" width="1180" height="50" />
+        </mxCell>
+        <mxCell id="n2" value="업무 상태와 외부 효과를 분리하고, 현재 권한·정책·근거를 확인한 뒤 변경한다." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=20;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="77" width="1180" height="42" />
+        </mxCell>
+        <mxCell id="n3" value="설계 보충안 · 목표 구조이며 구현 완료를 의미하지 않음" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=15;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="953" width="1100" height="35" />
+        </mxCell>
+        <mxCell id="n4" value="━━  요청 · 제어 흐름" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#2457ff;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="10" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n5" value="━━  데이터 · 실제 관측" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#079447;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="39" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n6" value="━━  차단 · 검증 경계" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#ef2929;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="68" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n7" value="━━  직접 구현 · 판단" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#f97316;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="97" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n8" value="&lt;b style=&quot;font-size:24px&quot;&gt;계획 · 검증 · 승인&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:17px;color:#64748b&quot;&gt;변경한 입력에는 새 검증·승인 필요&lt;/span&gt;" style="rounded=1;arcSize=6;html=1;whiteSpace=wrap;verticalAlign=top;align=left;spacingTop=18;spacingLeft=24;fillColor=#fbfcfe;strokeColor=#909bb0;dashed=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="185" width="420" height="745" />
+        </mxCell>
+        <mxCell id="n9" value="&lt;b style=&quot;font-size:24px&quot;&gt;제어 · 실행&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:17px;color:#64748b&quot;&gt;PostgreSQL을 실행 상태의 정본으로 사용&lt;/span&gt;" style="rounded=1;arcSize=6;html=1;whiteSpace=wrap;verticalAlign=top;align=left;spacingTop=18;spacingLeft=24;fillColor=#fbfcfe;strokeColor=#909bb0;dashed=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="540" y="185" width="480" height="745" />
+        </mxCell>
+        <mxCell id="n10" value="&lt;b style=&quot;font-size:24px&quot;&gt;정책 · 외부 자원 · 기록&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:17px;color:#64748b&quot;&gt;기능 제공과 실제 검증을 구분&lt;/span&gt;" style="rounded=1;arcSize=6;html=1;whiteSpace=wrap;verticalAlign=top;align=left;spacingTop=18;spacingLeft=24;fillColor=#fbfcfe;strokeColor=#909bb0;dashed=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1092" y="185" width="460" height="745" />
+        </mxCell>
+        <mxCell id="e11" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" source="box0" target="box1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="258" y="400" />
+            <mxPoint as="targetPoint" x="258" y="480" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" source="box1" target="box2">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="258" y="590" />
+            <mxPoint as="targetPoint" x="258" y="670" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" value="승인된 작업" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.0;entryY=0.5;entryPerimeter=0;" source="box2" target="box3">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="440" y="725" />
+            <mxPoint as="targetPoint" x="568" y="345" />
+            <Array as="points">
+              <mxPoint x="504" y="725" />
+              <mxPoint x="504" y="345" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" source="box3" target="box4">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="780" y="400" />
+            <mxPoint as="targetPoint" x="780" y="480" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" source="box4" target="box5">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="780" y="590" />
+            <mxPoint as="targetPoint" x="780" y="670" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#ef2929;fontColor=#ef2929;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=0.0;exitY=0.5;exitPerimeter=0;entryX=1.0;entryY=0.5;entryPerimeter=0;" source="box7" target="box3">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1120" y="345" />
+            <mxPoint as="targetPoint" x="992" y="345" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e17" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.0;entryY=0.5032258064516129;entryPerimeter=0;" source="box5" target="box8">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="992" y="725" />
+            <mxPoint as="targetPoint" x="1120" y="558" />
+            <Array as="points">
+              <mxPoint x="1056" y="725" />
+              <mxPoint x="1056" y="558" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e18" value="실제 상태 관측" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#079447;fontColor=#079447;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.5032258064516129;exitPerimeter=0;entryX=1.0;entryY=0.49411764705882355;entryPerimeter=0;" source="box8" target="box6">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1524" y="558" />
+            <mxPoint as="targetPoint" x="992" y="862" />
+            <Array as="points">
+              <mxPoint x="1540" y="558" />
+              <mxPoint x="1540" y="862" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="box0" value="&lt;b style=&quot;font-size:22px&quot;&gt;불변 계획 · 입력 결합&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;소스 · patch · 테스트 · 이미지&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;환경 · 정책 revision · 기한&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="76" y="290" width="364" height="110" />
+        </mxCell>
+        <mxCell id="box1" value="&lt;b style=&quot;font-size:22px&quot;&gt;리허설 · 독립 검증&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;제한된 작업 환경에서 수정&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;별도 검증기와 근거 결합&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#a435ff;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="76" y="480" width="364" height="110" />
+        </mxCell>
+        <mxCell id="box2" value="&lt;b style=&quot;font-size:22px&quot;&gt;사람 승인&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;정확한 계획 · 범위 · 한도&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;새 승인이 보안 보류를 지우지 않음&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="76" y="670" width="364" height="110" />
+        </mxCell>
+        <mxCell id="box3" value="&lt;b style=&quot;font-size:22px&quot;&gt;실행 직전 검증&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;현재 승인 · 근거 · 정책 · 보류&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;앱 실행권 · epoch · 만료&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="568" y="290" width="424" height="110" />
+        </mxCell>
+        <mxCell id="box4" value="&lt;b style=&quot;font-size:22px&quot;&gt;외부 효과 의도 선기록&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;PREPARED → IN_FLIGHT&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;외부 호출 전에 DB에 확정&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="568" y="480" width="424" height="110" />
+        </mxCell>
+        <mxCell id="box5" value="&lt;b style=&quot;font-size:22px&quot;&gt;범위 제한 Executor&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;등록 자원 · 허용 동작만 실행&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;호출 중 DB 행 잠금 해제&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="568" y="670" width="424" height="110" />
+        </mxCell>
+        <mxCell id="box6" value="&lt;b style=&quot;font-size:22px&quot;&gt;실제 상태 readback&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;응답 문자열만으로 성공 처리 금지&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="568" y="820" width="424" height="85" />
+        </mxCell>
+        <mxCell id="box7" value="&lt;b style=&quot;font-size:22px&quot;&gt;현재 정책 · 독립 보안 보류&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;승인 취소 · 권한 회수도 반영&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;미확인된 필수 조건은 차단&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#ef2929;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1120" y="290" width="404" height="110" />
+        </mxCell>
+        <mxCell id="box8" value="&lt;b style=&quot;font-size:22px&quot;&gt;실제 변경 대상&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;DB · PgBouncer · Edge&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;객체 저장소 · 서비스 신원&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;일반 writer와 실제 자원 검증&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1120" y="480" width="404" height="155" />
+        </mxCell>
+        <mxCell id="box9" value="&lt;b style=&quot;font-size:22px&quot;&gt;제어 DB · 감사 기록&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;의도 · 관측 · 완료 · 복구 이력&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;미해결 효과는 일반 재실행 차단&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1120" y="710" width="404" height="110" />
+        </mxCell>
+        <mxCell id="n29" value="완료 주장은 검증한 범위로 제한" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="115.5" y="836" width="285" height="35" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="실행 안전성: 응답이 사라져도 중복 실행 방지" id="02-effect-journal">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="실행 안전성: 응답이 사라져도 중복 실행 방지" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=37;fontColor=#0f172a;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="24" width="1180" height="50" />
+        </mxCell>
+        <mxCell id="n2" value="정상 호출과 응답 유실을 구분한다. 불명확한 변경은 재호출보다 조회·조정을 우선한다." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=20;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="77" width="1180" height="42" />
+        </mxCell>
+        <mxCell id="n3" value="설계 보충안 · 목표 구조이며 구현 완료를 의미하지 않음" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=15;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="953" width="1100" height="35" />
+        </mxCell>
+        <mxCell id="n4" value="━━  요청 · 제어 흐름" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#2457ff;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="10" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n5" value="━━  데이터 · 실제 관측" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#079447;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="39" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n6" value="━━  차단 · 검증 경계" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#ef2929;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="68" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n7" value="━━  직접 구현 · 판단" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#f97316;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="97" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n8" value="&lt;b style=&quot;font-size:24px&quot;&gt;복구 경로 · 실행 여부가 불명확한 변경은 UNKNOWN으로 보존&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:17px;color:#64748b&quot;&gt;미해결 효과가 있으면 일반 실행권 인계·새 변경을 차단한다.&lt;/span&gt;" style="rounded=1;arcSize=6;html=1;whiteSpace=wrap;verticalAlign=top;align=left;spacingTop=18;spacingLeft=24;fillColor=#fbfcfe;strokeColor=#f97316;dashed=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="75" y="700" width="1450" height="195" />
+        </mxCell>
+        <mxCell id="e9" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#909bb0;fontColor=#909bb0;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=0.5;exitY=1.0;exitPerimeter=0;" source="box0">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="220" y="275" />
+            <mxPoint as="targetPoint" x="220" y="675" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#909bb0;fontColor=#909bb0;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=0.5;exitY=1.0;exitPerimeter=0;" source="box1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="610" y="275" />
+            <mxPoint as="targetPoint" x="610" y="675" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#909bb0;fontColor=#909bb0;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=0.5;exitY=1.0;exitPerimeter=0;" source="box2">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1000" y="275" />
+            <mxPoint as="targetPoint" x="1000" y="675" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#909bb0;fontColor=#909bb0;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=0.5;exitY=1.0;exitPerimeter=0;" source="box3">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1390" y="275" />
+            <mxPoint as="targetPoint" x="1390" y="675" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" value="① 실행권 · 효과 의도 저장" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="220" y="320" />
+            <mxPoint as="targetPoint" x="610" y="320" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" value="② 현재 승인 · 보류 · 기한 검사" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="220" y="405" />
+            <mxPoint as="targetPoint" x="1000" y="405" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" value="③ IN_FLIGHT 확정" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="220" y="490" />
+            <mxPoint as="targetPoint" x="610" y="490" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16" value="④ 제한된 변경 요청" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="220" y="575" />
+            <mxPoint as="targetPoint" x="1390" y="575" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e17" value="⑤ 응답 유실 · 타임아웃" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1390" y="650" />
+            <mxPoint as="targetPoint" x="220" y="650" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e18" value="원장 보존" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#f97316;fontColor=#f97316;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="220" y="840" />
+            <mxPoint as="targetPoint" x="610" y="840" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e19" value="조회 전용 readback" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#079447;fontColor=#079447;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1000" y="840" />
+            <mxPoint as="targetPoint" x="1390" y="840" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="box0" value="&lt;b style=&quot;font-size:22px&quot;&gt;조정 워커&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;작업 실행 · 복구&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="75" y="185" width="290" height="90" />
+        </mxCell>
+        <mxCell id="box1" value="&lt;b style=&quot;font-size:22px&quot;&gt;제어 PostgreSQL&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;실행권 · 효과 원장&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="465" y="185" width="290" height="90" />
+        </mxCell>
+        <mxCell id="box2" value="&lt;b style=&quot;font-size:22px&quot;&gt;실행 게이트&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;승인 · 보류 · revision&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="855" y="185" width="290" height="90" />
+        </mxCell>
+        <mxCell id="box3" value="&lt;b style=&quot;font-size:22px&quot;&gt;외부 자원&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;DB · Pooler · Edge&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1245" y="185" width="290" height="90" />
+        </mxCell>
+        <mxCell id="n24" value="외부 호출 동안 DB 잠금 해제" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="805" y="466" width="258" height="35" />
+        </mxCell>
+        <mxCell id="n25" value="조회·조정 → 실제 적용 확인 / 미적용 확인 / 미확인 유지" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="99" y="766" width="519" height="35" />
+        </mxCell>
+        <mxCell id="n26" value="epoch는 제어면 실행권이다. 외부 자원의 지연 명령 차단·fencing은 별도로 확인한다." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=19;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="428.0" y="916" width="744" height="35" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="실행 직전 검증: 승인만으로 변경하지 않는다" id="03-execution-gates">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="실행 직전 검증: 승인만으로 변경하지 않는다" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=37;fontColor=#0f172a;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="24" width="1180" height="50" />
+        </mxCell>
+        <mxCell id="n2" value="모든 조건을 현재 값으로 재검사한다. 누락·만료·불일치는 변경 허가가 아니다." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=20;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="77" width="1180" height="42" />
+        </mxCell>
+        <mxCell id="n3" value="설계 보충안 · 목표 구조이며 구현 완료를 의미하지 않음" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=15;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="953" width="1100" height="35" />
+        </mxCell>
+        <mxCell id="n4" value="━━  요청 · 제어 흐름" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#2457ff;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="10" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n5" value="━━  데이터 · 실제 관측" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#079447;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="39" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n6" value="━━  차단 · 검증 경계" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#ef2929;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="68" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n7" value="━━  직접 구현 · 판단" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#f97316;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="97" width="280" height="28" />
+        </mxCell>
+        <mxCell id="e8" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.503448275862069;exitPerimeter=0;entryX=0.0;entryY=0.503448275862069;entryPerimeter=0;" source="box0" target="box1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="274" y="373" />
+            <mxPoint as="targetPoint" x="300" y="373" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#ef2929;fontColor=#ef2929;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.09157212317666126;entryY=0.0;entryPerimeter=0;" source="box0" target="box6">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="161" y="445" />
+            <mxPoint as="targetPoint" x="161" y="605" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.503448275862069;exitPerimeter=0;entryX=0.0;entryY=0.503448275862069;entryPerimeter=0;" source="box1" target="box2">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="526" y="373" />
+            <mxPoint as="targetPoint" x="552" y="373" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#ef2929;fontColor=#ef2929;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.29578606158833065;entryY=0.0;entryPerimeter=0;" source="box1" target="box6">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="413" y="445" />
+            <mxPoint as="targetPoint" x="413" y="605" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.503448275862069;exitPerimeter=0;entryX=0.0;entryY=0.503448275862069;entryPerimeter=0;" source="box2" target="box3">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="778" y="373" />
+            <mxPoint as="targetPoint" x="804" y="373" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#ef2929;fontColor=#ef2929;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" source="box2" target="box6">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="665" y="445" />
+            <mxPoint as="targetPoint" x="665" y="605" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.503448275862069;exitPerimeter=0;entryX=0.0;entryY=0.503448275862069;entryPerimeter=0;" source="box3" target="box4">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1030" y="373" />
+            <mxPoint as="targetPoint" x="1056" y="373" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#ef2929;fontColor=#ef2929;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.7042139384116693;entryY=0.0;entryPerimeter=0;" source="box3" target="box6">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="917" y="445" />
+            <mxPoint as="targetPoint" x="917" y="605" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.503448275862069;exitPerimeter=0;entryX=0.0;entryY=0.503448275862069;entryPerimeter=0;" source="box4" target="box5">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1282" y="373" />
+            <mxPoint as="targetPoint" x="1308" y="373" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e17" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#ef2929;fontColor=#ef2929;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.9084278768233387;entryY=0.0;entryPerimeter=0;" source="box4" target="box6">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1169" y="445" />
+            <mxPoint as="targetPoint" x="1169" y="605" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e18" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#079447;fontColor=#079447;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.46311475409836067;entryY=0.0;entryPerimeter=0;" source="box5" target="box7">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1421" y="445" />
+            <mxPoint as="targetPoint" x="1421" y="605" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="box0" value="&lt;b style=&quot;font-size:22px&quot;&gt;현재 권한&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;조직 · 앱 · 자원&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;인증 · 인가 확인&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="300" width="226" height="145" />
+        </mxCell>
+        <mxCell id="box1" value="&lt;b style=&quot;font-size:22px&quot;&gt;입력 일치&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;계획 · 산출물&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;환경 · 정책 revision&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="300" y="300" width="226" height="145" />
+        </mxCell>
+        <mxCell id="box2" value="&lt;b style=&quot;font-size:22px&quot;&gt;유효성&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;승인 · 검증 근거&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;수집 시각 · 만료&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="552" y="300" width="226" height="145" />
+        </mxCell>
+        <mxCell id="box3" value="&lt;b style=&quot;font-size:22px&quot;&gt;보안 보류&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;활성 보류와 충돌&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;허용된 대응 범위&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="804" y="300" width="226" height="145" />
+        </mxCell>
+        <mxCell id="box4" value="&lt;b style=&quot;font-size:22px&quot;&gt;실행권&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;현재 owner · epoch&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;리스 · 명령 기한&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1056" y="300" width="226" height="145" />
+        </mxCell>
+        <mxCell id="box5" value="&lt;b style=&quot;font-size:22px&quot;&gt;변경 허용&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;등록된 대상에&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;허용된 동작만&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#079447;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1308" y="300" width="226" height="145" />
+        </mxCell>
+        <mxCell id="box6" value="&lt;b style=&quot;font-size:22px&quot;&gt;차단 · 사유와 현재 조건 기록&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;거부 · revision 변경 · 만료 · 미확인 · 보류 충돌 · 실행권 상실&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;필수 조건 하나라도 충족하지 못하면 외부 변경을 시작하지 않는다.&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#ef2929;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="605" width="1234" height="120" />
+        </mxCell>
+        <mxCell id="box7" value="&lt;b style=&quot;font-size:21px&quot;&gt;실제 결과 확인&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;readback 후 판정&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;새 관측 근거 저장&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#079447;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1308" y="605" width="244" height="120" />
+        </mxCell>
+        <mxCell id="box8" value="&lt;b style=&quot;font-size:22px&quot;&gt;승인 이후 입력이 바뀌면&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;기존 계획을 덮어쓰지 않고 새 revision을 만든다.&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;영향받는 근거와 승인을 다시 확인한다.&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="800" width="726" height="115" />
+        </mxCell>
+        <mxCell id="box9" value="&lt;b style=&quot;font-size:22px&quot;&gt;승인 취소와 결과 기록은 구분&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;새로운 변경은 막고, 이미 발행한 효과의 관측은 보존한다.&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;일반 승인으로 독립 보안 보류를 해제하지 않는다.&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="826" y="800" width="726" height="115" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="리허설 · 독립 검증: 평가 기준을 에이전트와 분리" id="04-independent-verification">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="리허설 · 독립 검증: 평가 기준을 에이전트와 분리" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=37;fontColor=#0f172a;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="24" width="1180" height="50" />
+        </mxCell>
+        <mxCell id="n2" value="namespace만 나누는 데서 끝내지 않고, 실행 대상·테스트·산출물 전달 경계를 고정한다." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=20;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="77" width="1180" height="42" />
+        </mxCell>
+        <mxCell id="n3" value="설계 보충안 · 목표 구조이며 구현 완료를 의미하지 않음" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=15;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="953" width="1100" height="35" />
+        </mxCell>
+        <mxCell id="n4" value="━━  요청 · 제어 흐름" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#2457ff;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="10" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n5" value="━━  데이터 · 실제 관측" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#079447;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="39" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n6" value="━━  차단 · 검증 경계" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#ef2929;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="68" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n7" value="━━  직접 구현 · 판단" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#f97316;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="97" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n8" value="&lt;b style=&quot;font-size:24px&quot;&gt;에이전트 실행 경계&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:17px;color:#64748b&quot;&gt;운영 자격 증명 · 서명 키 미제공&lt;/span&gt;" style="rounded=1;arcSize=6;html=1;whiteSpace=wrap;verticalAlign=top;align=left;spacingTop=18;spacingLeft=24;fillColor=#fbfcfe;strokeColor=#a435ff;dashed=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="350" width="445" height="445" />
+        </mxCell>
+        <mxCell id="n9" value="&lt;b style=&quot;font-size:24px&quot;&gt;산출물 전달 경계&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:17px;color:#64748b&quot;&gt;허용된 파일만 분리 검증에 전달&lt;/span&gt;" style="rounded=1;arcSize=6;html=1;whiteSpace=wrap;verticalAlign=top;align=left;spacingTop=18;spacingLeft=24;fillColor=#fbfcfe;strokeColor=#f97316;dashed=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="555" y="350" width="440" height="445" />
+        </mxCell>
+        <mxCell id="n10" value="&lt;b style=&quot;font-size:24px&quot;&gt;독립 검증 경계&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:17px;color:#64748b&quot;&gt;에이전트의 테스트·결과 수정 금지&lt;/span&gt;" style="rounded=1;arcSize=6;html=1;whiteSpace=wrap;verticalAlign=top;align=left;spacingTop=18;spacingLeft=24;fillColor=#fbfcfe;strokeColor=#2457ff;dashed=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1057" y="350" width="495" height="445" />
+        </mxCell>
+        <mxCell id="e11" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#a435ff;fontColor=#a435ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=0.4987146529562982;exitY=1.0;exitPerimeter=0;entryX=0.4987146529562982;entryY=0.0;entryPerimeter=0;" source="box1" target="box2">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="270" y="565" />
+            <mxPoint as="targetPoint" x="270" y="650" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.49523809523809526;exitPerimeter=0;entryX=0.0;entryY=0.496551724137931;entryPerimeter=0;" source="box2" target="box3">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="465" y="702" />
+            <mxPoint as="targetPoint" x="583" y="527" />
+            <Array as="points">
+              <mxPoint x="520" y="702" />
+              <mxPoint x="520" y="527" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.496551724137931;exitPerimeter=0;entryX=0.0;entryY=0.496551724137931;entryPerimeter=0;" source="box3" target="box4">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="967" y="527" />
+            <mxPoint as="targetPoint" x="1085" y="527" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2457ff;fontColor=#2457ff;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=0.4988610478359909;exitY=0.0;exitPerimeter=0;entryX=0.4988610478359909;entryY=1.0;entryPerimeter=0;" source="box5" target="box4">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1304" y="650" />
+            <mxPoint as="targetPoint" x="1304" y="600" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#079447;fontColor=#079447;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.496551724137931;exitPerimeter=0;entryX=0.498989898989899;entryY=0.0;entryPerimeter=0;" source="box4" target="box8">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1524" y="527" />
+            <mxPoint as="targetPoint" x="1304" y="850" />
+            <Array as="points">
+              <mxPoint x="1568" y="527" />
+              <mxPoint x="1568" y="826" />
+              <mxPoint x="1304" y="826" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16" value="검증 Pod · 테스트 접근 금지" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#ef2929;fontColor=#ef2929;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=1.0;exitY=0.49523809523809526;exitPerimeter=0;entryX=0.0;entryY=0.49523809523809526;entryPerimeter=0;" source="box2" target="box5">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="465" y="702" />
+            <mxPoint as="targetPoint" x="1085" y="702" />
+            <Array as="points">
+              <mxPoint x="500" y="702" />
+              <mxPoint x="500" y="825" />
+              <mxPoint x="1035" y="825" />
+              <mxPoint x="1035" y="702" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="box0" value="&lt;b style=&quot;font-size:22px&quot;&gt;신뢰된 입력 기준본&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;읽기 전용 소스 · 고정 테스트 · 정책 · 요청 digest · 환경 revision&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="175" width="1504" height="110" />
+        </mxCell>
+        <mxCell id="box1" value="&lt;b style=&quot;font-size:22px&quot;&gt;작업 복사본 수정&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;승인된 도구 · Pod UID만 실행&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;시간 · 자원 · 네트워크 한도&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#a435ff;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="76" y="455" width="389" height="110" />
+        </mxCell>
+        <mxCell id="box2" value="&lt;b style=&quot;font-size:22px&quot;&gt;패치 · 빌드 산출물&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;source / patch / image digest&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;검증 기준은 변경할 수 없음&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#a435ff;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="76" y="650" width="389" height="105" />
+        </mxCell>
+        <mxCell id="box3" value="&lt;b style=&quot;font-size:22px&quot;&gt;전달 전 검사&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;경로 · 크기 · 파일 유형&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;symlink · 특수 파일 차단&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;원래 요청과 산출물 결합&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="583" y="455" width="384" height="145" />
+        </mxCell>
+        <mxCell id="box4" value="&lt;b style=&quot;font-size:22px&quot;&gt;별도 verifier 실행&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;고정 테스트 · 검증기 버전&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;요청 · 테스트 · 산출물 일치&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;근거의 출처와 유효기간 확인&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#2457ff;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1085" y="455" width="439" height="145" />
+        </mxCell>
+        <mxCell id="box5" value="&lt;b style=&quot;font-size:22px&quot;&gt;플랫폼 보관 테스트&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;검증 시점에 별도 주입&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;작업 Pod에서 읽기·수정 금지&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1085" y="650" width="439" height="105" />
+        </mxCell>
+        <mxCell id="box6" value="&lt;b style=&quot;font-size:22px&quot;&gt;요청 전체의 결합&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;scope · source · tests · image&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;정책 · 환경 · 만료 · 한도&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="583" y="650" width="384" height="105" />
+        </mxCell>
+        <mxCell id="box7" value="&lt;b style=&quot;font-size:22px&quot;&gt;도구 계층의 권한 제한&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;namespace + 작업 ID + Pod UID + action + deadline&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#ef2929;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="850" width="947" height="100" />
+        </mxCell>
+        <mxCell id="box8" value="&lt;b style=&quot;font-size:22px&quot;&gt;결과 수용 → 사람 승인&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;PASS는 운영 실행 권한과 별개&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1057" y="850" width="495" height="100" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="DB · 첨부파일 이전: 같은 경계에서 보존을 확인한다" id="05-data-transition">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="DB · 첨부파일 이전: 같은 경계에서 보존을 확인한다" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=37;fontColor=#0f172a;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="24" width="1180" height="50" />
+        </mxCell>
+        <mxCell id="n2" value="DB 행만 옮겨서는 완료되지 않는다. 객체 내용·참조·진행 중 쓰기와 복구 경로를 함께 확인한다." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=20;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="77" width="1180" height="42" />
+        </mxCell>
+        <mxCell id="n3" value="설계 보충안 · 목표 구조이며 구현 완료를 의미하지 않음" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=15;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="953" width="1100" height="35" />
+        </mxCell>
+        <mxCell id="n4" value="━━  요청 · 제어 흐름" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#2457ff;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="10" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n5" value="━━  데이터 · 실제 관측" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#079447;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="39" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n6" value="━━  차단 · 검증 경계" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#ef2929;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="68" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n7" value="━━  직접 구현 · 판단" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontColor=#f97316;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1290" y="97" width="280" height="28" />
+        </mxCell>
+        <mxCell id="n8" value="&lt;b style=&quot;font-size:24px&quot;&gt;출발 환경 · 기존 업무 서비스&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:17px;color:#64748b&quot;&gt;API · worker · 배치 · 직접 SQL · 업로드&lt;/span&gt;" style="rounded=1;arcSize=6;html=1;whiteSpace=wrap;verticalAlign=top;align=left;spacingTop=18;spacingLeft=24;fillColor=#fbfcfe;strokeColor=#909bb0;dashed=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="195" width="620" height="500" />
+        </mxCell>
+        <mxCell id="n9" value="&lt;b style=&quot;font-size:24px&quot;&gt;목적 환경 · 이전 대상 서비스&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:17px;color:#64748b&quot;&gt;새 writer를 열기 전 최종 대조와 복구 준비&lt;/span&gt;" style="rounded=1;arcSize=6;html=1;whiteSpace=wrap;verticalAlign=top;align=left;spacingTop=18;spacingLeft=24;fillColor=#fbfcfe;strokeColor=#909bb0;dashed=1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="932" y="195" width="620" height="500" />
+        </mxCell>
+        <mxCell id="e10" value="논리 복제 · barrier" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#079447;fontColor=#079447;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.5043478260869565;exitPerimeter=0;entryX=0.0;entryY=0.5043478260869565;entryPerimeter=0;" source="box0" target="box1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="640" y="363" />
+            <mxPoint as="targetPoint" x="960" y="363" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" value="객체 복사 · 변경 추적" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#079447;fontColor=#079447;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=0;exitX=1.0;exitY=0.5043478260869565;exitPerimeter=0;entryX=0.0;entryY=0.5043478260869565;entryPerimeter=0;" source="box2" target="box3">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="640" y="533" />
+            <mxPoint as="targetPoint" x="960" y="533" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#f97316;fontColor=#f97316;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=0.0;exitY=0.5;exitPerimeter=0;entryX=0.0;entryY=0.5043478260869565;entryPerimeter=0;" source="box4" target="box0">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="360" y="835" />
+            <mxPoint as="targetPoint" x="76" y="363" />
+            <Array as="points">
+              <mxPoint x="20" y="835" />
+              <mxPoint x="20" y="363" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" value="" edge="1" parent="1" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#f97316;fontColor=#f97316;fontSize=18;labelBackgroundColor=#ffffff;strokeWidth=2.3;dashed=1;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=1.0;entryY=0.5043478260869565;entryPerimeter=0;" source="box4" target="box1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1240" y="835" />
+            <mxPoint as="targetPoint" x="1524" y="363" />
+            <Array as="points">
+              <mxPoint x="1580" y="835" />
+              <mxPoint x="1580" y="363" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="box0" value="&lt;b style=&quot;font-size:22px&quot;&gt;PostgreSQL · 출발지&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;기존 업무 데이터 · 단일 writer&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;정확한 복제 경로에 barrier 기록&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="76" y="305" width="564" height="115" />
+        </mxCell>
+        <mxCell id="box1" value="&lt;b style=&quot;font-size:22px&quot;&gt;PostgreSQL · 목적지&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;초기 복사 · 변경분 동기화&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;행 · PK · 내용 · 시퀀스 검증&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="960" y="305" width="564" height="115" />
+        </mxCell>
+        <mxCell id="box2" value="&lt;b style=&quot;font-size:22px&quot;&gt;첨부파일 · 출발 저장소&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;객체 ID · 버전 · 크기 · checksum&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;신규 업로드 · 변경 · 삭제 상태&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="76" y="475" width="564" height="115" />
+        </mxCell>
+        <mxCell id="box3" value="&lt;b style=&quot;font-size:22px&quot;&gt;첨부파일 · 목적 저장소&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;객체 복사 · 최종 변경 반영&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;DB 참조와 실제 객체의 일치&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#cbd0dc;strokeWidth=1.5;align=left;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="960" y="475" width="564" height="115" />
+        </mxCell>
+        <mxCell id="box4" value="&lt;b style=&quot;font-size:22px&quot;&gt;직접 구현 · 전환 판단과 검증&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;쓰기 제한 → 모든 writer 봉쇄 → 최종 경계 → DB·객체 대조&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;역방향 복구 준비 확인 → 목적지 writer·경로 전환 → 신규 업무 검증&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:18px;color:#64748b&quot;&gt;결과 불명확: SAFE_HOLD · 무손실 복구가 불가능하면 자동 복귀 금지&lt;/span&gt;" style="rounded=1;arcSize=10;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#f97316;strokeWidth=1.5;align=center;verticalAlign=middle;spacingLeft=20;spacingRight=14;fontColor=#0f172a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="360" y="755" width="880" height="160" />
+        </mxCell>
+        <mxCell id="n19" value="전환 전: 원본 일반 쓰기 봉쇄 · 진행 작업 배출" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="143.5" y="625" width="429" height="35" />
+        </mxCell>
+        <mxCell id="n20" value="전환 후: 신규 쓰기·첨부까지 역방향 복구 대상" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontColor=#64748b;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1032.0" y="625" width="420" height="35" />
+        </mxCell>
+        <mxCell id="n21" value="되돌리기 = 목적지 봉쇄 + 역방향 동기화 + 최종 대조 + 출발지 복원" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=19;fontColor=#f97316;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="504.5" y="701" width="591" height="35" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

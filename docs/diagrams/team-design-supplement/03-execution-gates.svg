@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="실행 직전 검증: 승인만으로 변경하지 않는다">
+<defs>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#2457ff"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#079447"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#ef2929"/></marker>
+<marker id="orange" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#f97316"/></marker>
+<marker id="purple" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#a435ff"/></marker>
+<marker id="gray" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#909bb0"/></marker>
+</defs>
+<g font-family="Apple SD Gothic Neo,Malgun Gothic,Noto Sans KR,Arial,sans-serif"><rect width="1600" height="1000" fill="white"/>
+<text x="48" y="64" fill="#0f172a" font-size="37" text-anchor="start" font-weight="700">실행 직전 검증: 승인만으로 변경하지 않는다</text>
+<text x="48" y="105" fill="#64748b" font-size="20" text-anchor="start" font-weight="400">모든 조건을 현재 값으로 재검사한다. 누락·만료·불일치는 변경 허가가 아니다.</text>
+<path d="M1290 32H1344" stroke="#2457ff" stroke-width="2.5" fill="none" marker-end="url(#blue)"/>
+<text x="1360" y="38" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">요청 · 제어 흐름</text>
+<path d="M1290 61H1344" stroke="#079447" stroke-width="2.5" fill="none" marker-end="url(#green)"/>
+<text x="1360" y="67" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">데이터 · 실제 관측</text>
+<path d="M1290 90H1344" stroke="#ef2929" stroke-width="2.5" fill="none" marker-end="url(#red)" stroke-dasharray="7 6"/>
+<text x="1360" y="96" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">차단 · 검증 경계</text>
+<rect x="1290" y="109" width="54" height="24" rx="5" fill="white" stroke="#f97316" stroke-width="1.7"/>
+<text x="1360" y="127" fill="#0f172a" font-size="17" text-anchor="start" font-weight="400">직접 구현 · 판단</text>
+<text x="48" y="976" fill="#64748b" font-size="15" text-anchor="start" font-weight="400">설계 보충안 · 목표 구조이며 구현 완료를 의미하지 않음</text>
+<polyline points="274,373 300,373" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="161,445 161,605" fill="none" stroke="#ef2929" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#red)" stroke-dasharray="7 6"/>
+<polyline points="526,373 552,373" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="413,445 413,605" fill="none" stroke="#ef2929" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#red)" stroke-dasharray="7 6"/>
+<polyline points="778,373 804,373" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="665,445 665,605" fill="none" stroke="#ef2929" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#red)" stroke-dasharray="7 6"/>
+<polyline points="1030,373 1056,373" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="917,445 917,605" fill="none" stroke="#ef2929" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#red)" stroke-dasharray="7 6"/>
+<polyline points="1282,373 1308,373" fill="none" stroke="#2457ff" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#blue)"/>
+<polyline points="1169,445 1169,605" fill="none" stroke="#ef2929" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#red)" stroke-dasharray="7 6"/>
+<polyline points="1421,445 1421,605" fill="none" stroke="#079447" stroke-width="3" stroke-linejoin="round" marker-end="url(#green)"/>
+<rect x="48" y="300" width="226" height="145" rx="12" fill="white" stroke="#f97316" stroke-width="1.8"/>
+<text x="161.0" y="333" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">현재 권한</text>
+<text x="161.0" y="364" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">조직 · 앱 · 자원</text>
+<text x="161.0" y="390" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">인증 · 인가 확인</text>
+<rect x="300" y="300" width="226" height="145" rx="12" fill="white" stroke="#f97316" stroke-width="1.8"/>
+<text x="413.0" y="333" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">입력 일치</text>
+<text x="413.0" y="364" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">계획 · 산출물</text>
+<text x="413.0" y="390" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">환경 · 정책 revision</text>
+<rect x="552" y="300" width="226" height="145" rx="12" fill="white" stroke="#f97316" stroke-width="1.8"/>
+<text x="665.0" y="333" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">유효성</text>
+<text x="665.0" y="364" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">승인 · 검증 근거</text>
+<text x="665.0" y="390" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">수집 시각 · 만료</text>
+<rect x="804" y="300" width="226" height="145" rx="12" fill="white" stroke="#f97316" stroke-width="1.8"/>
+<text x="917.0" y="333" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">보안 보류</text>
+<text x="917.0" y="364" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">활성 보류와 충돌</text>
+<text x="917.0" y="390" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">허용된 대응 범위</text>
+<rect x="1056" y="300" width="226" height="145" rx="12" fill="white" stroke="#f97316" stroke-width="1.8"/>
+<text x="1169.0" y="333" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">실행권</text>
+<text x="1169.0" y="364" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">현재 owner · epoch</text>
+<text x="1169.0" y="390" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">리스 · 명령 기한</text>
+<rect x="1308" y="300" width="226" height="145" rx="12" fill="white" stroke="#079447" stroke-width="1.8"/>
+<text x="1421.0" y="333" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">변경 허용</text>
+<text x="1421.0" y="364" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">등록된 대상에</text>
+<text x="1421.0" y="390" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">허용된 동작만</text>
+<rect x="48" y="605" width="1234" height="120" rx="12" fill="white" stroke="#ef2929" stroke-width="1.8"/>
+<text x="665.0" y="638" fill="#0f172a" font-size="22" text-anchor="middle" font-weight="700">차단 · 사유와 현재 조건 기록</text>
+<text x="665.0" y="669" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">거부 · revision 변경 · 만료 · 미확인 · 보류 충돌 · 실행권 상실</text>
+<text x="665.0" y="695" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">필수 조건 하나라도 충족하지 못하면 외부 변경을 시작하지 않는다.</text>
+<rect x="1308" y="605" width="244" height="120" rx="12" fill="white" stroke="#079447" stroke-width="1.8"/>
+<text x="1430.0" y="638" fill="#0f172a" font-size="21" text-anchor="middle" font-weight="700">실제 결과 확인</text>
+<text x="1430.0" y="669" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">readback 후 판정</text>
+<text x="1430.0" y="695" fill="#64748b" font-size="18" text-anchor="middle" font-weight="400">새 관측 근거 저장</text>
+<rect x="48" y="800" width="726" height="115" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="70" y="833" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">승인 이후 입력이 바뀌면</text>
+<text x="70" y="864" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">기존 계획을 덮어쓰지 않고 새 revision을 만든다.</text>
+<text x="70" y="890" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">영향받는 근거와 승인을 다시 확인한다.</text>
+<rect x="826" y="800" width="726" height="115" rx="12" fill="white" stroke="#cbd0dc" stroke-width="1.4"/>
+<text x="848" y="833" fill="#0f172a" font-size="22" text-anchor="start" font-weight="700">승인 취소와 결과 기록은 구분</text>
+<text x="848" y="864" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">새로운 변경은 막고, 이미 발행한 효과의 관측은 보존한다.</text>
+<text x="848" y="890" fill="#64748b" font-size="18" text-anchor="start" font-weight="400">일반 승인으로 독립 보안 보류를 해제하지 않는다.</text>
+</g></svg>

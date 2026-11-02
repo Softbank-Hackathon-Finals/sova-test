@@ -1,0 +1,18 @@
+[
+  {
+    "name": "01-unresolved-effects",
+    "title": "미해결 효과: 재실행·실행권 인계를 통제한다"
+  },
+  {
+    "name": "02-independent-security-hold",
+    "title": "독립 보안 보류: 일반 승인과 해제 권한 분리"
+  },
+  {
+    "name": "03-attachment-migration",
+    "title": "첨부파일 이전·복구: DB 참조와 객체를 함께 검증"
+  },
+  {
+    "name": "04-verifier-access-boundary",
+    "title": "검증 접근 통제: 대리 실행 도구도 검증기에 접근 금지"
+  }
+]
