@@ -1,6 +1,6 @@
-"""Compatibility alias; canonical implementation is bravo_security.domain.posture."""
+"""Compatibility alias; canonical implementation is sova_security.domain.posture."""
 
 import sys
 from importlib import import_module
 
-sys.modules[__name__] = import_module('bravo_security.domain.posture')
+sys.modules[__name__] = import_module('sova_security.domain.posture')

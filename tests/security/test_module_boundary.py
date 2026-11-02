@@ -4,7 +4,7 @@ import ast
 import importlib
 import json
 from pathlib import Path
-from bravo_security.migrations import MIGRATIONS, migration_sql
+from sova_security.migrations import MIGRATIONS, migration_sql
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = json.loads((ROOT / "integration/security/manifest.json").read_text())

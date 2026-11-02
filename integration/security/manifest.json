@@ -7,7 +7,7 @@
     "sova.application.stored_plans",
     "sova.domain.workflows"
   ],
-  "sql_directory": "bravo_security.adapters:sql via importlib.resources",
+  "sql_directory": "sova_security.adapters:sql via importlib.resources",
   "sql_requires": "Host creates sova_control schema. Security package owns six table migrations; operations status, routes and atomic response completion migrations remain host-owned.",
   "qualification_adapters": "src/sova/security/qualification; owned local test profile only, not general production adapters",
   "demo_runtime": "demo/; not needed to import the security module",
@@ -67,9 +67,9 @@
     "kubernetes_access",
     "kubernetes_response"
   ],
-  "package_distribution": "bravo-security",
+  "package_distribution": "sova-security",
   "package_version": "0.1.0",
-  "package_import": "bravo_security",
-  "canonical_python_root_note": "Compatibility aliases to installed bravo_security; host execution runner and qualification adapters remain in Sova.",
-  "public_contracts": "bravo_security.contracts v1; versioned extraction baseline, not an assertion that team platform has adopted these contracts."
+  "package_import": "sova_security",
+  "canonical_python_root_note": "Compatibility aliases to installed sova_security; host execution runner and qualification adapters remain in Sova.",
+  "public_contracts": "sova_security.contracts v1; versioned extraction baseline, not an assertion that team platform has adopted these contracts."
 }

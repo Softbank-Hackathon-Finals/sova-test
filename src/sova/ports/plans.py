@@ -3,4 +3,4 @@
 import sys
 from importlib import import_module
 
-sys.modules[__name__] = import_module('bravo_security.contracts.repositories')
+sys.modules[__name__] = import_module('sova_security.contracts.repositories')

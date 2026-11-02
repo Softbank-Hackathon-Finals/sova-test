@@ -6,7 +6,7 @@
 
 ## 팀 저장소와의 관계
 
-이 저장소는 이상무의 개인 개발 프로토타입과 통합·시연 환경을 보존한다. 팀 최종 제품은 [platform](https://github.com/Softbank-Hackathon-Finals/platform)에서 개발하며, 검증된 보안 기능은 [security](https://github.com/Softbank-Hackathon-Finals/security)의 독립 패키지로 추출해 통합한다. 보안 핵심은 `bravo-security` 패키지로 추출했으며, Sova의 기존 import는 설치한 패키지에 연결한다. 실제 작업 실행 조정기와 시험 환경 어댑터는 Sova에 남긴다. 팀 platform 통합 완료를 뜻하지 않는다.
+이 저장소는 이상무의 개인 개발 프로토타입과 통합·시연 환경을 보존한다. 팀 최종 제품은 [platform](https://github.com/Softbank-Hackathon-Finals/platform)에서 개발하며, 검증된 보안 기능은 [security](https://github.com/Softbank-Hackathon-Finals/security)의 독립 패키지로 추출해 통합한다. 보안 핵심은 `sova-security` 패키지로 추출했으며, Sova의 기존 import는 설치한 패키지에 연결한다. 실제 작업 실행 조정기와 시험 환경 어댑터는 Sova에 남긴다. 팀 platform 통합 완료를 뜻하지 않는다.
 
 초기 23개 커밋은 기존 로컬 작업물을 기능별로 나눠 재구성한 이력이다. 작성일은 기능별 파일의 최종 수정 시각을 사용했고, 실제 Git 커밋 시각은 별도로 유지했다. 원래의 점진적 개발 이력을 복원한 것은 아니다.
 
@@ -58,7 +58,7 @@ tests/integration/ # 공통 통합 시험과 공유 PostgreSQL fixture
 
 프론트엔드는 `console/`, 시연 서버·실험 도구는 `demo/`를 사용한다. 예전 최상위 경로의 호환 링크는 제거했다. 이전 보안 Python import 경로는 동일한 모듈로 연결하며, 새 코드는 `sova.security.*`를 사용한다.
 
-팀 보안 통합의 시작점은 [통합 명세](integration/security/manifest.json)다. 보안 판정·저장소 어댑터는 독립 `bravo-security` 패키지를 사용한다. 공통 scope·계획·증거는 패키지의 v1 경계 계약으로 연결하며 승인·작업 원장·실제 실행은 Sova가 담당한다. `qualification/`은 등록된 시험 환경 전용이며 일반 고객 환경의 프로덕션 어댑터로 간주하지 않는다. Harbor runner 구현은 기존 담당 경계를 유지한다.
+팀 보안 통합의 시작점은 [통합 명세](integration/security/manifest.json)다. 보안 판정·저장소 어댑터는 독립 `sova-security` 패키지를 사용한다. 공통 scope·계획·증거는 패키지의 v1 경계 계약으로 연결하며 승인·작업 원장·실제 실행은 Sova가 담당한다. `qualification/`은 등록된 시험 환경 전용이며 일반 고객 환경의 프로덕션 어댑터로 간주하지 않는다. Harbor runner 구현은 기존 담당 경계를 유지한다.
 
 `demo/`는 개인 검증 경로다. 시연 HTTP API와 일회용 인증은 이곳에 있으며 팀 플랫폼의 인증·API와 연결할 때 별도로 조정한다. 새 제어면과의 연결 여부를 [구현 현황](docs/implementation-status.md)에 구분한다. [이전 프리뷰 안내](docs/preview-guide.md)의 과거 검증이 현재 서버 가동을 의미하지 않는다.
 

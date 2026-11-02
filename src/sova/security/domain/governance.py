@@ -1,6 +1,6 @@
-"""Compatibility alias; canonical implementation is bravo_security.domain.governance."""
+"""Compatibility alias; canonical implementation is sova_security.domain.governance."""
 
 import sys
 from importlib import import_module
 
-sys.modules[__name__] = import_module('bravo_security.domain.governance')
+sys.modules[__name__] = import_module('sova_security.domain.governance')

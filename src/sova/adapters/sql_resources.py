@@ -1,7 +1,7 @@
 """Resolve package-owned security SQL and host-owned lifecycle migrations."""
 
 from importlib.resources import files
-from bravo_security.migrations import (
+from sova_security.migrations import (
     MIGRATIONS,
     migration_sql as security_migration_sql,
 )

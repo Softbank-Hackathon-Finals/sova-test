@@ -3,4 +3,4 @@
 import sys
 from importlib import import_module
 
-sys.modules[__name__] = import_module('bravo_security.contracts.graph')
+sys.modules[__name__] = import_module('sova_security.contracts.graph')
