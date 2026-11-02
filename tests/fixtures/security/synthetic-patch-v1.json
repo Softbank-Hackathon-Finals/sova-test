@@ -1,0 +1,364 @@
+{
+  "notice": "Synthetic test contracts only; not a real scan or vulnerability. No credentials or private keys.",
+  "inputs": [
+    {
+      "kind": "asset-inventory.v1",
+      "schema_version": 1,
+      "value": {
+        "collector_id": "registered-inventory",
+        "components": [
+          {
+            "component_id": "driver",
+            "ecosystem": "pypi",
+            "name": "sample-driver",
+            "purl": "pkg:pypi/sample-driver@1.0",
+            "version": "1.0"
+          }
+        ],
+        "configuration_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "coverage": "complete",
+        "image_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "observed_at": "2026-10-31T07:00:00+00:00",
+        "resource_revision": "resource-v1",
+        "sbom_digest": "0dfaeb11b2fd1786d9dc9f441e524050621624c74b72ec987ec2c65b26e5e46e",
+        "schema_version": 1,
+        "scope": {
+          "application_id": "app-a",
+          "environment_id": "environment-a",
+          "resource_id": "owned-ingress",
+          "tenant_id": "tenant-a"
+        },
+        "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_until": "2026-10-31T07:10:00+00:00"
+      }
+    },
+    {
+      "kind": "vulnerability-scan.v1",
+      "schema_version": 1,
+      "value": {
+        "coverage": "complete",
+        "database_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "findings": [
+          {
+            "advisory_id": "SOVA-TEST-001",
+            "component_id": "driver",
+            "fixed_version": "1.1",
+            "installed_version": "1.0",
+            "severity": "high"
+          }
+        ],
+        "image_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "inventory_digest": "3917b8850d5a8f3888e4fec3b20740694db441d89e63f77f620555d6e50bdcd4",
+        "observed_at": "2026-10-31T07:00:00+00:00",
+        "profile_digest": "2bc3606e02348d35077ee3fbed7b7504fc6352268dca32fdc75cb184170bc450",
+        "report_digest": "e2ddf05b76a6f8837091da8aad8c17f9fd989cd82e757293944893f3671fe992",
+        "scanner_id": "registered-trivy",
+        "scanner_version": "qualified-schema2",
+        "schema_version": 1,
+        "scope": {
+          "application_id": "app-a",
+          "environment_id": "environment-a",
+          "resource_id": "owned-ingress",
+          "tenant_id": "tenant-a"
+        },
+        "valid_until": "2026-10-31T07:05:00+00:00"
+      }
+    },
+    {
+      "kind": "exposure-observation.v1",
+      "schema_version": 1,
+      "value": {
+        "business_critical": true,
+        "compromise": "no_observed_indicators",
+        "evidence_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "inventory_digest": "3917b8850d5a8f3888e4fec3b20740694db441d89e63f77f620555d6e50bdcd4",
+        "known_exploited": [],
+        "observed_at": "2026-10-31T07:00:00+00:00",
+        "reachability": "reachable",
+        "resource_revision": "resource-v1",
+        "schema_version": 1,
+        "scope": {
+          "application_id": "app-a",
+          "environment_id": "environment-a",
+          "resource_id": "owned-ingress",
+          "tenant_id": "tenant-a"
+        },
+        "valid_until": "2026-10-31T07:03:00+00:00",
+        "verifier_id": "registered-network-probe"
+      }
+    },
+    {
+      "kind": "risk-policy.v1",
+      "schema_version": 1,
+      "value": {
+        "accepted_scanner_profiles": [
+          "2bc3606e02348d35077ee3fbed7b7504fc6352268dca32fdc75cb184170bc450"
+        ],
+        "issued_at": "2026-10-31T06:59:59+00:00",
+        "policy_id": "risk-v1",
+        "revision": 1,
+        "schema_version": 1,
+        "scope": {
+          "application_id": "app-a",
+          "environment_id": "environment-a",
+          "resource_id": "owned-ingress",
+          "tenant_id": "tenant-a"
+        },
+        "valid_until": "2026-10-31T07:08:00+00:00"
+      }
+    }
+  ],
+  "assessment": {
+    "kind": "risk-assessment.v1",
+    "schema_version": 1,
+    "value": {
+      "assessed_at": "2026-10-31T07:00:00+00:00",
+      "complete": true,
+      "decisions": [
+        {
+          "advisory_id": "SOVA-TEST-001",
+          "component_id": "driver",
+          "priority": "urgent",
+          "reasons": [
+            "installed-version-matched",
+            "severity:high",
+            "reachable",
+            "business-critical"
+          ],
+          "response": "propose-patch"
+        }
+      ],
+      "exposure_digest": "0fb83c4f9cce0d320af293d0b6f6e818b60aeeff5430da6d0c94dff0eebf379f",
+      "inventory_digest": "3917b8850d5a8f3888e4fec3b20740694db441d89e63f77f620555d6e50bdcd4",
+      "policy_digest": "c2c5dbc72bc62cc4aa2677625d52f8712df32854c2c4b83e4b97f40618aa21bb",
+      "reasons": [],
+      "scan_digest": "b67df9fdc04ed70af310a68f16dc4ae04201381d38358d9946db92bb7fac9841",
+      "schema_version": 1,
+      "scope": {
+        "application_id": "app-a",
+        "environment_id": "environment-a",
+        "resource_id": "owned-ingress",
+        "tenant_id": "tenant-a"
+      },
+      "valid_until": "2026-10-31T07:03:00+00:00"
+    }
+  },
+  "request": {
+    "kind": "rehearsal-request.v1",
+    "schema_version": 1,
+    "value": {
+      "created_at": "2026-10-31T07:00:00+00:00",
+      "profile": {
+        "allowed_files": [
+          "src/app.py"
+        ],
+        "egress_policy_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+        "max_memory_mib": 512,
+        "max_seconds": 120,
+        "production_credentials_allowed": false,
+        "profile_id": "registered-harbor-profile",
+        "runner_image_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "test_bundle_digest": "7777777777777777777777777777777777777777777777777777777777777777",
+        "verifier_image_digest": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "proposal": {
+        "applicability": "source_only",
+        "assessment_digest": "f7f053549c18abf5b9db08b0d0bbe44a41cb13eb2b5bf4d945b1f7636987ee52",
+        "base_configuration_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "base_image_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "base_source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "changes": [
+          {
+            "after_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+            "before_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+            "path": "src/app.py"
+          }
+        ],
+        "created_at": "2026-10-31T07:00:00+00:00",
+        "created_by": "operator",
+        "findings": [
+          "61ce11ce2847b5ff0986a6534a1aaaa260f8287ede72c0bddba341b0a1f36632"
+        ],
+        "inventory_digest": "3917b8850d5a8f3888e4fec3b20740694db441d89e63f77f620555d6e50bdcd4",
+        "kind": "patch",
+        "patch_artifact_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+        "policy_digest": "c2c5dbc72bc62cc4aa2677625d52f8712df32854c2c4b83e4b97f40618aa21bb",
+        "scope": {
+          "application_id": "app-a",
+          "environment_id": "environment-a",
+          "resource_id": "owned-ingress",
+          "tenant_id": "tenant-a"
+        },
+        "valid_until": "2026-10-31T07:02:00+00:00"
+      },
+      "request_id": "rehearsal-1",
+      "requirements": [
+        {
+          "baseline_expected": null,
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "compatibility"
+        },
+        {
+          "baseline_expected": "pass",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "functional"
+        },
+        {
+          "baseline_expected": "fail",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "security-fix:61ce11ce2847b5ff0986a6534a1aaaa260f8287ede72c0bddba341b0a1f36632"
+        }
+      ],
+      "schema_version": 1,
+      "targets": [
+        {
+          "base_image_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "role": "source",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "snapshot_digest": "3917b8850d5a8f3888e4fec3b20740694db441d89e63f77f620555d6e50bdcd4"
+        }
+      ],
+      "valid_until": "2026-10-31T07:02:00+00:00",
+      "verifier_issuer": "independent-verifier"
+    }
+  },
+  "receipt": {
+    "kind": "rehearsal-receipt.v1",
+    "schema_version": 1,
+    "value": {
+      "artifacts": [
+        {
+          "configuration_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "image_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+          "provenance_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "source_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "changed_files": [
+        {
+          "after_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+          "before_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+          "path": "src/app.py"
+        }
+      ],
+      "egress_denied": "pass",
+      "egress_policy_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+      "elapsed_seconds": 2,
+      "issued_at": "2026-10-31T07:00:03+00:00",
+      "issuer_id": "independent-verifier",
+      "metadata_denied": "pass",
+      "no_production_credentials": true,
+      "peak_memory_mib": 128,
+      "proofs": [
+        {
+          "evidence_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+          "image_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+          "observed_at": "2026-10-31T07:00:02+00:00",
+          "phase": "after",
+          "result": "pass",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "compatibility",
+          "valid_until": "2026-10-31T07:02:00+00:00"
+        },
+        {
+          "evidence_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+          "image_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+          "observed_at": "2026-10-31T07:00:02+00:00",
+          "phase": "after",
+          "result": "pass",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "functional",
+          "valid_until": "2026-10-31T07:02:00+00:00"
+        },
+        {
+          "evidence_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+          "image_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "observed_at": "2026-10-31T07:00:01+00:00",
+          "phase": "before",
+          "result": "pass",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "functional",
+          "valid_until": "2026-10-31T07:02:00+00:00"
+        },
+        {
+          "evidence_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+          "image_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+          "observed_at": "2026-10-31T07:00:02+00:00",
+          "phase": "after",
+          "result": "pass",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "security-fix:61ce11ce2847b5ff0986a6534a1aaaa260f8287ede72c0bddba341b0a1f36632",
+          "valid_until": "2026-10-31T07:02:00+00:00"
+        },
+        {
+          "evidence_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+          "image_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "observed_at": "2026-10-31T07:00:01+00:00",
+          "phase": "before",
+          "result": "fail",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "security-fix:61ce11ce2847b5ff0986a6534a1aaaa260f8287ede72c0bddba341b0a1f36632",
+          "valid_until": "2026-10-31T07:02:00+00:00"
+        }
+      ],
+      "proposal_digest": "fcb649c84e60b2ebb53fd99d3a50851fb2d273608c3909543581abcf5846c73b",
+      "request_digest": "7cccde0b5c7b529de4fc4380a55d4af44283fc47f9ae188f8ebe6256a62d853e",
+      "runner_image_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+      "schema_version": 1,
+      "test_bundle_digest": "7777777777777777777777777777777777777777777777777777777777777777",
+      "valid_until": "2026-10-31T07:02:00+00:00",
+      "verifier_image_digest": "6666666666666666666666666666666666666666666666666666666666666666"
+    }
+  }
+}

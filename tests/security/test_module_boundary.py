@@ -43,7 +43,7 @@ def test_canonical_directories_and_sql_point_to_single_sources():
     assert (ROOT / "console").is_dir() and not (ROOT / "console").is_symlink()
     assert not (ROOT / "preview").exists() and not (ROOT / "preview").is_symlink()
     assert not (ROOT / "frontend").exists() and not (ROOT / "frontend").is_symlink()
-    assert len(MIGRATIONS) == 6
+    assert len(MIGRATIONS) == 7
     for name in MIGRATIONS:
         assert migration_sql(name)
         assert not (ROOT / "src/sova/adapters/sql" / name).exists()
