@@ -17,7 +17,7 @@ Sova의 도메인 모델과 외부 변경 경계를 독립 Python 패키지로 �
 | `src/sova/application/plans.py` | 승인·필수 검증·선행 작업을 확인해 계획 단계를 기존 실행 원장으로 전달 |
 | `src/sova/adapters/sqlite_effects.py` | 프리뷰용 SQLite 원장·CAS·자원별 미해결 효과 제한 |
 | `src/sova/adapters/preview.py` | 등록된 SG 변경·로컬 경로 전환을 제한 명령으로 연결 |
-| `preview/server.py` | 기존 HTTP/UI·제어 시험의 진입점과 로컬 정책 |
+| `demo/server.py` | 기존 HTTP/UI·제어 시험의 진입점과 로컬 정책 |
 
 도메인은 클라우드 SDK·프리뷰 서버·DB를 import하지 않는다. 형제 Sky·OneDeploy 디렉터리 없이 별도 디렉터리에서 핵심 모듈을 import하는 시험도 수행했다. 프리뷰의 실제 자원 준비·터널은 기존 운영자 경로를 계속 사용하므로 제품 전체의 독립 설치가 완료됐다는 의미는 아니다.
 
@@ -71,7 +71,7 @@ Sova의 도메인 모델과 외부 변경 경계를 독립 Python 패키지로 �
 ```sh
 cd sova
 python -m pytest -q
-ruff check src tests preview/server.py preview/test_security.py
+ruff check src tests demo/server.py demo/test_security.py
 ```
 
 시험은 실제 SQLite·로컬 HTTP API·별도 DB 연결·자식 프로세스 종료를 사용한다. 프리뷰 연결 시험의 AWS·TLS 경계는 명시적인 fault injection이다. 등록된 클라우드 자원·기존 앱·DB를 변경하지 않는다.

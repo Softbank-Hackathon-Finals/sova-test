@@ -108,7 +108,7 @@ def main():
             timeout=5,
         )
         if process.returncode == 0:
-            assert "preview/server.py" in process.stdout
+            assert "demo/server.py" in process.stdout
             cwd = subprocess.run(
                 ["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"],
                 capture_output=True,

@@ -58,14 +58,14 @@ P0에서는 독립 도메인 모델·검증 의무·외부 효과 원장을 추�
 Python 3.11 이상과 `boto3`가 필요합니다. 정적 화면은 빌드나 외부 CDN 없이 동작합니다.
 
 ```sh
-python preview/server.py
-python preview/check_live.py
-python -m pytest preview/test_security.py
+python demo/server.py
+python demo/check_live.py
+python -m pytest demo/test_security.py
 python -m pytest tests
-node --check preview/web/app.js
+node --check demo/web/app.js
 ```
 
-준비 도구 `preview/prepare.py`는 기존 개인 환경의 고정 이미지·네트워크를 참고하는 운영자 전용 스크립트입니다. 다른 계정이나 빈 환경에서 바로 실행하는 범용 설치 도구가 아닙니다. 등록이 있으면 중복 자원 생성을 거부하며, 실패 후에는 기록과 실제 자원을 확인해야 합니다.
+준비 도구 `demo/prepare.py`는 기존 개인 환경의 고정 이미지·네트워크를 참고하는 운영자 전용 스크립트입니다. 다른 계정이나 빈 환경에서 바로 실행하는 범용 설치 도구가 아닙니다. 등록이 있으면 중복 자원 생성을 거부하며, 실패 후에는 기록과 실제 자원을 확인해야 합니다.
 
 비밀 설정·실행 등록·검증 결과·개발기록은 `.local-notes/`에만 저장하고 Git에서 제외합니다. Sky 및 OneDeploy 소스를 수정하거나 커밋·푸시하지 않았습니다.
 

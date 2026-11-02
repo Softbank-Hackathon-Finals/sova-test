@@ -1279,7 +1279,7 @@ def handler(console, origin, token):
                 }[path]
                 return self.reply(
                     200,
-                    (ROOT / "preview/web" / name).read_bytes(),
+                    (ROOT / "demo/web" / name).read_bytes(),
                     kind,
                     cookie=path == "/",
                 )

@@ -47,11 +47,11 @@ React에는 여섯 영역의 필수 의무·근거·미검증을 표시했다. �
 
 ---
 
-**환경 이전 UI 복원:** React 첫 화면에 AWS→Lima VM 경로·응답 관측·전환/복귀·단계 이력을 추가했다. `preview/migration_bridge.py`가 고정 localhost upstream(기본 8790)의 별도 쿠키를 보관하고 운영자 인증·origin proof 뒤에서만 호출한다. 승인한 실행본 digest·경로 revision을 기존 프리뷰의 실행 잠금 안에서 재검사한다. 만료·정지·미검증 시 변경을 차단하며 자원을 자동 생성하거나 등록을 연장하지 않는다. 11/1 조회에서 과거 AWS 시험 태스크는 `MISSING`이었다. UI 연결·대체물 HTTP 시험은 새 AWS 실배포 검증이 아니다. 범위는 미리 실행된 무상태 앱의 시험 요청 경로 변경이며 DB·세션·ALB/DNS 이전은 포함하지 않는다.
+**환경 이전 UI 복원:** React 첫 화면에 AWS→Lima VM 경로·응답 관측·전환/복귀·단계 이력을 추가했다. `demo/migration_bridge.py`가 고정 localhost upstream(기본 8790)의 별도 쿠키를 보관하고 운영자 인증·origin proof 뒤에서만 호출한다. 승인한 실행본 digest·경로 revision을 기존 프리뷰의 실행 잠금 안에서 재검사한다. 만료·정지·미검증 시 변경을 차단하며 자원을 자동 생성하거나 등록을 연장하지 않는다. 11/1 조회에서 과거 AWS 시험 태스크는 `MISSING`이었다. UI 연결·대체물 HTTP 시험은 새 AWS 실배포 검증이 아니다. 범위는 미리 실행된 무상태 앱의 시험 요청 경로 변경이며 DB·세션·ALB/DNS 이전은 포함하지 않는다.
 
 **후속 실제 환경 재가동:** 운영자 요청에 따라 별도 태그·등록·2시간 기한의 AWS Fargate 시험 태스크와 Lima VM 컨테이너를 새로 준비했다. 기존 네트워크의 확인된 서브넷을 사용하며 이전 참조 태스크가 사라져도 준비할 수 있게 했다. 실제 HTTPS 요청, VM 전환 4단계, AWS 복귀를 직접 검증한 뒤 React의 승인창·전환·업무 요청·복귀도 실제 환경에서 확인했다. 준비 과정에서 확인된 한글 요청의 UTF-8 전송 문제를 수정하고 HTTP 회귀 시험을 추가했다. 종료 시각의 앱 자체 종료와 별도 태그 검증 정리 작업을 함께 예약했다. 게임·업무 DB·공개 DNS는 변경하지 않았다. 현재 서버 수명과 상세 기록은 비공개 실행 등록을 기준으로 하며, 이 검증도 앱·DB·세션 전체 이전 또는 무중단 자격을 의미하지 않는다.
 
-**후속 UI 통합:** [React 운영 콘솔](../frontend/README.md)을 추가했다. 동일 origin의 운영자 인증으로 로컬 프로세스 지도와 k3s 보안 대응을 선택한다. 실행 backend와 앱 신원을 합친 것은 아니다. Python 전체 **579개**(실제 임시 PG 110개), 프론트엔드 **17개** 시험과 실제 읽기 전용 브라우저·모바일·오프라인·로그아웃 검증을 통과했다. 최신 UI 작업에서도 앱의 격리 상태와 기존 작업·효과·경로·보류 기록을 유지했다. 상세 개발기록은 비공개 `.local-notes/react-console-validation-20261101/`에 보존한다.
+**후속 UI 통합:** [React 운영 콘솔](../console/README.md)을 추가했다. 동일 origin의 운영자 인증으로 로컬 프로세스 지도와 k3s 보안 대응을 선택한다. 실행 backend와 앱 신원을 합친 것은 아니다. Python 전체 **579개**(실제 임시 PG 110개), 프론트엔드 **17개** 시험과 실제 읽기 전용 브라우저·모바일·오프라인·로그아웃 검증을 통과했다. 최신 UI 작업에서도 앱의 격리 상태와 기존 작업·효과·경로·보류 기록을 유지했다. 상세 개발기록은 비공개 `.local-notes/react-console-validation-20261101/`에 보존한다.
 
 **최신 체크포인트:** 아래 표가 현재 범위다. 뒤의 265·303·344개 결과는 이전 단계의 이력이며 현재 테스트 수가 아니다. 로컬 보안 콘솔과 PostgreSQL 보안 대응은 연결했지만, 기존 AWS·VM 프리뷰 전체를 새 제어면으로 교체한 상태는 아니다.
 
@@ -66,15 +66,15 @@ React에는 여섯 영역의 필수 의무·근거·미검증을 표시했다. �
 | 계획·승인·snapshot | `postgres_plans.py` 등 | 실제 임시 PG, 불변 저장·RLS·승인 재조회 | 기업 인증·웹·운영 TLS/복원 |
 | 접수·outbox | `postgres_operations.py` 등 | 원자 접수·멱등·리스·relay·프로세스 종료 | 실제 큐 publisher/consumer |
 | 실행권·효과 | `postgres_execution.py`, `postgres_effects.py` | epoch/token·CAS·미해결 효과 barrier·조회 복구 | 실제 provider quiescence proof·원격 fencing |
-| 로컬 동적 지도 | `preview/graph_demo.py` | 등록된 실제 Python 프로세스·의존 호출·부분 격리·공통 그래프 연결 | Kubernetes 실행·OTel·제품 API |
-| AWS·VM 프리뷰 | `preview/server.py` 등 | 과거 실제 HTTPS·SG 격리·준비된 앱 간 경로 변경 | 독립 환경 설치·데이터 이전·HA·상시 운영 |
+| 로컬 동적 지도 | `demo/graph_demo.py` | 등록된 실제 Python 프로세스·의존 호출·부분 격리·공통 그래프 연결 | Kubernetes 실행·OTel·제품 API |
+| AWS·VM 프리뷰 | `demo/server.py` 등 | 과거 실제 HTTPS·SG 격리·준비된 앱 간 경로 변경 | 독립 환경 설치·데이터 이전·HA·상시 운영 |
 | 보안 거버넌스 | `domain/governance.py`, `application/governance.py`, `postgres_governance.py` | 필수 통제 판정·독립 보류·분리 해제·실행 직전 재검사·PG 이력/CAS/RLS·앱별 보류 집합 DB 잠금 | 기업 인증·권한 broker·범용 예외·외부 환경 자격 |
 | 보호 수준 비교 | `domain/protection_parity.py`, `protection_profiles.py`, `application/protection_parity.py` | provider/어댑터/실제 근거 구분·최소 프로필 고정·만료/드리프트/보류 차단·PG 정책/판정 이력 | 전체 보호 probe·호스팅 실행 경로의 필수 조립 |
 | 발행자 신뢰 | `domain/verifier_registry.py`, `postgres_verifier_registry.py` | 실제 Ed25519 근거·공개키 등록/폐기·분리 승인 계약·PG 역할 거부 | 기업 승인 신원·독립 signer·키 보관/회전 운영 |
 | RDS 보안 조사 | `adapters/aws_rds_security.py` | 정확한 DB 등록·읽기 전용 SDK·값 제거·6개 설정 검사. SDK 응답 대체물 시험 | 실제 AWS 계정 읽기 자격·런타임 접근/TLS/감사/복원 |
-| 제한 보안 대응 | `application/security_response_runner.py`, `preview/security_console.py` | 실제 로컬 k3s 격리·대체 기동·시험 경로 전환·PG 원자 완료/실행권 반환·응답 유실 조회 복구 | 독립 권한 broker·일반 앱·DB/세션·외부 환경 이전 |
-| 로컬 콘솔 | `preview/operator_auth.py`, `bounded_http.py`, `security_web/` | 일회용 소유자 로그인·origin 전용 proof·세션 만료·유한 HTTP 자원·설정 비교·실제 브라우저 흐름 | 공개 운영 API·기업 SSO·사용자/조직 인가 |
-| 계획별 Kubernetes 권한 | `preview/kubernetes_access.py` | 실제 RBAC·admission·다른 앱 영향·권한 회수, 제한 토큰으로 실제 네 효과 완료 | 콘솔의 운영 권한 발급 연결·계획 기한 broker·외부 클러스터 자격 |
+| 제한 보안 대응 | `application/security_response_runner.py`, `demo/security_console.py` | 실제 로컬 k3s 격리·대체 기동·시험 경로 전환·PG 원자 완료/실행권 반환·응답 유실 조회 복구 | 독립 권한 broker·일반 앱·DB/세션·외부 환경 이전 |
+| 로컬 콘솔 | `demo/operator_auth.py`, `bounded_http.py`, `security_web/` | 일회용 소유자 로그인·origin 전용 proof·세션 만료·유한 HTTP 자원·설정 비교·실제 브라우저 흐름 | 공개 운영 API·기업 SSO·사용자/조직 인가 |
+| 계획별 Kubernetes 권한 | `demo/kubernetes_access.py` | 실제 RBAC·admission·다른 앱 영향·권한 회수, 제한 토큰으로 실제 네 효과 완료 | 콘솔의 운영 권한 발급 연결·계획 기한 broker·외부 클러스터 자격 |
 | 제어 기록 복원 | 비공개 검증 도구 | 동일 snapshot dump/restore·전체 행/hash·FORCE RLS·폐기 상태 보존 | 암호화 원격 백업·앱 DB 이전·HA/DR·운영 RPO/RTO |
 | DB/AI 이전·비용·거버넌스 | `docs/design/` | 목표 계약 | Sova 통합·실환경 자격 |
 

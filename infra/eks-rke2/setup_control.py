@@ -12,7 +12,7 @@ from psycopg import sql
 from psycopg.conninfo import make_conninfo
 
 PROJECT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(PROJECT / "preview"))
+sys.path.insert(0, str(PROJECT / "demo"))
 from security_demo import Demo
 
 

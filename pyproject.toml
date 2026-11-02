@@ -39,13 +39,8 @@ target-version = "py311"
 select = ["E4", "E7", "E9", "F"]
 
 [tool.ruff.lint.per-file-ignores]
-"preview/server.py" = ["E402"] # Standalone preview bootstraps the local src package.
-"preview/graph_demo.py" = ["E402"]
-
-"preview/security_console.py" = ["E402"] # Source-checkout preview bootstraps its own src package.
-"preview/relocation_server.py" = ["E402"] # Owner-local qualification entry bootstraps src.
-"infra/eks-rke2/setup_control.py" = ["E402"] # Reuses the source-checkout preview setup.
-"infra/eks-rke2/qualify_route.py" = ["E402"] # Local validation imports the fixed preview bridge.
+"infra/eks-rke2/setup_control.py" = ["E402"] # Reuses the source-checkout demo setup.
+"infra/eks-rke2/qualify_route.py" = ["E402"] # Local validation imports the fixed demo bridge.
 
 "demo/server.py" = ["E402"]
 "demo/graph_demo.py" = ["E402"]

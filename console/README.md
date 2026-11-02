@@ -19,7 +19,7 @@ React·TypeScript·Vite·React Flow 기반의 로컬 운영자 화면이다. 기
 ## 빌드·시험
 
 ```sh
-cd frontend
+cd console
 npm ci --ignore-scripts
 npm test
 npm run format:check

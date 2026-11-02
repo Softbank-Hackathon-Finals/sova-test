@@ -37,9 +37,11 @@ def test_security_module_does_not_import_console_or_demo_runtimes():
             assert all(name.split(".")[0] not in forbidden for name in names), str(path)
 
 
-def test_compatibility_directories_and_sql_point_to_single_sources():
-    assert (ROOT / "preview").resolve() == ROOT / "demo"
-    assert (ROOT / "frontend").resolve() == ROOT / "console"
+def test_canonical_directories_and_sql_point_to_single_sources():
+    assert (ROOT / "demo").is_dir() and not (ROOT / "demo").is_symlink()
+    assert (ROOT / "console").is_dir() and not (ROOT / "console").is_symlink()
+    assert not (ROOT / "preview").exists() and not (ROOT / "preview").is_symlink()
+    assert not (ROOT / "frontend").exists() and not (ROOT / "frontend").is_symlink()
     for path in (ROOT / "src/sova/security/adapters/sql").glob("*.sql"):
         legacy = ROOT / "src/sova/adapters/sql" / path.name
         assert legacy.resolve() == path

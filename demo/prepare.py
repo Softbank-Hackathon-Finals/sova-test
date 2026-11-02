@@ -131,7 +131,7 @@ def main(argv=None):
     )
     run = secrets.token_hex(6)
     name = "sova-probe-" + run
-    code = (ROOT / "preview/workload.py").read_text()
+    code = (ROOT / "demo/workload.py").read_text()
     revision = hashlib.sha256(code.encode()).hexdigest()
     state = {
         "run_id": run,

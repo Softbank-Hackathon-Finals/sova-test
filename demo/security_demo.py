@@ -312,7 +312,7 @@ class Demo:
             result = subprocess.run(
                 [
                     sys.executable,
-                    str(PROJECT / "preview/demo_setup" / (step + ".py")),
+                    str(PROJECT / "demo/demo_setup" / (step + ".py")),
                     str(self.root),
                 ],
                 cwd=PROJECT,
@@ -335,7 +335,7 @@ class Demo:
         self.dependency = self.spawn(
             [
                 sys.executable,
-                str(PROJECT / "preview/graph_demo.py"),
+                str(PROJECT / "demo/graph_demo.py"),
                 "--port",
                 str(self.settings["dependency_port"]),
                 "--until",
@@ -392,13 +392,13 @@ class Demo:
         self.console = self.spawn(
             [
                 sys.executable,
-                str(PROJECT / "preview/security_console.py"),
+                str(PROJECT / "demo/security_console.py"),
                 "--session-root",
                 str(self.root),
                 "--port",
                 str(self.settings["port"]),
                 "--ui-root",
-                str(PROJECT / "frontend/dist"),
+                str(PROJECT / "console/dist"),
                 *extra,
             ],
             "console",
@@ -650,8 +650,8 @@ def main():
                 parser.error("PostgreSQL executable missing: " + binary)
         if " 17." not in checked([str(args.pg_bin / "pg_ctl"), "--version"]):
             parser.error("this demo profile requires PostgreSQL 17")
-        if not (PROJECT / "frontend/dist/index.html").is_file():
-            parser.error("Build frontend first: npm run build")
+        if not (PROJECT / "console/dist/index.html").is_file():
+            parser.error("Build console first: cd console && npm run build")
         with socket.socket() as check:
             check.bind(("127.0.0.1", args.port))
         if not args.security_only:

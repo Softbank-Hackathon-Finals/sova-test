@@ -18,7 +18,7 @@ import time
 
 PROJECT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT / "src"))
-sys.path.insert(0, str(PROJECT / "preview"))
+sys.path.insert(0, str(PROJECT / "demo"))
 from migration_bridge import MigrationBridge
 
 

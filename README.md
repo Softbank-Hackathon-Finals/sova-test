@@ -54,7 +54,7 @@ tests/unit/        # 공통 제어면 단위 시험
 tests/integration/ # 공통 통합 시험과 공유 PostgreSQL fixture
 ```
 
-`preview/ → demo/`, `frontend/ → console/`는 기존 명령을 위한 호환 연결이다. 이전 보안 import 경로도 동일한 모듈로 연결한다. 새 코드는 `sova.security.*`, `console/`, `demo/` 경로를 사용한다.
+프론트엔드는 `console/`, 시연 서버·실험 도구는 `demo/`를 사용한다. 예전 최상위 경로의 호환 링크는 제거했다. 이전 보안 Python import 경로는 동일한 모듈로 연결하며, 새 코드는 `sova.security.*`를 사용한다.
 
 팀 보안 통합의 시작점은 [통합 명세](integration/security/manifest.json)다. 보안 모듈은 공통 scope·계획·증거·실행 원장을 사용하므로 독립 배포 패키지는 아니다. `qualification/`은 등록된 시험 환경 전용이며 일반 고객 환경의 프로덕션 어댑터로 간주하지 않는다. Harbor runner 구현은 기존 담당 경계를 유지한다.
 

@@ -9,7 +9,7 @@ __pycache__/
 build/
 dist/
 node_modules/
-frontend/coverage/
+console/coverage/
 
 # Local state, generated output, and credentials
 .DS_Store

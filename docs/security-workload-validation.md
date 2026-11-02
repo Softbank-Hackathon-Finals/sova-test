@@ -32,7 +32,7 @@ Ed25519 envelope는 근거의 전체 scope·revision·결과·artifact digest·�
 
 ## 화면과 확인 결과
 
-검증용 화면은 `preview/security_console.py`와 `preview/security_web/`에 있다. 임의 ZIP·kubeconfig·URL·명령을 받지 않는다. 운영자가 준비한 전용 시험 등록만 사용한다.
+검증용 화면은 `demo/security_console.py`와 `demo/security_web/`에 있다. 임의 ZIP·kubeconfig·URL·명령을 받지 않는다. 운영자가 준비한 전용 시험 등록만 사용한다.
 
 실제 브라우저에서 다음을 확인했다.
 
