@@ -211,7 +211,27 @@
             "resource_id": "owned-ingress",
             "tenant_id": "tenant-a"
           },
+          "test_id": "data-safety"
+        },
+        {
+          "baseline_expected": "pass",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
           "test_id": "functional"
+        },
+        {
+          "baseline_expected": "pass",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "protection"
         },
         {
           "baseline_expected": "fail",
@@ -303,6 +323,36 @@
             "resource_id": "owned-ingress",
             "tenant_id": "tenant-a"
           },
+          "test_id": "data-safety",
+          "valid_until": "2026-10-31T07:02:00+00:00"
+        },
+        {
+          "evidence_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+          "image_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "observed_at": "2026-10-31T07:00:01+00:00",
+          "phase": "before",
+          "result": "pass",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "data-safety",
+          "valid_until": "2026-10-31T07:02:00+00:00"
+        },
+        {
+          "evidence_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+          "image_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+          "observed_at": "2026-10-31T07:00:02+00:00",
+          "phase": "after",
+          "result": "pass",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
           "test_id": "functional",
           "valid_until": "2026-10-31T07:02:00+00:00"
         },
@@ -319,6 +369,36 @@
             "tenant_id": "tenant-a"
           },
           "test_id": "functional",
+          "valid_until": "2026-10-31T07:02:00+00:00"
+        },
+        {
+          "evidence_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+          "image_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+          "observed_at": "2026-10-31T07:00:02+00:00",
+          "phase": "after",
+          "result": "pass",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "protection",
+          "valid_until": "2026-10-31T07:02:00+00:00"
+        },
+        {
+          "evidence_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+          "image_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "observed_at": "2026-10-31T07:00:01+00:00",
+          "phase": "before",
+          "result": "pass",
+          "scope": {
+            "application_id": "app-a",
+            "environment_id": "environment-a",
+            "resource_id": "owned-ingress",
+            "tenant_id": "tenant-a"
+          },
+          "test_id": "protection",
           "valid_until": "2026-10-31T07:02:00+00:00"
         },
         {
@@ -353,7 +433,7 @@
         }
       ],
       "proposal_digest": "fcb649c84e60b2ebb53fd99d3a50851fb2d273608c3909543581abcf5846c73b",
-      "request_digest": "7cccde0b5c7b529de4fc4380a55d4af44283fc47f9ae188f8ebe6256a62d853e",
+      "request_digest": "7d186f117723a5aecdd3086c36e9a1fb7de2d52497b7393bbf80579eeae3a5b9",
       "runner_image_digest": "4444444444444444444444444444444444444444444444444444444444444444",
       "schema_version": 1,
       "test_bundle_digest": "7777777777777777777777777777777777777777777777777777777777777777",

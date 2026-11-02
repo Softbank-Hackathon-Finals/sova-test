@@ -37,6 +37,7 @@ class PatchPlanExecutionService:
         patch_guard,
         binding_for,
         observe_runtime,
+        reassessment_for,
         authenticate_runtime,
         authenticate_binding,
         authorize,
@@ -49,6 +50,7 @@ class PatchPlanExecutionService:
         self.patch_guard = patch_guard
         self.binding_for = binding_for
         self.observe_runtime = observe_runtime
+        self.reassessment_for = reassessment_for
         self.authenticate_runtime = authenticate_runtime
         self.authenticate_binding = authenticate_binding
         self.authorize = authorize
@@ -77,6 +79,10 @@ class PatchPlanExecutionService:
                 deadline = min(deadline, base.governance_guard(plan, at))
             return deadline
 
+        def authenticate_approval(plan, approval):
+            require_accept(base.authenticate_approval, plan, approval)
+            self.patch_guard.check_approval(plan, approval)
+
         # Compose the patch guard here so callers cannot accidentally omit it.
         # Do not mutate a shared executor used by another actor or operation.
         guarded = StoredPlanExecutor(
@@ -84,7 +90,7 @@ class PatchPlanExecutionService:
             ApprovedPlanExecutor(
                 base.effects,
                 required_obligations=base.required_obligations,
-                authenticate_approval=base.authenticate_approval,
+                authenticate_approval=authenticate_approval,
                 authenticate_evidence=base.authenticate_evidence,
                 governance_guard=guard,
                 execution_gate=base.execution_gate,
@@ -122,11 +128,17 @@ class PatchPlanExecutionService:
             )
             require_accept(self.authenticate_binding, actor, binding)
             proof = self.observe_runtime(command, binding)
+            reassessment = self.reassessment_for(proof)
             require_accept(self.authenticate_runtime, actor, binding, command, proof)
             if self.binding_for(command) != binding:
                 raise ContractError("Patch binding revoked during final verification")
             require_postflight(
-                binding, proof, command=command, not_before=started, now=self.clock()
+                binding,
+                proof,
+                command=command,
+                not_before=started,
+                now=self.clock(),
+                reassessment=reassessment,
             )
             require_accept(
                 self.authorize, actor, command.scope, "security:verify-patch"
@@ -136,10 +148,17 @@ class PatchPlanExecutionService:
                 raise ContractError("Patch binding changed during runtime verification")
             # Recheck signature/trust after any host I/O, then clock/validity.
             require_accept(self.authenticate_runtime, actor, binding, command, proof)
+            if self.reassessment_for(proof) != reassessment:
+                raise ContractError("Patch reassessment changed during verification")
             if utc(self.clock()) < started:
                 raise ContractError("Execution verification clock moved backwards")
             require_postflight(
-                binding, proof, command=command, not_before=started, now=self.clock()
+                binding,
+                proof,
+                command=command,
+                not_before=started,
+                now=self.clock(),
+                reassessment=reassessment,
             )
             return VerifiedPatchStep(effect, proof)
         except Exception as error:

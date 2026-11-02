@@ -46,6 +46,7 @@ def postgres_database():
         admin.execute(migration_sql("postgres_signed_evidence_v1.sql"))
         admin.execute(migration_sql("postgres_protection_parity_v1.sql"))
         admin.execute(migration_sql("postgres_verifier_registry_v1.sql"))
+        admin.execute(migration_sql("postgres_modernization_v1.sql"))
         admin.execute(migration_sql("postgres_migration_programs_v1.sql"))
         admin.execute(
             sql.SQL(

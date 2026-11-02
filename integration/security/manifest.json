@@ -8,7 +8,7 @@
     "sova.domain.workflows"
   ],
   "sql_directory": "sova_security.adapters:sql via importlib.resources",
-  "sql_requires": "Host creates sova_control schema. Security package owns six table migrations; operations status, routes and atomic response completion migrations remain host-owned.",
+  "sql_requires": "Host creates sova_control schema. Security package owns seven migrations including modernization artifact registration/revocation; operations status, routes and atomic response completion migrations remain host-owned.",
   "qualification_adapters": "src/sova/security/qualification; owned local test profile only, not general production adapters",
   "demo_runtime": "demo/; not needed to import the security module",
   "harbor_runner": "Team-owned src/sova/adapters/sandbox/harbor.py unchanged",
