@@ -1,0 +1,167 @@
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #263854;
+  background: #f3f6fb;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 5vw;
+  background: white;
+  border-bottom: 1px solid #e0e6f0;
+}
+header span {
+  display: block;
+  font-size: 12px;
+  color: #77859a;
+  margin-top: 5px;
+}
+main {
+  max-width: 1100px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+.card {
+  padding: 24px;
+  background: white;
+  border: 1px solid #e0e6f0;
+  border-radius: 18px;
+}
+#login {
+  max-width: 500px;
+  margin: 70px auto;
+}
+p,
+small {
+  line-height: 1.7;
+  color: #718096;
+}
+h1 {
+  font-size: 24px;
+}
+h2 {
+  font-size: 17px;
+  margin-top: 0;
+}
+button {
+  background: #356cde;
+  color: white;
+  border: 0;
+  border-radius: 9px;
+  padding: 11px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+input,
+textarea {
+  font: inherit;
+  width: 100%;
+  border: 1px solid #ced8e8;
+  border-radius: 9px;
+  padding: 11px;
+  margin: 8px 0;
+}
+label {
+  font-size: 12px;
+  color: #64748b;
+}
+#workspace:not([hidden]) {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 20px;
+}
+#rooms button {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+  background: #eaf0ff;
+  color: #365789;
+  text-align: left;
+}
+.chat {
+  min-width: 0;
+}
+#messages {
+  list-style: none;
+  padding: 0;
+  height: 340px;
+  overflow: auto;
+}
+#messages li {
+  padding: 12px 14px;
+  margin: 9px 0;
+  border-radius: 12px;
+  background: #f1f5fb;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+#messages li.own {
+  background: #eaf0ff;
+}
+#messages small {
+  display: block;
+  font-size: 10px;
+  margin-top: 6px;
+}
+#message-form {
+  border-top: 1px solid #edf0f5;
+  padding-top: 16px;
+}
+#message-form textarea {
+  height: 75px;
+  resize: vertical;
+}
+.tools {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin: 20px 0;
+}
+#attachment button {
+  margin-right: 8px;
+}
+#summary-result {
+  white-space: pre-wrap;
+}
+#connection {
+  font-size: 12px;
+}
+#status {
+  color: #8b5361;
+}
+#logout {
+  background: #eaf0ff;
+  color: #365789;
+}
+[hidden] {
+  display: none !important;
+}
+@media (max-width: 700px) {
+  #workspace:not([hidden]) {
+    grid-template-columns: 1fr;
+  }
+  .tools {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .card {
+    padding: 18px;
+  }
+  #messages {
+    height: 280px;
+  }
+}

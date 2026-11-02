@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sova 상담 서비스 · 시험 앱</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <div>
+        <strong>상담 서비스</strong
+        ><span>가상 고객 데이터 · 이전 검증용 앱</span>
+      </div>
+      <button id="logout" hidden>로그아웃</button>
+    </header>
+    <main>
+      <section id="login" class="card">
+        <h1>상담에 참여하세요</h1>
+        <p>
+          운영자가 발급한 시험용 일회용 초대코드로 접속합니다. 실제 고객정보를
+          입력하지 마세요.
+        </p>
+        <form id="login-form">
+          <label for="invite">초대코드</label
+          ><input
+            id="invite"
+            type="password"
+            autocomplete="off"
+            required
+          /><button>접속</button>
+        </form>
+      </section>
+      <section id="workspace" hidden>
+        <aside class="card">
+          <h2 id="identity">상담방</h2>
+          <div id="rooms"></div>
+          <button id="new-room">새 상담 시작</button>
+          <p id="environment">환경 확인 중</p>
+          <p id="connection" role="status">연결 대기</p>
+        </aside>
+        <article class="card chat">
+          <h2 id="room-title">상담방을 선택하세요</h2>
+          <ol id="messages" aria-live="polite"></ol>
+          <form id="message-form">
+            <label for="content">메시지</label
+            ><textarea
+              id="content"
+              maxlength="4096"
+              required
+              placeholder="합성 데이터로 상담 내용을 입력하세요"
+            ></textarea
+            ><button id="send">전송</button>
+          </form>
+          <div class="tools">
+            <label>작은 첨부파일<input id="file" type="file" /></label
+            ><button id="summary">AI 요약</button>
+          </div>
+          <div id="attachment"></div>
+          <p id="summary-result"></p>
+          <small
+            >전송 대기는 이 탭의 메모리에만 유지됩니다. 저장 확인 전에는 탭을
+            닫지 마세요.</small
+          >
+        </article>
+      </section>
+      <p id="status" role="status"></p>
+    </main>
+  </body>
+</html>

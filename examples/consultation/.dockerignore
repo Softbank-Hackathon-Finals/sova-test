@@ -1,0 +1,11 @@
+**
+!__init__.py
+!storage.py
+!objects.py
+!telemetry.py
+!private_files.py
+!service.py
+!requirements.lock
+!web
+!web/**
+web/*.test.mjs
