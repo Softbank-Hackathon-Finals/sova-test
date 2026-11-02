@@ -1,0 +1,33 @@
+# Single-node ARM64 qualification destination, not production HA.
+minimumLimaVersion: 2.0.0
+vmType: vz
+arch: aarch64
+cpus: 2
+memory: 4GiB
+disk: 20GiB
+images:
+  - location: https://cloud-images.ubuntu.com/releases/noble/release-20260926/ubuntu-24.04-server-cloudimg-arm64.img
+    arch: aarch64
+    digest: sha256:1d6bffe64b848468ac97f821d369a4846d983de1800ccf6b5ec8853e85cefc55
+mounts: []
+containerd:
+  system: false
+  user: false
+portForwards:
+  - guestIP: 127.0.0.1
+    guestPort: 6443
+    hostIP: 127.0.0.1
+    hostPort: 19753
+  - guestPort: 30080
+    hostIP: 127.0.0.1
+    hostPort: 19980
+  - guestPortRange: [1, 65535]
+    ignore: true
+provision:
+  - mode: system
+    script: |
+      #!/bin/sh
+      set -eu
+      install -d -m 0700 /var/lib/sova-qualification
+      printf '%s\n' 'sova-rke2-qualification-v1' > /etc/sova-qualification-id
+      chmod 0600 /etc/sova-qualification-id
