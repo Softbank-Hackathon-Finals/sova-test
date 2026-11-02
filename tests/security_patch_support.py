@@ -100,3 +100,90 @@ def patch_rescan(inputs, baseline, proposal, artifact, at):
         now=at,
     )
     return result, assessment, after
+
+
+def signed_input_authority(connect, scope, values, *, revisions, clock):
+    """Real scoped PG keys/envelopes for tests; synthetic source observations."""
+    from datetime import timedelta
+    from uuid import uuid4
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from sova_security.adapters.assessment_evidence import (
+        AssessmentInputAuthority,
+        assessment_input_record,
+    )
+    from sova_security.adapters.ed25519_evidence import Ed25519EvidenceSigner
+    from sova_security.adapters.modernization_codec import kind_of
+    from sova_security.adapters.postgres_signed_evidence import PostgresSignedEvidence
+    from sova_security.adapters.postgres_verifier_registry import (
+        PostgresVerifierRegistry,
+    )
+    from sova_security.domain.signed_evidence import VerifierTrust
+    from sova_security.domain.verifier_registry import VerifierTrustChange
+
+    signed = PostgresSignedEvidence(connect, tenant_id=scope.tenant_id)
+    registry = PostgresVerifierRegistry(
+        connect, tenant_id=scope.tenant_id, application_id=scope.application_id
+    )
+    identifiers, issuers, changes = {}, {}, {}
+    for value in values:
+        kind = kind_of(value)
+        signer = Ed25519EvidenceSigner(
+            Ed25519PrivateKey.generate(),
+            issuer_id="input-" + uuid4().hex,
+            key_id="test-only-key",
+        )
+        record = assessment_input_record(
+            value, revisions=revisions, evidence_id="input-" + uuid4().hex
+        )
+        now = clock()
+        trust = VerifierTrust(
+            signer.issuer_id,
+            signer.key_id,
+            signer.public_key_hex,
+            (scope,),
+            (record.verifier_version,),
+            record.observed_at - timedelta(seconds=1),
+            record.valid_until + timedelta(minutes=1),
+        )
+        change = VerifierTrustChange(
+            scope.tenant_id,
+            scope.application_id,
+            1,
+            trust,
+            "input-key-requester",
+            "input-key-approver",
+            "isolated-test-registration",
+            now,
+            now + timedelta(minutes=1),
+        )
+        registry.publish(change)
+        signed.save_envelope(signer.sign(record, issued_at=clock()))
+        identifiers[value.fingerprint] = record.evidence_id
+        issuers[kind] = (signer.issuer_id,)
+        changes[kind] = change
+    authority = AssessmentInputAuthority(
+        envelope_provider=lambda actor, subject, value: signed.get_envelope(
+            subject.application_id, identifiers[value.fingerprint]
+        ),
+        current_revisions=lambda _: revisions,
+        issuers_for=lambda subject, kind: issuers[kind],
+        resolve_trust=registry.resolve,
+        authorize=lambda *_: None,
+        clock=clock,
+    )
+
+    def revoke(kind):
+        change = changes[kind]
+        now = clock()
+        registry.publish(
+            replace(
+                change,
+                revision=2,
+                trust=replace(change.trust, revoked=True),
+                reason="controlled-test-revocation",
+                approved_at=now,
+                approval_until=now + timedelta(minutes=1),
+            )
+        )
+
+    return authority, revoke

@@ -6,7 +6,7 @@ from dataclasses import replace
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from security_patch_support import patch_bundle, patch_rescan
+from security_patch_support import patch_bundle, patch_rescan, signed_input_authority
 from sova.adapters.postgres_operations import PostgresOperationRepository
 from sova.adapters.postgres_execution import PostgresExecutionOwnership
 from sova.adapters.postgres_effects import PostgresEffectJournal
@@ -42,7 +42,7 @@ from sova_security.application.remediation import RehearsalAdmissionService
 from sova_security.application.patch_execution import PatchExecutionGuard
 from sova_security.domain.patch_execution import compile_patch, PatchRuntimeObservation
 from sova_security.domain.signed_evidence import VerifierTrust
-from sova_security.contracts.evidence import VerificationResult as R
+from sova_security.contracts.evidence import VerificationResult as R, RevisionSet
 
 pytestmark = pytest.mark.postgres
 
@@ -93,9 +93,22 @@ def setup(postgres_bundle):
     receipt_authority = RehearsalReceiptAuthority(
         envelope_provider=lambda *_: envelope, resolve_trust=resolve, clock=clock
     )
+    input_authority, revoke_input = signed_input_authority(
+        lifecycle.connect,
+        scope,
+        (*inputs, assessment, request),
+        revisions=RevisionSet(
+            inputs[0].source_digest,
+            inputs[0].configuration_digest,
+            inputs[3].fingerprint,
+            "e" * 64,
+        ),
+        clock=clock,
+    )
+    state["revoke_input"] = revoke_input
     admission = RehearsalAdmissionService(
         authorize=lambda *_: None,
-        authenticate_input=lambda *_: None,
+        authenticate_input=input_authority,
         authenticate_receipt=receipt_authority,
         current_inputs=lambda _: inputs,
         current_request=lambda _, id: artifacts.request(scope, id),
@@ -293,5 +306,13 @@ def test_pg_revoked_approval_is_checked_before_provider_apply(setup):
         plan.application_id, "approval", expected_revision=1, actor_id="reviewer"
     )
     with pytest.raises(ContractError):
+        run()
+    assert state["calls"] == 0
+
+
+def test_pg_revoked_scan_issuer_blocks_approved_patch_before_provider_call(setup):
+    state, run, _, _, _, _, _ = setup
+    state["revoke_input"]("vulnerability-scan.v1")
+    with pytest.raises(ContractError, match="revoked"):
         run()
     assert state["calls"] == 0
