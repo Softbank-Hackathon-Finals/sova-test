@@ -4,6 +4,7 @@ import ast
 import importlib
 import json
 from pathlib import Path
+from bravo_security.migrations import MIGRATIONS, migration_sql
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = json.loads((ROOT / "integration/security/manifest.json").read_text())
@@ -42,6 +43,10 @@ def test_canonical_directories_and_sql_point_to_single_sources():
     assert (ROOT / "console").is_dir() and not (ROOT / "console").is_symlink()
     assert not (ROOT / "preview").exists() and not (ROOT / "preview").is_symlink()
     assert not (ROOT / "frontend").exists() and not (ROOT / "frontend").is_symlink()
+    assert len(MIGRATIONS) == 6
+    for name in MIGRATIONS:
+        assert migration_sql(name)
+        assert not (ROOT / "src/sova/adapters/sql" / name).exists()
     for path in (ROOT / "src/sova/security/adapters/sql").glob("*.sql"):
         legacy = ROOT / "src/sova/adapters/sql" / path.name
         assert legacy.resolve() == path

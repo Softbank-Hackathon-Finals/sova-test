@@ -138,6 +138,8 @@ class Demo:
         with psycopg.connect(admin, autocommit=True) as conn:
             conn.execute("CREATE DATABASE sova_console")
         admin = make_conninfo(admin, dbname="sova_console")
+        from sova.adapters.sql_resources import migration_sql
+
         with psycopg.connect(admin, autocommit=True) as conn:
             for name in (
                 "postgres_lifecycle_v1",
@@ -151,9 +153,7 @@ class Demo:
                 "postgres_protection_parity_v1",
                 "postgres_verifier_registry_v1",
             ):
-                conn.execute(
-                    (PROJECT / "src/sova/adapters/sql" / (name + ".sql")).read_text()
-                )
+                conn.execute(migration_sql(name + ".sql"))
             for role, write in (
                 ("sova_security_recorder", True),
                 ("sova_security_viewer", False),

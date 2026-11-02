@@ -1,11 +1,6 @@
-from typing import Protocol
-from sova.security.domain.signed_evidence import EvidenceEnvelope
+"""Compatibility alias; canonical implementation is bravo_security.ports.signed_evidence."""
 
+import sys
+from importlib import import_module
 
-class SignedEvidenceRepository(Protocol):
-    tenant_id: str
-
-    def save_envelope(self, envelope: EvidenceEnvelope) -> None: ...
-    def get_envelope(
-        self, application_id: str, evidence_id: str
-    ) -> EvidenceEnvelope: ...
+sys.modules[__name__] = import_module('bravo_security.ports.signed_evidence')

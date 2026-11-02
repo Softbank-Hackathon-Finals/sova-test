@@ -1,1 +1,0 @@
-../../security/adapters/sql/postgres_security_observations_v1.sql

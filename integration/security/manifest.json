@@ -2,25 +2,17 @@
   "canonical_python_root": "src/sova/security",
   "console_feature": "console/src/features/security",
   "common_platform_dependencies": [
-    "sova.adapters.plan_codec",
-    "sova.adapters.postgres_plans",
-    "sova.adapters.registration.graph_codec",
     "sova.application.effects",
     "sova.application.plans",
     "sova.application.stored_plans",
-    "sova.domain.contracts",
-    "sova.domain.evidence",
-    "sova.domain.plans",
-    "sova.domain.system_graph",
-    "sova.domain.workflows",
-    "sova.ports.plans"
+    "sova.domain.workflows"
   ],
-  "sql_directory": "src/sova/security/adapters/sql",
-  "sql_requires": "Shared lifecycle, operations and execution schemas before security migrations",
+  "sql_directory": "bravo_security.adapters:sql via importlib.resources",
+  "sql_requires": "Host creates sova_control schema. Security package owns six table migrations; operations status, routes and atomic response completion migrations remain host-owned.",
   "qualification_adapters": "src/sova/security/qualification; owned local test profile only, not general production adapters",
   "demo_runtime": "demo/; not needed to import the security module",
   "harbor_runner": "Team-owned src/sova/adapters/sandbox/harbor.py unchanged",
-  "standalone_package": false,
+  "standalone_package": true,
   "compatibility_aliases": {
     "sova.domain.posture": "sova.security.domain.posture",
     "sova.domain.governance": "sova.security.domain.governance",
@@ -74,5 +66,10 @@
   "source_tree_only_aliases": [
     "kubernetes_access",
     "kubernetes_response"
-  ]
+  ],
+  "package_distribution": "bravo-security",
+  "package_version": "0.1.0",
+  "package_import": "bravo_security",
+  "canonical_python_root_note": "Compatibility aliases to installed bravo_security; host execution runner and qualification adapters remain in Sova.",
+  "public_contracts": "bravo_security.contracts v1; versioned extraction baseline, not an assertion that team platform has adopted these contracts."
 }

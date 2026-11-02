@@ -1,1 +1,0 @@
-../../security/adapters/sql/postgres_verifier_registry_v1.sql

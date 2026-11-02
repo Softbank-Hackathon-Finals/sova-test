@@ -1,1 +1,0 @@
-../../security/adapters/sql/postgres_signed_evidence_v1.sql

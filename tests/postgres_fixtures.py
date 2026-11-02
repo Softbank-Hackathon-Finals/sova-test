@@ -8,6 +8,7 @@ import psycopg
 from psycopg import sql
 import pytest
 from sova.adapters.postgres_plans import PostgresLifecycleRepository
+from sova.adapters.sql_resources import migration_sql
 from sova.domain.contracts import ResourceScope
 from sova.domain.evidence import RevisionSet, VerificationObligation, Gate
 from sova.domain.plans import (
@@ -34,32 +35,18 @@ def postgres_database():
             / "src/sova/adapters/sql/postgres_lifecycle_v1.sql"
         )
         admin.execute(migration.read_text())
-        admin.execute((migration.parent / "postgres_lifecycle_v2.sql").read_text())
-        admin.execute((migration.parent / "postgres_operations_v1.sql").read_text())
-        admin.execute((migration.parent / "postgres_execution_v1.sql").read_text())
-        admin.execute((migration.parent / "postgres_governance_v1.sql").read_text())
-        admin.execute((migration.parent / "postgres_governance_v2.sql").read_text())
-        admin.execute(
-            (migration.parent / "postgres_security_observations_v1.sql").read_text()
-        )
-        admin.execute(
-            (migration.parent / "postgres_security_response_v1.sql").read_text()
-        )
-        admin.execute(
-            (migration.parent / "postgres_security_response_v2.sql").read_text()
-        )
-        admin.execute(
-            (migration.parent / "postgres_signed_evidence_v1.sql").read_text()
-        )
-        admin.execute(
-            (migration.parent / "postgres_protection_parity_v1.sql").read_text()
-        )
-        admin.execute(
-            (migration.parent / "postgres_verifier_registry_v1.sql").read_text()
-        )
-        admin.execute(
-            (migration.parent / "postgres_migration_programs_v1.sql").read_text()
-        )
+        admin.execute(migration_sql("postgres_lifecycle_v2.sql"))
+        admin.execute(migration_sql("postgres_operations_v1.sql"))
+        admin.execute(migration_sql("postgres_execution_v1.sql"))
+        admin.execute(migration_sql("postgres_governance_v1.sql"))
+        admin.execute(migration_sql("postgres_governance_v2.sql"))
+        admin.execute(migration_sql("postgres_security_observations_v1.sql"))
+        admin.execute(migration_sql("postgres_security_response_v1.sql"))
+        admin.execute(migration_sql("postgres_security_response_v2.sql"))
+        admin.execute(migration_sql("postgres_signed_evidence_v1.sql"))
+        admin.execute(migration_sql("postgres_protection_parity_v1.sql"))
+        admin.execute(migration_sql("postgres_verifier_registry_v1.sql"))
+        admin.execute(migration_sql("postgres_migration_programs_v1.sql"))
         admin.execute(
             sql.SQL(
                 "CREATE ROLE {} LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT"

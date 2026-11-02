@@ -1,1 +1,0 @@
-../../security/adapters/sql/postgres_protection_parity_v1.sql
