@@ -1,0 +1,16 @@
+from typing import Protocol
+from sova.security.domain.security_events import SecuritySnapshot, SecurityEvent
+
+
+class SecurityObservationRepository(Protocol):
+    tenant_id: str
+
+    def save_snapshot(self, snapshot: SecuritySnapshot) -> None: ...
+    def get_snapshot(self, application_id: str, digest: str) -> SecuritySnapshot: ...
+    def latest_snapshot(
+        self, application_id: str, environment_id: str
+    ) -> SecuritySnapshot: ...
+    def append_event(self, event: SecurityEvent) -> int: ...
+    def list_events(
+        self, application_id: str, *, after: int = 0, limit: int = 100
+    ) -> tuple[tuple[int, SecurityEvent], ...]: ...
