@@ -19,6 +19,7 @@ from sova.domain.evidence import (
 )
 from sova.domain.plans import LifecyclePlan, PlanApproval
 from sova.ports.effects import EffectAdapter
+from sova_security.contracts.authority import require_accept, require_authentication
 
 
 @dataclass(frozen=True)
@@ -53,7 +54,7 @@ class ApprovedPlanExecutor:
 
     def check_plan(self, plan, approval, evidence, now):
         approval.require_valid(plan, now)
-        self.authenticate_approval(plan, approval)
+        require_accept(self.authenticate_approval, plan, approval)
         execution_gate = (
             Gate.PREFLIGHT
             if self.execution_gate is None
@@ -92,7 +93,7 @@ class ApprovedPlanExecutor:
             if obligation not in plan.obligations:
                 raise ContractError("Plan omitted or weakened a policy obligation")
         for record in evidence:
-            self.authenticate_evidence(record)
+            require_authentication(self.authenticate_evidence, record)
         gate = evaluate_gate(
             execution_gate, plan.obligations, evidence, plan.revisions, now=now
         )
@@ -144,7 +145,9 @@ class ApprovedPlanExecutor:
             current = self.check_plan(plan, approval, evidence, now)
             if current.gate.gate != gate.gate:
                 raise ContractError("Execution phase changed during dispatch")
-            self.effects.authorize(current_command, current_permit, now, mutation)
+            require_accept(
+                self.effects.authorize, current_command, current_permit, now, mutation
+            )
             if (
                 current.security_deadline is not None
                 and self.clock() >= current.security_deadline

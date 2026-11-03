@@ -19,6 +19,7 @@ from sova.domain.contracts import (
     validate_permit,
 )
 from sova.ports.effects import EffectAdapter, EffectJournal
+from sova_security.contracts.authority import require_accept
 
 
 class UncertainEffect(RuntimeError):
@@ -48,7 +49,7 @@ class EffectExecutor:
         if adapter.adapter_id != command.adapter_id:
             raise ContractError("Adapter identity mismatch")
         adapter.validate(command)
-        self.authorize(command, permit, now, mutation)
+        require_accept(self.authorize, command, permit, now, mutation)
         # Authorization/remote policy lookups can take time. Do not dispatch
         # using a permit that expired while its checks were running.
         checked_at = self.clock()

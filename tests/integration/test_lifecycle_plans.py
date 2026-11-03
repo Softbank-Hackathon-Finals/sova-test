@@ -288,3 +288,19 @@ def test_evidence_expiring_during_authorization_cannot_dispatch(
     command = bundle[0].command("isolate", operation_id="operation-1", epoch=1)
     assert not adapter.calls
     assert executor.effects.journal.get(command).status == EffectStatus.NOT_APPLIED
+
+
+@pytest.mark.parametrize("boundary", ["approval", "evidence", "execution"])
+@pytest.mark.parametrize("rejected", [False, 0, "allow", {}])
+def test_negative_or_untyped_authentication_result_never_dispatches(
+    executor, bundle, adapter, boundary, rejected
+):
+    if boundary == "approval":
+        executor.authenticate_approval = lambda *_: rejected
+    if boundary == "evidence":
+        executor.authenticate_evidence = lambda *_: rejected
+    if boundary == "execution":
+        executor.effects.authorize = lambda *_: rejected
+    with pytest.raises(ContractError):
+        run(executor, bundle, adapter)
+    assert not adapter.calls

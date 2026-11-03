@@ -3,6 +3,7 @@
 from sova.application.plans import ApprovedPlanExecutor
 from sova.domain.contracts import ContractError
 from sova.ports.plans import LifecycleRepository
+from sova_security.contracts.authority import require_accept
 
 
 class StoredPlanExecutor:
@@ -16,7 +17,9 @@ class StoredPlanExecutor:
             raise ContractError("Stored approval is revoked or belongs to another plan")
 
         def authenticate(current_plan, current_approval):
-            self.executor.authenticate_approval(current_plan, current_approval)
+            require_accept(
+                self.executor.authenticate_approval, current_plan, current_approval
+            )
             fresh = self.repository.get_approval(application_id, approval_id)
             if fresh != saved or fresh.revoked:
                 raise ContractError("Stored approval changed or was revoked")
