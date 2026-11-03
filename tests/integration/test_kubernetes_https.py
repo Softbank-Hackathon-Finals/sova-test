@@ -13,7 +13,11 @@ from threading import Thread
 
 import pytest
 
-from sova.adapters.kubernetes.https import KubernetesHTTPS, private_text
+from sova.adapters.kubernetes.https import (
+    KubernetesHTTPS,
+    KubernetesRequestRefused,
+    private_text,
+)
 from sova.application.kubernetes_discovery import KubernetesDiscovery, COLLECTIONS
 from sova.domain.contracts import ContractError
 from sova.domain.discovery import KubernetesReadRegistration
@@ -53,6 +57,26 @@ def api(tmp_path):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
+
+        def do_PATCH(self):
+            state["requests"].append(self.path)
+            state["patch_headers"] = dict(self.headers)
+            state["patch_body"] = self.rfile.read(int(self.headers["Content-Length"]))
+            if state["mode"] in {"deny", "redirect", "conflict"}:
+                self.send_response(
+                    {"deny": 403, "redirect": 302, "conflict": 422}[state["mode"]]
+                )
+                self.send_header("Location", "https://unregistered.invalid/")
+                self.end_headers()
+                return
+            if state["mode"] == "lost":
+                self.close_connection = True
+                return
+            body = b'{"kind":"Deployment"}'
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
 
         def do_GET(self):
             state["requests"].append(self.path)
@@ -227,3 +251,70 @@ def test_absolute_deadline_stops_trickling_response(api):
     with pytest.raises(ContractError):
         transport.get("/api/v1/namespaces/orders", {}, timeout=0.15)
     assert time.monotonic() - started < 1
+
+
+def test_image_patch_uses_pinned_tls_json_patch_and_exact_registered_path(api):
+    from kubernetes_patch_support import image_patch_bundle
+    from sova.adapters.kubernetes.image_patch import KubernetesImagePatchHTTPS
+
+    reg, ca, state = api
+    image_reg, command, adapter, fixture = image_patch_bundle(reg.registered_at)
+    image_reg = replace(
+        image_reg,
+        reader=replace(
+            image_reg.reader,
+            endpoint=reg.endpoint,
+            ca_digest=reg.ca_digest,
+            namespace="owned",
+            valid_until=image_reg.reader.valid_until,
+        ),
+    )
+    transport = KubernetesImagePatchHTTPS(
+        image_reg, ca_pem=ca, token_provider=lambda: "test-token"
+    )
+    adapter.transport = transport
+    adapter.registration = image_reg
+    fixture["registration"] = image_reg
+    # Only exercise the wire mutation boundary; namespace/deployment reads have
+    # their own real-cluster qualification and require the registered identity.
+    operations = [
+        {"op": "test", "path": "/metadata/uid", "value": image_reg.deployment_uid},
+        {
+            "op": "test",
+            "path": "/metadata/resourceVersion",
+            "value": image_reg.resource_version,
+        },
+        {
+            "op": "test",
+            "path": "/spec/template",
+            "value": fixture["workload"]["spec"]["template"],
+        },
+        {
+            "op": "add",
+            "path": "/metadata/annotations",
+            "value": {"sova.security/patch-command": command.fingerprint},
+        },
+        {
+            "op": "replace",
+            "path": "/spec/template/spec/containers/0/image",
+            "value": image_reg.image,
+        },
+    ]
+    assert transport.patch_image(operations)["kind"] == "Deployment"
+    assert json.loads(state["patch_body"]) == operations
+    assert state["patch_headers"]["Content-Type"] == "application/json-patch+json"
+    assert state["requests"] == ["/apis/apps/v1/namespaces/owned/deployments/api"]
+    for mode, status in (("deny", 403), ("redirect", 302), ("conflict", 422)):
+        state["mode"] = mode
+        with pytest.raises(KubernetesRequestRefused) as error:
+            transport.patch_image(operations)
+        assert error.value.status == status
+    assert len(state["requests"]) == 4
+    state["mode"] = "lost"
+    with pytest.raises(ContractError):
+        transport.patch_image(operations)
+    assert len(state["requests"]) == 5  # No retry after an uncertain write.
+    operations[-1]["value"] = "registry.example/not-owned:latest"
+    with pytest.raises(ContractError):
+        transport.patch_image(operations)
+    assert len(state["requests"]) == 5

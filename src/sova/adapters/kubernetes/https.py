@@ -1,4 +1,4 @@
-"""Direct pinned HTTPS GETs only: no proxies, redirects, kubeconfig exec or logs."""
+"""Pinned HTTPS with fixed public read paths and bounded adapter-owned mutations."""
 
 import hashlib
 import http.client
@@ -34,6 +34,12 @@ def private_text(path, *, limit=65536):
             return data.decode("utf-8")
     except (OSError, UnicodeError) as exc:
         raise ContractError("Unreadable private operator file") from exc
+
+
+class KubernetesRequestRefused(ContractError):
+    def __init__(self, status):
+        self.status = status
+        super().__init__("Registered Kubernetes request refused")
 
 
 class KubernetesHTTPS:
@@ -75,6 +81,22 @@ class KubernetesHTTPS:
             or query.get("limit") != "32"
         ):
             raise ContractError("Unregistered application query")
+        return self._request("GET", path, query, timeout=timeout)
+
+    def _request(self, method, path, query, *, timeout, body=None):
+        """Shared pinned transport. Public methods must fix their own API paths.
+
+        This is not an arbitrary URL/manifest interface. The read-only public
+        get() keeps its original allowlist; bounded mutation adapters add their
+        own exact resource and JSON Patch validation before reaching here.
+        """
+        reg = self.registration
+        if (
+            method not in {"GET", "PATCH"}
+            or (body is not None and (type(body) is not bytes or len(body) > 65536))
+            or (method == "GET" and body is not None)
+        ):
+            raise ContractError("Unsupported registered Kubernetes request")
         if type(timeout) not in (int, float) or not 0 < timeout <= 5:
             raise ContractError("Invalid read timeout")
         token = self.token_provider()
@@ -126,28 +148,35 @@ class KubernetesHTTPS:
             timer.daemon = True
             timer.start()
             connection.request(
-                "GET",
+                method,
                 path + ("?" + urlencode(query) if query else ""),
+                body=body,
                 headers={
                     "Authorization": "Bearer " + token,
                     "Accept": "application/json",
                     "Accept-Encoding": "identity",
+                    **(
+                        {"Content-Type": "application/json-patch+json"}
+                        if body is not None
+                        else {}
+                    ),
                 },
             )
             response = connection.getresponse()
-            if (
-                response.status != 200
-                or response.getheader("Content-Encoding", "identity") != "identity"
-            ):
-                raise ContractError("Kubernetes read refused or unsupported response")
+            if response.status != 200:
+                raise KubernetesRequestRefused(response.status)
+            if response.getheader("Content-Encoding", "identity") != "identity":
+                raise ContractError("Unsupported Kubernetes response encoding")
             body = response.read(MAX_RESPONSE + 1)
             if time.monotonic() >= deadline:
                 raise ContractError("Kubernetes read deadline exceeded")
             if len(body) > MAX_RESPONSE:
                 raise ContractError("Kubernetes response limit exceeded")
             return decode_api_json(body, limit=MAX_RESPONSE)
+        except ContractError:
+            raise
         except (OSError, http.client.HTTPException, UnicodeError, ValueError) as exc:
-            raise ContractError("Kubernetes secure read failed") from exc
+            raise ContractError("Kubernetes secure request failed") from exc
         finally:
             if timer is not None:
                 timer.cancel()
