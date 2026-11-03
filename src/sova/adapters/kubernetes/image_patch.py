@@ -502,7 +502,7 @@ class KubernetesImagePatchAdapter:
             command.scope,
             command.fingerprint,
             status,
-            utc(self.clock()),
+            utc(now),
             canonical_json(
                 {
                     "basis": "kubernetes-spec-readback",
