@@ -1,0 +1,80 @@
+# Wiring example only. Replace BOTH images with the same verified worker digest,
+# supply the namespace-scoped Secret, and qualify DB connectivity before apply.
+# No cloud credentials, Kubernetes API token, Docker socket, or runtime signer.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: registered-security-monitor
+  namespace: sova-control
+spec:
+  schedule: '* * * * *'
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 30
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 90
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: registered-security-monitor
+        spec:
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          initContainers:
+            - name: private-config
+              image: SET_VERIFIED_WORKER_IMAGE_BY_DIGEST
+              command:
+                - python
+                - -c
+                - |
+                  import os
+                  from pathlib import Path
+                  os.umask(0o077)
+                  for name in ('monitor.json','monitor.dsn','ca.pem'):
+                      data=(Path('/source')/name).read_bytes()
+                      if len(data)>65536: raise RuntimeError('oversized configuration')
+                      target=Path('/private')/name
+                      target.write_bytes(data)
+                      target.chmod(0o600)
+              securityContext: &security
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              resources: &resources
+                requests: {cpu: 25m, memory: 64Mi}
+                limits: {cpu: 250m, memory: 192Mi}
+              volumeMounts:
+                - {name: source, mountPath: /source, readOnly: true}
+                - {name: private, mountPath: /private}
+          containers:
+            - name: monitor
+              image: SET_VERIFIED_WORKER_IMAGE_BY_DIGEST
+              command: [python, -m, sova.monitoring.worker, --config, /private/monitor.json]
+              env:
+                - {name: PYTHONDONTWRITEBYTECODE, value: '1'}
+              securityContext: *security
+              resources: *resources
+              volumeMounts:
+                - {name: private, mountPath: /private, readOnly: true}
+          volumes:
+            - name: source
+              secret:
+                secretName: registered-security-monitor
+                defaultMode: 0440
+            - name: private
+              emptyDir:
+                medium: Memory
+                sizeLimit: 1Mi

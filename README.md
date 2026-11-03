@@ -40,6 +40,7 @@ src/sova/
   application/     # 공통 접수·실행·복구·이전
   ports/           # 공통 저장소·외부 실행·조사 경계
   adapters/        # 공통 PostgreSQL·Kubernetes·Harbor 작업 준비
+  monitoring/      # 등록된 감시 작업·인증된 입력·고정 워커
   interfaces/      # 플랫폼 CLI
 console/src/
   features/security/  # 보안 화면과 시나리오 표시
@@ -93,3 +94,5 @@ tests/integration/ # 공통 통합 시험과 공유 PostgreSQL fixture
 Sky에서 확인한 구현은 이식 후보와 회귀 시나리오로 참조한다. Sova의 구현·운영 자격으로 합산하지 않는다. 개발기록·실행 등록·비밀값은 `.local-notes/`에 보관하며 게시하지 않는다.
 
 패키지 소유 SQL은 `sova.adapters.sql_resources.migration_sql`을 통해 읽는다. `operations` 상태·경로·완료 트랜잭션은 Sova 소유 SQL을 유지한다. source-tree SQL 링크로 외부 저장소를 참조하지 않는다.
+
+검증된 이미지 교체는 [Kubernetes 이미지 어댑터](docs/kubernetes-image-patch.md), 감시 작업·실패 경보와 운영 연결 조건은 [감시 워커](docs/security-monitoring.md)를 참고한다. 두 기능의 조립 시험과 외부 상시 운영 완료는 구분한다.

@@ -37,6 +37,7 @@ def postgres_database():
         admin.execute(migration.read_text())
         admin.execute(migration_sql("postgres_lifecycle_v2.sql"))
         admin.execute(migration_sql("postgres_operations_v1.sql"))
+        admin.execute(migration_sql("postgres_monitoring_v1.sql"))
         admin.execute(migration_sql("postgres_execution_v1.sql"))
         admin.execute(migration_sql("postgres_governance_v1.sql"))
         admin.execute(migration_sql("postgres_governance_v2.sql"))
@@ -73,6 +74,12 @@ def postgres_database():
                 sql.Identifier(role)
             )
         )
+        for table in ("monitor_jobs", "monitor_runs", "monitor_alerts"):
+            admin.execute(
+                sql.SQL("GRANT UPDATE ON sova_control.{} TO {}").format(
+                    sql.Identifier(table), sql.Identifier(role)
+                )
+            )
         admin.execute(
             sql.SQL(
                 "GRANT UPDATE(status,revision,updated_at) ON sova_control.operations TO {}"

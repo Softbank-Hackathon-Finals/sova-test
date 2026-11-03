@@ -316,3 +316,67 @@ def test_pg_revoked_scan_issuer_blocks_approved_patch_before_provider_call(setup
     with pytest.raises(ContractError, match="revoked"):
         run()
     assert state["calls"] == 0
+
+
+def test_authenticated_detection_hold_blocks_existing_patch_execution(setup):
+    from sova_security.domain.detection import (
+        DetectionRegistration,
+        DetectionObservation,
+    )
+    from sova_security.application.detection import DetectionAdmission
+
+    state, run, holds, _, plan, _, lifecycle = setup
+    scope = plan.steps[0].scope
+    now = datetime.now(UTC) - timedelta(milliseconds=100)
+    registration = DetectionRegistration(
+        scope,
+        "falco",
+        "onprem",
+        "registered-cluster",
+        "local",
+        scope.resource_id,
+        "runtime-v1",
+        300,
+        now,
+        now + timedelta(minutes=2),
+    )
+    finding = DetectionObservation(
+        registration,
+        "a" * 64,
+        "b" * 64,
+        "c" * 64,
+        "source_status",
+        "coverage-unavailable",
+        False,
+        now,
+        now + timedelta(minutes=1),
+    )
+
+    def clock():
+        return datetime.now(UTC)
+
+    authentication, _ = signed_input_authority(
+        lifecycle.connect,
+        scope,
+        (registration, finding),
+        revisions=plan.revisions,
+        clock=clock,
+    )
+    admission = DetectionAdmission(
+        current_registration=lambda *_: registration,
+        authenticate_registration=lambda value: authentication(
+            "detector", scope, value
+        ),
+        authenticate_observation=lambda value: authentication("detector", scope, value),
+        artifacts=PostgresSecurityArtifacts(
+            lifecycle.connect, tenant_id=scope.tenant_id
+        ),
+        holds=holds,
+        authorize=lambda *_: None,
+        clock=clock,
+    )
+    admission.admit("detector", finding)
+    assert holds.active_holds(scope.application_id)
+    with pytest.raises(ContractError):
+        run()
+    assert state["calls"] == 0
