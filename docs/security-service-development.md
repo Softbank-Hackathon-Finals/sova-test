@@ -88,3 +88,14 @@
   원본 서명·등록·현재 철회 및 collection 삭제 검사는 생략하거나 캐시하지 않는다.
 - 생산자 전체 회귀 **867 PASS, 115.02초**. Sova 원장·접수·permit 코드 변경은 없다.
   수정 후 process/container 소비 CI를 다시 실행하며 결과는 확인한 뒤 기록한다.
+
+### SOVA-SVC-04 결과 및 다음 생산자
+
+- `4987c24` [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42212461099)
+  process/container 모두 통과. 실제 컨테이너 소비 **39 PASS, 31.89초**로 앞선 만료 실패가 해소됐다.
+- 다음 생산자 `c80b51842ee21ff37a6fa20c416bf637113617a4`를 고정한다. 공통 TLS 요청 기한/metadata 한도,
+  관리 함수 EXECUTE 거부, 다섯 번째 플랫폼 기준 a610bbf를 포함한다. source/schema 계약은 유지한다.
+- security 전체 **881 PASS**와 최신 플랫폼/T7/T10 **32 PASS**. DB 관리 함수 생산자 `a9b68a4`의
+  [CI](https://github.com/Softbank-Hackathon-Finals/security/actions/runs/42213904868)도 모두 통과했으며
+  PostgreSQL 18.4 경계 **42 PASS, 11.39초**, 실제 이미지/T10 연결 **11 PASS, 39.47초**였다.
+- Sova 소비 결과는 해당 고정 SHA의 process/container CI에서 확인한다.
