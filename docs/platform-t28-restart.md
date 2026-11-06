@@ -46,3 +46,14 @@ python -m pytest -q tests/integration/test_platform_t28_restart.py tests/integra
 SQLite는 개인 검증용이다. 실제 다중 host에서는 기존 PostgreSQL 실행 소유권·fencing·복구 권한과
 현재 T10 승인/잠금/application 원장을 주입해야 한다. 이 어댑터는 그 권한을 발급하지 않는다.
 따라서 현재 상태는 **개인 환경 구현·프로세스 검증**, 실제 플랫폼 반영/운영 인수는 별도다.
+
+## PostgreSQL 실행 소유권 시험 추가
+
+`31fc071`의 [원격 CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42253531892)는
+기존 소비 시험 process/container 각각 44개와 T28/원장 **24 PASS / 2.36초**를 통과했다.
+이어 `test_platform_t28_postgres.py`에서 동일한 T28 포트를 기존 PostgreSQL 승인·operation·
+실행 lease·effect journal에 연결한다. 실제 자식 종료 후 lease 만료만으로 takeover하지 못하고,
+별도 quiescence 확인으로 발급된 reconcile lease만 readback을 수행하는지 확인한다.
+현재 승인 철회 시 효과 0회도 검사한다. 원격 CI 실행 전이며 결과는 후속 기록한다.
+quiescence는 합성 파일 효과를 낸 로컬 child의 종료를 확인한 것으로, 원격 클라우드 요청 취소
+증거까지 검증했다는 뜻은 아니다. 로컬 C: 용량 guard 때문에 추가 PG 시험은 CI에서 수행한다.

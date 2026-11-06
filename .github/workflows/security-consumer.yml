@@ -120,4 +120,7 @@ jobs:
         env:
           SOVA_T28_PLATFORM_SOURCE: '${{ github.workspace }}/.local-notes/t28-platform'
           PYTHONDONTWRITEBYTECODE: '1'
-        run: .local-notes/security-source/.venv/bin/python -m pytest -q tests/integration/test_platform_t28_restart.py tests/integration/test_effect_executor.py
+        run: >-
+          .local-notes/security-source/.venv/bin/python -m pytest -q
+          tests/integration/test_platform_t28_restart.py tests/integration/test_effect_executor.py
+          tests/integration/test_platform_t28_postgres.py
