@@ -55,7 +55,7 @@ def test_actual_process_exit_before_jsonl_does_not_reissue_operator(platform, tm
         db.close()
 
 
-@pytest.mark.parametrize("fault", ["argv", "plan", "application", "diff", "image", "revoked", "forged-jsonl"])
+@pytest.mark.parametrize("fault", ["argv", "plan", "application", "diff", "image", "revoked", "forged-jsonl", "profile", "reader-command", "header-profile"])
 def test_changed_registration_or_authority_never_issues_effect(platform, tmp_path, fault):
     driver, args, port, binding, db = runtime(platform, tmp_path, deny=fault == "revoked")
     try:
@@ -72,8 +72,16 @@ def test_changed_registration_or_authority_never_issues_effect(platform, tmp_pat
             driver.STEPS = (replace(driver.STEPS[0], command=("unregistered-effect",)),)
         elif fault in {"plan", "application"}:
             setattr(args, fault + "_id", "different")
+        elif fault == "profile":
+            args.profile = "real"
+        elif fault == "reader-command":
+            args.plan_state_command = ["unregistered-subprocess"]
+        elif fault == "header-profile":
+            head = driver.header(args)
+            head["profile"] = "real"
+            Path(args.record).write_text(json.dumps(head) + "\n")
         elif fault == "forged-jsonl":
-            Path(args.record).write_text(json.dumps({"plan_id": args.plan_id}) + "\n" +
+            Path(args.record).write_text(json.dumps(driver.header(args)) + "\n" +
                 json.dumps({"step": "s4-fault-inject", "status": "done"}) + "\n")
         if fault in {"diff", "image", "revoked"}:
             assert port.run(driver, args) == 3

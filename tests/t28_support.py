@@ -22,7 +22,7 @@ def runtime(root, work, phase="normal", *, deny=False):
     command = EffectCommand(ResourceScope("test-tenant", "test-app", "test-env", "test-resource"),
         "test-operation", "s4-fault-inject", "synthetic-t28", "t28_operator", "test-operation:fault",
         "a" * 64, "revision-1", 1, now + timedelta(minutes=5), canonical_json({
-            "argv": ["synthetic-effect"], "platform_commit": PLATFORM_COMMIT, "plan_id": "test-plan",
+            "argv": ["synthetic-effect"], "platform_commit": PLATFORM_COMMIT, "plan_id": "test-plan", "profile": "mock",
             "application_id": "test-application", "diff_digest": "b" * 64, "image_digest": "sha256:" + "c" * 64}))
     effect = work / "effect.txt"
 

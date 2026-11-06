@@ -57,3 +57,18 @@ SQLite는 개인 검증용이다. 실제 다중 host에서는 기존 PostgreSQL 
 현재 승인 철회 시 효과 0회도 검사한다. 원격 CI 실행 전이며 결과는 후속 기록한다.
 quiescence는 합성 파일 효과를 낸 로컬 child의 종료를 확인한 것으로, 원격 클라우드 요청 취소
 증거까지 검증했다는 뜻은 아니다. 로컬 C: 용량 guard 때문에 추가 PG 시험은 CI에서 수행한다.
+
+`6e000ff`의 [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42255522327)는
+기존 소비 44개와 T28/원장/PG **26 PASS / 0.96초**를 통과했다.
+
+## 후속 검토: 상태 조회 subprocess도 우회 경로가 될 수 있음
+
+원본 T28은 `--plan-state-command`를 읽기 전용 명령으로 간주하지만 실제로는 임의 subprocess다.
+operator 포트만 보호하면 이 경로가 영속 접수 밖에서 실행될 수 있다. 개인 연결부는 해당 CLI
+옵션을 거부하고, 호스트가 구성한 기존 T10 읽기 callback만 받도록 바꿨다.
+새 상태 조회 구현이나 권한 발급기는 만들지 않는다. original CLI 자체는 아직 팀 플랫폼에 남아 있다.
+
+같은 이유로 `real/local/mock` profile도 command fingerprint에 포함하고 기존 JSONL header의
+profile/plan/platform SHA를 대조한다. 모의 실행을 real로 이름만 바꾸거나 다른 기준의 기록을
+이어 사용하는 경로는 거부한다. 등록 변경·기록 변조·상태 조회 우회 시험 3개를 추가했다.
+이 추가 변경은 lint를 통과했고 원격 CI 결과를 기다린다.

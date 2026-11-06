@@ -67,7 +67,7 @@ class DurableT28Port:
             command = binding.command
             value = command.parameters
             if command.action != "t28_operator" or set(value) != {
-                "argv", "platform_commit", "plan_id", "application_id", "diff_digest", "image_digest"
+                "argv", "platform_commit", "plan_id", "application_id", "diff_digest", "image_digest", "profile"
             }:
                 raise ContractError("Exact T28 operator contract required")
             argv = value["argv"]
@@ -75,6 +75,7 @@ class DurableT28Port:
                     or any(type(v) is not str or not v or len(v) > 4096 or "\x00" in v for v in argv)
                     or value["platform_commit"] != PLATFORM_COMMIT
                     or value["plan_id"] != plan_id or value["application_id"] != application_id
+                    or value["profile"] not in {"real", "local", "mock"}
                     or not re.fullmatch(r"[0-9a-f]{64}", value["diff_digest"])
                     or not re.fullmatch(r"sha256:[0-9a-f]{64}", value["image_digest"])):
                 raise ContractError("T28 invocation differs from its registered plan artifacts")
@@ -99,12 +100,21 @@ class DurableT28Port:
                              "status": str(record.status), "fresh_health": False})
         return subprocess.CompletedProcess(argv, 0, output, "")
 
-    def run(self, driver, args, **readers):
+    def run(self, driver, args, *, read_state=None):
         if (Path(driver.ROOT).resolve() != self.root or args.plan_id != self.plan_id
-                or (args.application_id or "") != self.application_id):
+                or (args.application_id or "") != self.application_id
+                or any(b.command.parameters["profile"] != args.profile for b in self.bindings)):
             raise ContractError("T28 run identity differs from the registered operation")
+        # Original T28 accepts a subprocess pretending to be a read-only reader.
+        # It would bypass the operator port. Only a host-owned reader callback is
+        # accepted here; a CLI command is never a read-only capability.
+        if args.plan_state_command is not None:
+            raise ContractError("Use the host-owned T10 reader, not a subprocess command")
         # A forged/old JSONL completion cannot bypass the durable receipt.
-        _, outcomes = driver.read_record(Path(args.record))
+        head, outcomes = driver.read_record(Path(args.record))
+        if head is not None and (head.get("plan_id") != self.plan_id or head.get("profile") != args.profile
+                                 or head.get("develop_sha") != PLATFORM_COMMIT):
+            raise ContractError("T28 record belongs to a different plan/profile/platform")
         values = {"kubeconfig": args.kubeconfig or "", "fault_record": args.fault_record,
                   "application_id": args.application_id or "", "receipts": args.receipts or ""}
         steps = {step.id: step for step in driver.STEPS}
@@ -118,4 +128,4 @@ class DurableT28Port:
                 matches = [b for b in self.bindings if b.command.step_id == step.id]
                 if len(matches) != 1 or self.executor.journal.get(matches[0].command).status != EffectStatus.APPLIED:
                     raise ContractError("JSONL completion is not backed by the execution journal")
-        return driver.cmd_run(args, run=self, **readers)
+        return driver.cmd_run(args, run=self, read_state=read_state)

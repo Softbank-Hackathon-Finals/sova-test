@@ -72,7 +72,7 @@ def registered(postgres_bundle, now):
         pytest.skip("Explicit qualified T28 platform source required")
     repo, original, _, _, _ = postgres_bundle
     parameters = canonical_json({"argv": ["synthetic-effect"], "platform_commit": PLATFORM_COMMIT,
-        "plan_id": "plan", "application_id": "test-application", "diff_digest": "b" * 64,
+        "plan_id": "plan", "application_id": "test-application", "diff_digest": "b" * 64, "profile": "mock",
         "image_digest": "sha256:" + "c" * 64})
     step = PlanStep("s4-fault-inject", original.steps[0].scope, "synthetic-t28", "t28_operator", parameters, "revision-1")
     plan = replace(original, steps=(step,))
