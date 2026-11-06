@@ -17,6 +17,8 @@ from sova_security.domain.patch_execution import (
     PatchRuntimeObservation,
     require_postflight,
 )
+from sova_security.domain.security_program import ProgramPhase, ProgramReview
+from sova_security.contracts.commands import ResourceScope
 
 
 class PatchPostflightRequired(RuntimeError):
@@ -27,6 +29,7 @@ class PatchPostflightRequired(RuntimeError):
 class VerifiedPatchStep:
     effect: object
     observation: PatchRuntimeObservation
+    program_review: ProgramReview | None = None
 
 
 class PatchPlanExecutionService:
@@ -43,6 +46,8 @@ class PatchPlanExecutionService:
         authorize,
         record_hold,
         clock,
+        program_service=None,
+        program_scope=None,
     ):
         if not isinstance(stored_executor, StoredPlanExecutor):
             raise ContractError("Existing stored-plan executor required")
@@ -56,6 +61,14 @@ class PatchPlanExecutionService:
         self.authorize = authorize
         self.record_hold = record_hold
         self.clock = clock
+        if (program_service is None) != (program_scope is None) or (
+            program_scope is not None and not isinstance(program_scope, ResourceScope)
+        ):
+            raise ContractError(
+                "Program service and typed target scope must be supplied together"
+            )
+        self.program_service = program_service
+        self.program_scope = program_scope
 
     def execute_step(
         self,
@@ -71,7 +84,14 @@ class PatchPlanExecutionService:
         adapter,
     ):
         started = utc(self.clock())
-        base = self.stored.executor
+        stored = self.stored
+        if self.program_service is not None:
+            from sova.security.application.security_program import with_security_program
+
+            stored = with_security_program(
+                stored, self.program_service, actor=actor, scope=self.program_scope
+            )
+        base = stored.executor
 
         def guard(plan, at):
             deadline = self.patch_guard.check(actor, plan)
@@ -86,7 +106,7 @@ class PatchPlanExecutionService:
         # Compose the patch guard here so callers cannot accidentally omit it.
         # Do not mutate a shared executor used by another actor or operation.
         guarded = StoredPlanExecutor(
-            self.stored.repository,
+            stored.repository,
             ApprovedPlanExecutor(
                 base.effects,
                 required_obligations=base.required_obligations,
@@ -160,7 +180,47 @@ class PatchPlanExecutionService:
                 now=self.clock(),
                 reassessment=reassessment,
             )
-            return VerifiedPatchStep(effect, proof)
+            review = None
+            if self.program_service is not None:
+                review = self.program_service.review(
+                    actor,
+                    scope=self.program_scope,
+                    subject_digest=command.plan_digest,
+                    phase=ProgramPhase.POSTFLIGHT,
+                    not_before=started,
+                )
+                if not review.passed:
+                    raise ContractError("Security program postflight has not passed")
+                # Program producers may perform I/O. Keep the original runtime
+                # and approval-bound patch authority current through that work.
+                require_accept(
+                    self.authorize, actor, command.scope, "security:verify-patch"
+                )
+                require_accept(self.authenticate_binding, actor, binding)
+                require_accept(
+                    self.authenticate_runtime, actor, binding, command, proof
+                )
+                if (
+                    self.binding_for(command) != binding
+                    or self.reassessment_for(proof) != reassessment
+                ):
+                    raise ContractError(
+                        "Runtime authority changed during program verification"
+                    )
+                finished = utc(self.clock())
+                if finished < started or finished >= review.valid_until:
+                    raise ContractError(
+                        "Program verification expired before completion"
+                    )
+                require_postflight(
+                    binding,
+                    proof,
+                    command=command,
+                    not_before=started,
+                    now=finished,
+                    reassessment=reassessment,
+                )
+            return VerifiedPatchStep(effect, proof, review)
         except Exception as error:
             # Fixed reason avoids persisting exception text containing remote data.
             require_accept(

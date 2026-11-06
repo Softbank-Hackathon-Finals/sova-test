@@ -164,7 +164,9 @@ def test_committed_messages_files_and_sessions_survive_controlled_database_trans
                 )
             )
             owner.execute(
-                "SELECT pg_terminate_backend(pid) FROM pg_catalog.pg_stat_activity WHERE datname=current_database() AND usename=%s AND pid<>pg_backend_pid()",
+                # Signal delivery alone does not mean the backend has exited.
+                # Wait at most five seconds before checking the writer fence.
+                "SELECT pg_terminate_backend(pid,5000) FROM pg_catalog.pg_stat_activity WHERE datname=current_database() AND usename=%s AND pid<>pg_backend_pid()",
                 (pair.roles["source_app"],),
             )
             assert (

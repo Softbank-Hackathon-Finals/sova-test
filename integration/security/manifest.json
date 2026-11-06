@@ -68,10 +68,45 @@
     "kubernetes_response"
   ],
   "package_distribution": "sova-security",
-  "package_version": "0.9.0",
+  "package_version": "0.11.0",
+  "qualified_package_source": "546f6e0482cc06fa32f00ea8d554522551a84beb",
+  "review_service": {
+    "consumer": "sova.security.application.remote_program.RemoteProgramService",
+    "wire_kind": "security-review-response.v1",
+    "platform_baselines": [
+      "f602b39a949b99f3e2e7be901103063e78a52a70",
+      "b19488e2debbee8bbe120f1309eadbe19df85b6f",
+      "c225c86cf5e408b5fcd016b0e367d3672d1bac44",
+      "9e0d6a59d7a00925ddafc50cfa2ccad00c5ba768",
+      "a610bbfb60d3a633597d75dc6e070addd3c3b559",
+      "8b12236ae4277de16cebdf1391f87721e5851d47",
+      "bb174860bedf100de3970c3e8e410f02f23994e2",
+      "98885a69999398bfe3f49fbc8324a7b19aae3e16",
+      "7edab5312f965bd683a7738e74d49b883190e8da",
+      "42811da4cf19ce941491d4794ab49790881dc409",
+      "445848d2ed9878e31eb6f5aabad0575c61739b47",
+      "0795f65e24f58e43545b16b97757efcc0923fd4a"
+    ],
+    "execution_owner": "existing Sova effect journal or platform T10/T31; the service never dispatches"
+  },
   "package_import": "sova_security",
   "canonical_python_root_note": "Compatibility aliases to installed sova_security; host execution runner and qualification adapters remain in Sova.",
   "public_contracts": "sova_security.contracts v1; versioned extraction baseline, not an assertion that team platform has adopted these contracts.",
   "extraction_baseline_version": "0.1.0",
-  "host_monitoring": "sova.monitoring; host-owned schedule/leases/outbox and postgres_monitoring_v1.sql, not part of sova-security"
+  "host_monitoring": "sova.monitoring; host-owned schedule/leases/outbox and postgres_monitoring_v1.sql, not part of sova-security",
+  "architecture_program": {
+    "catalog": "sova_security.domain.security_program",
+    "authenticated_service": "sova_security.application.security_program.SecurityProgramService",
+    "host_composition": "sova.security.application.security_program.with_security_program",
+    "patch_composition": "sova.security.application.security_program.with_patch_security_program",
+    "registered_authority": "sova_security.adapters.registered_program.RegisteredProgramAuthority",
+    "producer_authentication": "sova_security.adapters.program_evidence.SignedProgramEvidence",
+    "wire_kind": "security-program.v1",
+    "diagnostic_wire_kind": "security-program-input.v1",
+    "producer_route_kind": "program-evidence-route.v1",
+    "projection_kind": "program-evidence-projection.v1",
+    "current_team_contract_commit": "0795f65e24f58e43545b16b97757efcc0923fd4a",
+    "platform_handoff": "docs/platform-security-handoff.md",
+    "authority": "Additional evidence requirements only; existing approval, T19, executor and runtime verification remain authoritative"
+  }
 }

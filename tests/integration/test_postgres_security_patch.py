@@ -270,6 +270,7 @@ def setup(postgres_bundle):
             adapter=Adapter(),
         )
 
+    state["service"] = service
     return state, run, holds, journal, plan, lease, lifecycle
 
 

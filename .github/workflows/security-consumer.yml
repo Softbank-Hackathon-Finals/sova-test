@@ -1,0 +1,146 @@
+name: security-consumer
+on:
+  pull_request:
+  push:
+    branches: [main, feature/security-service-integration]
+permissions:
+  contents: read
+jobs:
+  patch-admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        runtime: [process, container]
+    services:
+      security-postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: bravo_test_admin
+          POSTGRES_PASSWORD: ci-test-only
+          POSTGRES_DB: sova_security_test
+          POSTGRES_INITDB_ARGS: '-c cluster_name=sova-security-test'
+        volumes: ['/tmp/security-consumer-pg:/var/run/postgresql']
+        options: >-
+          --health-cmd "pg_isready -U bravo_test_admin -d sova_security_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      sova-postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: bravo_test_admin
+          POSTGRES_PASSWORD: ci-test-only
+          POSTGRES_DB: sova_test
+          POSTGRES_INITDB_ARGS: '-c cluster_name=sova-persistence-test'
+        volumes: ['/tmp/sova-consumer-pg:/var/run/postgresql']
+        options: >-
+          --health-cmd "pg_isready -U bravo_test_admin -d sova_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      UV_PYTHON_DOWNLOADS: 'never'
+      SOVA_SECURITY_TEST_SOURCE: '${{ github.workspace }}/.local-notes/security-source'
+      SOVA_SECURITY_TEST_POSTGRES_DSN: 'host=/tmp/security-consumer-pg port=5432 user=bravo_test_admin password=ci-test-only dbname=sova_security_test'
+      SOVA_TEST_POSTGRES_DSN: 'host=/tmp/sova-consumer-pg port=5432 user=bravo_test_admin password=ci-test-only dbname=sova_test'
+      AWS_EC2_METADATA_DISABLED: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Select the exact producer from the consumer contract
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, re
+          manifest = json.loads(pathlib.Path('integration/security/manifest.json').read_text())
+          revision = manifest['qualified_package_source']
+          assert type(revision) is str and re.fullmatch(r'[0-9a-f]{40}', revision)
+          with open(os.environ['GITHUB_ENV'], 'a') as stream:
+              stream.write('SECURITY_COMMIT=' + revision + '\n')
+          PY
+      - name: Read the pinned security producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Softbank-Hackathon-Finals/security
+          ref: ${{ env.SECURITY_COMMIT }}
+          path: .local-notes/security-source
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.13.6'
+          enable-cache: false
+      - name: Install the producer's locked qualification dependencies
+        working-directory: .local-notes/security-source
+        run: uv sync --locked --extra dev --no-install-project --no-build --python '3.12'
+      - name: Build and install the pinned wheel and consumer without package index fallback
+        run: |
+          PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
+          "$PYTHON" -m pip wheel .local-notes/security-source --no-deps --no-build-isolation --no-index -w "$RUNNER_TEMP/security-dist"
+          "$PYTHON" -m pip install --no-deps --no-index "$RUNNER_TEMP/security-dist/"*.whl
+          "$PYTHON" -m pip install --no-deps --no-build-isolation --no-index -e .
+          "$PYTHON" -m pip check
+      - name: Verify the package and current execution boundaries
+        run: |
+          PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
+          "$PYTHON" - <<'PY'
+          import json, pathlib
+          from importlib.metadata import version
+          from sova_security.adapters.platform_review import PLATFORM_BASELINES
+          manifest = json.loads(pathlib.Path('integration/security/manifest.json').read_text())
+          assert version(manifest['package_distribution']) == manifest['package_version']
+          assert set(manifest['review_service']['platform_baselines']) == set(PLATFORM_BASELINES)
+          PY
+      - name: Build the exact producer service image for container mode
+        if: matrix.runtime == 'container'
+        run: |
+          PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
+          "$PYTHON" .local-notes/security-source/scripts/prepare_service_image.py \
+            --project .local-notes/security-source --output "$RUNNER_TEMP/security-image-context"
+          docker build --platform linux/amd64 --iidfile "$RUNNER_TEMP/security-image-id" \
+            --label "org.opencontainers.image.revision=$SECURITY_COMMIT" "$RUNNER_TEMP/security-image-context"
+          echo "SOVA_TEST_REVIEW_IMAGE=$(cat "$RUNNER_TEMP/security-image-id")" >> "$GITHUB_ENV"
+          echo "SOVA_TEST_REVIEW_IMAGE_COMMIT=$SECURITY_COMMIT" >> "$GITHUB_ENV"
+      - name: Verify execution, failure and response-loss boundaries
+        run: |
+          PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
+          "$PYTHON" -m pytest tests/integration/test_security_patch_execution.py tests/integration/test_security_review_runtime.py -q
+      - name: Read the qualified T28 driver without changing platform
+        if: matrix.runtime == 'process'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Softbank-Hackathon-Finals/platform
+          ref: 0795f65e24f58e43545b16b97757efcc0923fd4a
+          path: .local-notes/t28-platform
+          persist-credentials: false
+          sparse-checkout: |
+            scripts
+            infra/gitops/environments/development
+      - name: Verify actual T28 restart and concurrent dispatch boundaries
+        if: matrix.runtime == 'process'
+        env:
+          SOVA_T28_PLATFORM_SOURCE: '${{ github.workspace }}/.local-notes/t28-platform'
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: >-
+          .local-notes/security-source/.venv/bin/python -m pytest -q
+          tests/integration/test_platform_t28_restart.py tests/integration/test_effect_executor.py
+          tests/integration/test_platform_t28_postgres.py
+      - name: Retain the previous qualified T28 restart boundary
+        if: matrix.runtime == 'process'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Softbank-Hackathon-Finals/platform
+          ref: 42811da4cf19ce941491d4794ab49790881dc409
+          path: .local-notes/t28-platform
+          persist-credentials: false
+          sparse-checkout: |
+            scripts
+            infra/gitops/environments/development
+      - name: Verify historical T28 restart and reconciliation
+        if: matrix.runtime == 'process'
+        env:
+          SOVA_T28_PLATFORM_SOURCE: '${{ github.workspace }}/.local-notes/t28-platform'
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: >-
+          .local-notes/security-source/.venv/bin/python -m pytest -q
+          tests/integration/test_platform_t28_restart.py tests/integration/test_effect_executor.py
+          tests/integration/test_platform_t28_postgres.py

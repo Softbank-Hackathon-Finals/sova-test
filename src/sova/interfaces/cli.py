@@ -26,6 +26,8 @@ def main(argv=None):
         description="Sova independent system registration and portability assessment",
     )
     commands = parser.add_subparsers(dest="command", required=True)
+    from sova.interfaces.security_program import add_commands
+    add_commands(commands)
     commands.add_parser(
         "example",
         help="Print a synthetic registration valid for one hour; no live resources",
@@ -70,6 +72,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         now = datetime.now(timezone.utc)
+        if args.command.startswith("security-program-"):
+            from sova.interfaces.security_program import run
+            return run(args, now)
         if args.command == "discover-rds-security":
             from sova.adapters.aws_security_codec import decode_rds_registration
             from sova.adapters.aws_rds_security import (
