@@ -1,6 +1,9 @@
 # 두 보안 설계의 개인 검증과 platform 인계
 
-2026-11-06 · `sova-security==0.11.0` · platform 기준 `f602b39a949b99f3e2e7be901103063e78a52a70`
+2026-11-06 · `sova-security==0.11.0` · platform 현재 기준 `b19488e2debbee8bbe120f1309eadbe19df85b6f`
+
+최초 기준 f602b39도 소비 시험으로 유지한다. 새 기준은 그 이후 46개 커밋을 검토하고
+실제 T10/T19 모듈의 계약 시험 15개를 별도로 통과한 값이다. 운영 배포 자동 갱신은 하지 않는다.
 
 ## 사용하는 경로
 
@@ -128,6 +131,7 @@ SPIFFE/SPIRE는 후보와 확장 경로이며 현재 팀의 Cloudflare·EKS/RKE2
 - [x] 실행 후 증거 누락·변경 전 관측·만료 시 기존 effect를 보존하고 보류한다.
 - [x] platform `505d451fd8c374de755b160fca24f1a481820a50`의 schema와 예제를 대조하고 명시적 소비 프로필을 추가한다.
 - [x] f602b39 기준 실제 T10/T19 모듈과 initial/post_apply·현재 권한·단일 접수·원장 조정을 시험한다.
+- [x] b19488e의 StoredGateServices·DB/pooler 원문 요구를 확인하고 같은 소비 시험을 통과한다.
 - [x] 추가 서비스 소비에서 이전 PASS·만료·철회·shadow 우회를 차단하고 기존 실행 책임을 보존한다.
 - [ ] 실제 T7 서비스 audience·SA UID 등록과 CNPG 테넌트 전용 reader를 인수한다.
 - [ ] 플랫폼 plan-lock 아래 등록/철회와 실행기 IAM/RBAC의 직접 우회 거부를 실측한다.

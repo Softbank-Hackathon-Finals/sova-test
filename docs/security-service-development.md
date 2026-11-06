@@ -19,3 +19,14 @@
 
 상세 설계·소스 SHA·실패 실험·서비스 실행 결과는 security의
 `docs/development/security-service-2026-11-06.md`와 ADR을 정본으로 참조한다.
+
+## 현재 기준 소비와 독립 CI
+
+- 추가 기준: platform `b19488e2debbee8bbe120f1309eadbe19df85b6f`.
+  앞선 f602b39도 별도 소비 기준으로 유지한다. schema 추출 기준 505d451과 구분한다.
+- security producer `b3cbbe62cfdc2f762a4c223d13bb24c88963d620`을 고정한
+  `security-consumer` workflow를 추가했다. producer 잠금 파일의 시험 의존성과 실제 wheel을
+  설치하고 기존 패치 접수 시험을 수행한다. main의 미출시 패키지나 PyPI 동명 패키지로
+  암묵 대체하지 않는다. 이 CI는 클라우드/전체 Sova 인수 시험이 아니다.
+- 최신 로컬 전체 회귀: 1,102 PASS/3 SKIP, 107.56초. security 775 PASS와 함께 실행했다.
+- 상태: CI 구성 완료, 원격 실행 결과 확인 중. 결과를 확인하기 전에 CI 통과로 표시하지 않는다.
