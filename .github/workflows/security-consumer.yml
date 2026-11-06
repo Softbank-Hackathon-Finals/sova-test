@@ -104,3 +104,20 @@ jobs:
         run: |
           PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
           "$PYTHON" -m pytest tests/integration/test_security_patch_execution.py tests/integration/test_security_review_runtime.py -q
+      - name: Read the qualified T28 driver without changing platform
+        if: matrix.runtime == 'process'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Softbank-Hackathon-Finals/platform
+          ref: 42811da4cf19ce941491d4794ab49790881dc409
+          path: .local-notes/t28-platform
+          persist-credentials: false
+          sparse-checkout: |
+            scripts
+            infra/gitops/environments/development
+      - name: Verify actual T28 restart and concurrent dispatch boundaries
+        if: matrix.runtime == 'process'
+        env:
+          SOVA_T28_PLATFORM_SOURCE: '${{ github.workspace }}/.local-notes/t28-platform'
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: .local-notes/security-source/.venv/bin/python -m pytest -q tests/integration/test_platform_t28_restart.py tests/integration/test_effect_executor.py

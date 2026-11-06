@@ -1,0 +1,77 @@
+"""Synthetic operator only; actual pinned T28 driver and durable SQLite journal."""
+
+from datetime import UTC, datetime, timedelta
+import os
+from pathlib import Path
+import sqlite3
+import time
+from types import SimpleNamespace
+
+from sova.adapters.platform_t28 import DurableT28Port, OperatorBinding, PLATFORM_COMMIT, load_driver
+from sova.adapters.sqlite_effects import SQLiteEffectJournal
+from sova.application.effects import EffectExecutor
+from sova.domain.contracts import EffectCommand, EffectObservation, EffectStatus, ResourceScope, canonical_json
+from support import permit_for
+
+
+def runtime(root, work, phase="normal", *, deny=False):
+    driver = load_driver(root)
+    driver.STEPS = (driver.Step("s4-fault-inject", "S4", "operator", "T28", "synthetic test effect", ("synthetic-effect",)),)
+    work = Path(work)
+    now = datetime(2026, 11, 7, tzinfo=UTC)
+    command = EffectCommand(ResourceScope("test-tenant", "test-app", "test-env", "test-resource"),
+        "test-operation", "s4-fault-inject", "synthetic-t28", "t28_operator", "test-operation:fault",
+        "a" * 64, "revision-1", 1, now + timedelta(minutes=5), canonical_json({
+            "argv": ["synthetic-effect"], "platform_commit": PLATFORM_COMMIT, "plan_id": "test-plan",
+            "application_id": "test-application", "diff_digest": "b" * 64, "image_digest": "sha256:" + "c" * 64}))
+    effect = work / "effect.txt"
+
+    class Adapter:
+        adapter_id = "synthetic-t28"
+
+        def validate(self, command):
+            assert command.parameters["argv"] == ["synthetic-effect"]
+
+        def apply(self, command):
+            if phase == "pause-before-effect":
+                (work / "claimed").write_text("claimed")
+                deadline = time.monotonic() + 10
+                while not (work / "release").exists():
+                    assert time.monotonic() < deadline
+                    time.sleep(0.02)
+            if phase == "before-effect":
+                os._exit(41)
+            with effect.open("a") as stream:
+                stream.write("once\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            if phase == "after-effect":
+                os._exit(42)
+
+        def readback(self, command, now):
+            applied = effect.exists() and effect.read_text() == "once\n"
+            return EffectObservation(command.scope, command.fingerprint,
+                EffectStatus.APPLIED if applied else EffectStatus.NOT_APPLIED, now,
+                canonical_json({"synthetic_effect_observed": applied}))
+
+    def authorize(*_):
+        if deny:
+            raise PermissionError("Synthetic current authority revoked")
+
+    db = sqlite3.connect(work / "journal.sqlite")
+    db.execute("PRAGMA synchronous=FULL")
+    engine = EffectExecutor(SQLiteEffectJournal(db), authorize=authorize, clock=lambda: now)
+    binding = OperatorBinding(command, permit_for(command), Adapter())
+
+    class Port(DurableT28Port):
+        def __call__(self, *args, **kwargs):
+            result = super().__call__(*args, **kwargs)
+            if phase == "after-receipt":
+                os._exit(43)
+            return result
+
+    port = Port(root, "test-plan", "test-application", (binding,), engine)
+    args = SimpleNamespace(record=str(work / "run.jsonl"), plan_id="test-plan", profile="mock",
+        application_id="test-application", kubeconfig=None, fault_record="unused", receipts=None,
+        wait=0, interval=1, step_timeout=30, plan_state_command=None)
+    return driver, args, port, binding, db
