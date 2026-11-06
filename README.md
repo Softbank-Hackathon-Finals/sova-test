@@ -71,7 +71,7 @@ tests/integration/ # 공통 통합 시험과 공유 PostgreSQL fixture
 사용한다. 기존 정본의 20개 full 시험과 제출 원문의 보고 상태를 정리하며 실제 클라우드
 검사·증거 인증·실행 승인으로 사용하지 않는다. [맥 인수 안내](docs/platform-security-handoff.md)를 따른다.
 
-두 보안 제안서의 패치·마이그레이션 검증 흐름은 설치한 `sova-security==0.10.0`의
+두 보안 제안서의 패치·마이그레이션 검증 흐름은 설치한 `sova-security==0.11.1`의
 검사 프로필을 사용한다. [실행 예와 플랫폼 인계](docs/platform-security-handoff.md)에
 독립 패키지, 기존 실행기 연결, 원문 요구사항과 시험 범위를 정리했다.
 `sova security-program-catalog`, `sova security-program-example`,

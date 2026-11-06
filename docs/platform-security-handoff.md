@@ -1,5 +1,13 @@
 # 두 보안 설계의 개인 검증과 platform 인계
 
+현재 T14·T33 로컬 준비 도구는 `sova-security==0.11.1`, 생산자
+`27e6e85514a7cbb3e43d216464b72d9bd78f3fcf`를 소비한다. 최신 계약 검증에 platform
+`c364e6284d2e635ff86001e2feac88560ed23ebc`를 추가했다. 아래 0.11.0 이미지·소비 결과는
+이전 검증 기록이며 새 버전의 실환경 인수로 승격하지 않는다. 하단의 T14·T33 추가 절차와
+`docs/development/security-intake-2026-11-07.md`를 함께 읽는다.
+
+## 이전 0.11.0 검증 기록
+
 2026-11-07 KST · `sova-security==0.11.0` · platform 개발 계약 `0795f65e24f58e43545b16b97757efcc0923fd4a`
 
 최종 소비 source는 `546f6e0482cc06fa32f00ea8d554522551a84beb`다. 최신 개발 계약과 별도로
