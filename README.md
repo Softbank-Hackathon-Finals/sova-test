@@ -67,6 +67,13 @@ tests/integration/ # 공통 통합 시험과 공유 PostgreSQL fixture
 
 ## 설계
 
+두 보안 제안서의 패치·마이그레이션 검증 흐름은 설치한 `sova-security==0.10.0`의
+검사 프로필을 사용한다. [실행 예와 플랫폼 인계](docs/platform-security-handoff.md)에
+독립 패키지, 기존 실행기 연결, 원문 요구사항과 시험 범위를 정리했다.
+`sova security-program-catalog`, `sova security-program-example`,
+`sova security-program-check`로 로컬 진단을 실행할 수 있다.
+진단 JSON은 인증·승인·실제 클라우드 검사 결과가 아니다.
+
 실제 로컬 k3s의 보안 수집·보류·승인된 격리·대체 기동·경로 전환은 [검증 현황](docs/security-workload-validation.md)에 정리했다. 클라우드 간 이전·무중단·기업 인증 완료를 뜻하지 않는다.
 
 여섯 영역의 검증 계약과 데이터·보안·관측 경로를 구현 중이다. Harbor 실행 연동은 팀원 담당이다. [담당 경계](docs/team-boundaries.md) · [보안 실행 계약](docs/security-governance.md).

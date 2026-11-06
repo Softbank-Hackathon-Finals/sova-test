@@ -68,10 +68,25 @@
     "kubernetes_response"
   ],
   "package_distribution": "sova-security",
-  "package_version": "0.9.0",
+  "package_version": "0.10.0",
   "package_import": "sova_security",
   "canonical_python_root_note": "Compatibility aliases to installed sova_security; host execution runner and qualification adapters remain in Sova.",
   "public_contracts": "sova_security.contracts v1; versioned extraction baseline, not an assertion that team platform has adopted these contracts.",
   "extraction_baseline_version": "0.1.0",
-  "host_monitoring": "sova.monitoring; host-owned schedule/leases/outbox and postgres_monitoring_v1.sql, not part of sova-security"
+  "host_monitoring": "sova.monitoring; host-owned schedule/leases/outbox and postgres_monitoring_v1.sql, not part of sova-security",
+  "architecture_program": {
+    "catalog": "sova_security.domain.security_program",
+    "authenticated_service": "sova_security.application.security_program.SecurityProgramService",
+    "host_composition": "sova.security.application.security_program.with_security_program",
+    "patch_composition": "sova.security.application.security_program.with_patch_security_program",
+    "registered_authority": "sova_security.adapters.registered_program.RegisteredProgramAuthority",
+    "producer_authentication": "sova_security.adapters.program_evidence.SignedProgramEvidence",
+    "wire_kind": "security-program.v1",
+    "diagnostic_wire_kind": "security-program-input.v1",
+    "producer_route_kind": "program-evidence-route.v1",
+    "projection_kind": "program-evidence-projection.v1",
+    "current_team_contract_commit": "505d451fd8c374de755b160fca24f1a481820a50",
+    "platform_handoff": "docs/platform-security-handoff.md",
+    "authority": "Additional evidence requirements only; existing approval, T19, executor and runtime verification remain authoritative"
+  }
 }
