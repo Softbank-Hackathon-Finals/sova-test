@@ -18,3 +18,13 @@
 최종 검토에서 T10이 발급한 workload ID를 카탈로그의 표시 이름 demo-chat으로 바꾸지
 않도록 보강했다. 양쪽 workload는 같고 환경·run ID는 달라야 한다. 보류 권한 자체의
 인증 중 철회도 효과 직전에 재검사한다. 현재 생산자는 이 두 수정을 포함한다.
+
+## Linux 소비 CI
+
+최종 소비 코드 `1325a647f1439d126a263658abb4ca1a23e0fbcd`의
+[CI 42291343841](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42291343841)가 통과했다.
+설치 wheel의 인수 CLI·기존 프로그램 CLI·SQL 정본/모듈 경계는 두 runtime에서 각각 11 PASS다.
+실제 서비스 process 44 PASS, container 44 PASS, 최신 T28 36 PASS, 이전 T28 32 PASS·4 SKIP다.
+Windows의 SQL symlink 시험 실패도 Linux 원본 symlink 경로에서는 통과했다.
+최신 플랫폼의 키·서명·재평가 19 SKIP는 생산자 쪽 feature 목록 누락을 바로잡아
+37 PASS·0 SKIP로 검증했다. 이 추가 시험·문서와 패키지 생산자 사이의 runtime 입력은 같다.
