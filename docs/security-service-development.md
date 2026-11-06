@@ -111,3 +111,21 @@
   손상된 원본 bytes가 수정되지 않았는지도 검사한다. 디스크 전체를 소진시키는 시험은 아니다.
 - process/container 소비 CI로 확인한다. 현재 producer 이미지의 취약점 검사는 별도 **BLOCK**이며
   이 기능 시험 성공을 운영 배포 승인으로 해석하지 않는다. OS/installer 후속 변경은 별도 검증 후 갱신한다.
+
+### SOVA-SVC-05 결과
+
+- `c7b9245` [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42219499703)는
+  process/container 모두 성공했다. 실제 컨테이너 소비는 **41 PASS, 64.34초**였다.
+
+## SOVA-SVC-06: 감사 이후 권한 확인과 여섯 번째 플랫폼 기준 소비
+
+- producer `d9c878f7be63b72a2d693f24af37148776fb7fe2`의
+  [CI](https://github.com/Softbank-Hackathon-Finals/security/actions/runs/42223422299) 전체 성공을 확인하고 고정한다.
+  Python 3.14 전체 **928 PASS / 1 SKIP, 150.66초**, PostgreSQL 18.4 경계 **42 PASS**,
+  실제 서비스 이미지/T10 **11 PASS**, 여섯 플랫폼 기준의 계약 시험을 통과했다.
+- 감사 기록 이후에도 원본 증거·검증기 철회·hold를 확인하고 정확히 기록한 report만 반환한다.
+  감사 중 신뢰 철회/보류 commit을 실제 PG/TLS 시험에서 거부한다. 기존 consumer API/원장/실행 책임은 유지한다.
+- 서비스 이미지에서 불필요한 pip/ensurepip를 제거했다. v2 scanner는 실제 OS 87개와 Python 10개를
+  모두 대조한다. 수집은 성공했지만 미수정 OS HIGH 49건 때문에 배포 BLOCK은 그대로다.
+- platform 8b12236의 T7 object open·T15 host·T14 부분 증거를 인수 문서에 반영한다.
+  작업 PASS를 보안 PASS로 확대하지 않는다. 현재 pin의 process/container 소비 결과는 후속 기록한다.

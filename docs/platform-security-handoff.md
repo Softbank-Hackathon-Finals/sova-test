@@ -1,14 +1,25 @@
 # 두 보안 설계의 개인 검증과 platform 인계
 
-2026-11-06 · `sova-security==0.11.0` · platform 현재 기준 `a610bbfb60d3a633597d75dc6e070addd3c3b559`
+2026-11-06 · `sova-security==0.11.0` · platform 현재 기준 `8b12236ae4277de16cebdf1391f87721e5851d47`
 
-앞선 f602b39·b19488e·c225c86·9e0d6a5도 소비 시험으로 유지한다. 최신 a610bbf의 추가 6개 커밋은
-T43 복구·gate grant mount 보정과 T30 적용 후 쓰기 개방 helper이며 T10/T19 집행 코드는 그대로다.
+앞선 f602b39·b19488e·c225c86·9e0d6a5·a610bbf도 소비 시험으로 유지한다. 최신 8b12236은
+T7 object operations·T15 host·T14 소스 검사와 T21 원본 기한 표시를 추가했고 T10/T19 집행 코드는 그대로다.
 실제 연결 계약을 시험한 정확한 SHA만 허용한다. 운영 배포 자동 갱신은 하지 않는다.
 
 새 `open_after_apply.py`는 운영자 경로이며 원격 보안 판정의 강제 집행을 추가한 것이 아니다.
 후속 인수는 쓰기 개방·Edge 전환·컷오버까지 현재 계획/반영 ID/이미지와 결속하고 직접 명령의
 권한도 제한해야 한다. T10 집행 어댑터 통과만으로 그 경로의 우회가 제거됐다고 보지 않는다.
+
+T7 object `open`은 명시적 `close`까지 개발용 익명 읽기를 유지한다. 작업의 FINISHED/PASS/CLEAN을
+보안 PASS로 변환하지 않는다. `final_state=open`, `security_state=PUBLIC_READ`와 관측 시각을 보존한다.
+T15의 manager/runner/AI 격리, admission 정책, 임시 record_key의 T9/OpenBao 이관은 플랫폼 책임이다.
+새 T14 소스 검사 결과는 양쪽 각각 **1 PASS / 19 UNKNOWN**이며 이전 TLS 결과와 합산하지 않는다.
+
+플랫폼 T15 이미지 발행 workflow의 `ignore-unfixed: true`와 달리 이 서비스의 수집 정책은 미수정
+HIGH/CRITICAL도 BLOCK이다. OCI/digest 발행 경로는 재사용 후보지만 두 정책의 의미를 같다고 취급하지 않는다.
+현재 producer는 실제 OS 87개와 Python 10개를 대조했으며 **HIGH 49건 / 배포 BLOCK**이다.
+이는 13개 고유 CVE의 여러 OS 패키지 탐지다. 기능 CI 통과가 배포 허가를 뜻하지 않는다.
+scanner 원본·정책·정확한 source/image ID는 security의 `docs/evidence/service-image-scan-2026-11-06/`에 보존한다.
 
 ## 사용하는 경로
 
@@ -151,6 +162,7 @@ SPIFFE/SPIRE는 후보와 확장 경로이며 현재 팀의 Cloudflare·EKS/RKE2
 - [x] f602b39 기준 실제 T10/T19 모듈과 initial/post_apply·현재 권한·단일 접수·원장 조정을 시험한다.
 - [x] b19488e의 StoredGateServices·DB/pooler 원문 요구를 확인하고 같은 소비 시험을 통과한다.
 - [x] c225c86의 추가 변경을 검토하고 세 기준의 계약 CI 및 현재 전체 보안 회귀를 통과한다.
+- [x] 9e0d6a5·a610bbf·8b12236을 추가해 여섯 기준의 계약과 최신 실제 T10/이미지 소비를 통과한다.
 - [x] 추가 서비스 소비에서 이전 PASS·만료·철회·shadow 우회를 차단하고 기존 실행 책임을 보존한다.
 - [x] 실제 Sova PG 원장과 독립 TLS/보안 PG를 연결해 사전 차단·사후 hold·단일 효과를 시험한다.
 - [ ] 실제 소비자의 projected audience·SA UID 등록과 CNPG 테넌트 전용 reader를 인수한다.
