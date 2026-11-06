@@ -266,3 +266,11 @@ SPIFFE/SPIRE는 후보와 확장 경로이며 현재 팀의 Cloudflare·EKS/RKE2
 서로 다른 검증 수준이다. 0.10.0 결과는 security의 `docs/validation-2026-11-06.md`,
 0.11.0 초기 결과는 `docs/development/security-service-2026-11-06.md`, 이번 후속 결과는
 `docs/development/security-acceptance-2026-11-07.md`를 따른다. 실환경 다섯 항목은 미검증으로 남긴다.
+## T14·T33 로컬 인수 도구 (2026-11-07 추가)
+
+`security` 0.11.1을 고정한 소비 환경에서 `sova security-intake-plan`으로 T5 `full:1`
+20개 시험의 준비 조건과 source/target 보고 상태를 조회한다. 입력 없이 실행하면 모든 행은
+NOT_PROVIDED이며 실제 시험·인증·실행 승인을 수행하지 않는다. 기존 공식 접속과 T14/T19/T33
+원문 조회를 재사용하는 [맥 실행 안내](https://github.com/Softbank-Hackathon-Finals/security/blob/main/docs/mac-t14-t33-intake.md)를 따른다.
+위 과거 산출물·이미지 기록의 소스 고정값은 이 새 버전으로 자동 갱신되지 않는다.
+
