@@ -9,6 +9,9 @@ jobs:
   patch-admission:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      matrix:
+        runtime: [process, container]
     services:
       security-postgres:
         image: postgres:17
@@ -34,7 +37,7 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       UV_PYTHON_DOWNLOADS: 'never'
-      SECURITY_COMMIT: a33863c474bd170dc3aea7d7179953d17d8755d1
+      SECURITY_COMMIT: 269e1e509245bd5bb1cd62a753f7b3ef5e860992
       SOVA_SECURITY_TEST_SOURCE: '${{ github.workspace }}/.local-notes/security-source'
       SOVA_SECURITY_TEST_POSTGRES_DSN: 'host=/tmp/security-consumer-pg port=5432 user=bravo_test_admin password=ci-test-only dbname=sova_security_test'
       SOVA_TEST_POSTGRES_DSN: 'host=/tmp/sova-consumer-pg port=5432 user=bravo_test_admin password=ci-test-only dbname=sova_test'
@@ -71,4 +74,17 @@ jobs:
         run: |
           PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
           "$PYTHON" -c "from importlib.metadata import version; assert version('sova-security') == '0.11.0'"
+      - name: Build the exact producer service image for container mode
+        if: matrix.runtime == 'container'
+        run: |
+          PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
+          "$PYTHON" .local-notes/security-source/scripts/prepare_service_image.py \
+            --project .local-notes/security-source --output "$RUNNER_TEMP/security-image-context"
+          docker build --platform linux/amd64 --iidfile "$RUNNER_TEMP/security-image-id" \
+            --label "org.opencontainers.image.revision=$SECURITY_COMMIT" "$RUNNER_TEMP/security-image-context"
+          echo "SOVA_TEST_REVIEW_IMAGE=$(cat "$RUNNER_TEMP/security-image-id")" >> "$GITHUB_ENV"
+          echo "SOVA_TEST_REVIEW_IMAGE_COMMIT=$SECURITY_COMMIT" >> "$GITHUB_ENV"
+      - name: Verify execution, failure and response-loss boundaries
+        run: |
+          PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
           "$PYTHON" -m pytest tests/integration/test_security_patch_execution.py tests/integration/test_security_review_runtime.py -q

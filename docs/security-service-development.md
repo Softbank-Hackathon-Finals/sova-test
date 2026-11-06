@@ -62,3 +62,18 @@
   [Starlette 공식 안내](https://www.starlette.io/testclient/)는 httpx2 사용을 권한다.
   이 엄격 경고 실행은 수집 실패이며 통과로 집계하지 않는다. 보안 판정·서명·원장 실패가 아니며
   데모 시험 클라이언트 의존성 갱신 사항으로 구분한다. 경고를 숨기는 전역 필터는 추가하지 않았다.
+
+## SOVA-SVC-03: 최신 보안 경계와 실제 서비스 컨테이너 소비
+
+- 생산자 `269e1e509245bd5bb1cd62a753f7b3ef5e860992`, 플랫폼 기본 9e0d6a5 및 이전 세 SHA.
+  단일 audience·원래 수명 600초, DB 간접 권한 거부, 고정 이미지 build를 포함한다.
+- 기존 Sova fixture의 중복 프로세스 코드를 제거하고 명시적으로 고정한 producer의
+  `review_process`를 소비한다. `ExitStack.close`로 자신의 프로세스/컨테이너만 중단하며,
+  사전·사후 장애 주입 뒤 이중 정리에도 추가 효과를 만들지 않는다.
+- 로컬 실제 PG/TLS + SQLite/PG 패치 회귀 **46 PASS, 57.21초**. 생산자 전체는
+  잠금 Python 3.14/PG/OPA/API/최신 플랫폼에서 **847 PASS, 120.58초**였다.
+- 소비 CI는 process/container 두 모드로 나눈다. container 모드는 정확한 producer의
+  clean commit·lock·wheel만으로 이미지를 만들고 image ID/commit을 고정한다. 이미지나
+  배포 자격을 외부 레지스트리로 발행하지 않는다. 원격 결과는 확인 후 기록한다.
+- 실제 컨테이너인 것은 **보안 서비스**다. 패치 대상 provider의 이미지 적용·취약점 측정과
+  TokenReview 공급자는 여전히 모형이다. 네트워크/CNI·운영 인증·팀 실행기 인수와 구분한다.

@@ -4,7 +4,7 @@ Qualification support is read from the explicitly pinned producer checkout.
 Production imports still use the installed package, never producer src paths.
 """
 
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from dataclasses import asdict, replace
 from datetime import UTC, datetime, timedelta
 import importlib.util
@@ -12,11 +12,9 @@ import json
 import os
 from pathlib import Path
 import secrets
-import socket
 import ssl
 import subprocess
 import sys
-import time
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -46,12 +44,12 @@ def producer_support():
     old_path, old_modules = list(sys.path), set(sys.modules)
     sys.path[:0] = [str(root / "tests"), str(root / "tests/integration")]
     try:
-        from tls_review_support import certificates, tls_server
+        from tls_review_support import review_process, tls_server
         from tokenreview_tls_support import LocalTokenReview
         spec = importlib.util.spec_from_file_location("qualified_security_database", root / "tests/integration/test_postgres_boundary.py")
         boundary = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(boundary)
-        yield SimpleNamespace(certificates=certificates, tls_server=tls_server, issuer=LocalTokenReview,
+        yield SimpleNamespace(review_process=review_process, tls_server=tls_server, issuer=LocalTokenReview,
             database=boundary.database.__wrapped__)
     finally:
         sys.path[:] = old_path
@@ -133,15 +131,6 @@ def independent_service(support, database, directory, registration, records, pri
         path.write_text(value)
         path.chmod(0o600)
         return str(path)
-    child = None
-    def stop():
-        if child is not None and child.poll() is None:
-            child.terminate()
-            try:
-                child.wait(timeout=8)
-            except subprocess.TimeoutExpired:
-                child.kill()
-                child.wait(timeout=3)
     issuer = support.issuer(now)
     try:
         with support.tls_server(issuer, directory, name="issuer") as (issuer_origin, issuer_ca):
@@ -154,35 +143,16 @@ def independent_service(support, database, directory, registration, records, pri
                 reviewer_token_file=mount("reviewer.token", issuer.reviewer_token), audience=issuer.audience,
                 grants_file=mount("grants.json", json.dumps(grants)), local_audit_file=str(directory / "audit.jsonl"))
             config_path = mount("config.json", json.dumps(config))
-            ca, certificate, key = support.certificates(directory, name="process")
-            with socket.socket() as listener:
-                listener.bind(("127.0.0.1", 0))
-                port = listener.getsockname()[1]
-            with (directory / "process-stderr.txt").open("wb") as diagnostics:
-                os.chmod(diagnostics.name, 0o600)
-                child = subprocess.Popen([sys.executable, "-m", "sova_security.interfaces.review_server",
-                    "--config", config_path, "--certificate", str(certificate), "--private-key", str(key),
-                    "--host", "127.0.0.1", "--port", str(port)], stdout=subprocess.DEVNULL, stderr=diagnostics)
+            with ExitStack() as service:
+                origin, ca = service.enter_context(support.review_process(config_path, directory))
                 context = ssl.create_default_context(cafile=str(ca))
-                deadline = time.monotonic() + 10
-                while time.monotonic() < deadline:
-                    assert child.poll() is None, "Owned review process exited during startup"
-                    try:
-                        with socket.create_connection(("127.0.0.1", port), timeout=0.2) as connection:
-                            with context.wrap_socket(connection, server_hostname="127.0.0.1"):
-                                break
-                    except (OSError, ssl.SSLError):
-                        time.sleep(0.02)
-                else:
-                    raise AssertionError("Owned review process readiness deadline exceeded")
-                try:
-                    yield SimpleNamespace(publisher=publisher, stop=stop, issuer=issuer,
-                        credential=BearerCredential(issuer.client_token, now + timedelta(minutes=2)),
-                        transport=HTTPSJSONTransport(f"https://127.0.0.1:{port}", tls_context=context, timeout=5))
-                finally:
-                    stop()
+                # Closing the producer's context is idempotent, including fault
+                # injection before the outer cleanup. Docker stops only its own
+                # generated container; process mode stops only its child.
+                yield SimpleNamespace(publisher=publisher, stop=service.close, issuer=issuer,
+                    credential=BearerCredential(issuer.client_token, now + timedelta(minutes=2)),
+                    transport=HTTPSJSONTransport(origin, tls_context=context, timeout=5))
     finally:
-        stop()
         with psycopg.connect(dsn, autocommit=True) as admin:
             admin.execute(sql.SQL("DROP OWNED BY {}").format(sql.Identifier(reader)))
             admin.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(reader)))

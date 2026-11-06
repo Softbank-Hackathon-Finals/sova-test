@@ -1,9 +1,10 @@
 # 두 보안 설계의 개인 검증과 platform 인계
 
-2026-11-06 · `sova-security==0.11.0` · platform 현재 기준 `c225c86cf5e408b5fcd016b0e367d3672d1bac44`
+2026-11-06 · `sova-security==0.11.0` · platform 현재 기준 `9e0d6a59d7a00925ddafc50cfa2ccad00c5ba768`
 
-앞선 f602b39와 b19488e도 소비 시험으로 유지한다. c225c86은 b19488e 이후 10개 커밋을
-검토하고 실제 T10/T19 소비 및 전체 보안 회귀를 통과한 값이다. 운영 배포 자동 갱신은 하지 않는다.
+앞선 f602b39·b19488e·c225c86도 소비 시험으로 유지한다. 최신 9e0d6a5의 추가 8개 커밋은
+T13 실측·T9 ARM image·T43 GitOps image·T31 테스트 변경이며 T10/T19 집행 코드는 그대로다.
+실제 연결 계약을 시험한 정확한 SHA만 허용한다. 운영 배포 자동 갱신은 하지 않는다.
 
 ## 사용하는 경로
 
@@ -36,7 +37,13 @@ postflight는 기존 실행기가 넘기는 실제 `not_before`와 operation ID�
 독립 프로세스 시험은 security 저장소에서 수행한다. 추가 Sova 통합 시험은 실제 PG의 승인·
 lease·effect 원장과 별도 보안 PG를 독립 TLS 서비스로 연결한다. 서명 원본과 현재 등록을 읽으며
 서비스 중단·승인 철회·호스트 등록 철회·오래된 사후 관측·응답 유실을 검증한다.
-이미지 실행과 측정 내용, TokenReview 공급자는 여전히 시험 모형이다.
+Sova 소비 CI에는 보안 서비스의 실제 컨테이너 모드도 추가한다. 패치 대상 이미지 실행과
+측정 내용, TokenReview 공급자는 여전히 시험 모형이다. 두 이미지의 역할을 혼동하지 않는다.
+
+현재 고정 생산자는 `269e1e509245bd5bb1cd62a753f7b3ef5e860992`다. 서비스 토큰은 단일
+audience·원래 수명 600초 이하여야 한다. 전용 DB는 다섯 테이블의 고정 RLS뿐 아니라 PUBLIC
+definer 함수/뷰·열 단위 쓰기·추가 객체 권한도 정리해야 한다. 자동 권한 변경은 하지 않는다.
+security ADR-0008·0009와 실제 PG/Kubernetes 시험을 인계 자료로 사용한다.
 
 platform 소비는 `T10ProgramAuthority`로 원래 `T10GateAuthority`를 감싼다. 원래 계획
 digest/`PlanGateSession.fingerprint`, 문자열 profile version, `initial/post_apply`와
