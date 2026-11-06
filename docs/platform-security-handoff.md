@@ -1,9 +1,10 @@
 # 두 보안 설계의 개인 검증과 platform 인계
 
-2026-11-06 · `sova-security==0.11.0` · platform 현재 기준 `8b12236ae4277de16cebdf1391f87721e5851d47`
+2026-11-06 · `sova-security==0.11.0` · platform 검증 기준 `bb174860bedf100de3970c3e8e410f02f23994e2`
 
-앞선 f602b39·b19488e·c225c86·9e0d6a5·a610bbf도 소비 시험으로 유지한다. 최신 8b12236은
-T7 object operations·T15 host·T14 소스 검사와 T21 원본 기한 표시를 추가했고 T10/T19 집행 코드는 그대로다.
+앞선 f602b39·b19488e·c225c86·9e0d6a5·a610bbf·8b12236도 소비 시험으로 유지한다. bb17486의
+새 WorkflowHost는 plan/version별 준비 결과를 읽고 미연결 단계는 보류한다. SHIFT 실행은 이 드라이버의
+대상이 아니며 기존 T10 접수 책임을 유지한다. 단계별 운영 조립은 별도 인수 대상이다.
 실제 연결 계약을 시험한 정확한 SHA만 허용한다. 운영 배포 자동 갱신은 하지 않는다.
 
 새 `open_after_apply.py`는 운영자 경로이며 원격 보안 판정의 강제 집행을 추가한 것이 아니다.
@@ -14,6 +15,12 @@ T7 object `open`은 명시적 `close`까지 개발용 익명 읽기를 유지한
 보안 PASS로 변환하지 않는다. `final_state=open`, `security_state=PUBLIC_READ`와 관측 시각을 보존한다.
 T15의 manager/runner/AI 격리, admission 정책, 임시 record_key의 T9/OpenBao 이관은 플랫폼 책임이다.
 새 T14 소스 검사 결과는 양쪽 각각 **1 PASS / 19 UNKNOWN**이며 이전 TLS 결과와 합산하지 않는다.
+
+T19 정정 기록상 이전 두 앱 경로는 같은 출발지 DB를 사용했다. 이를 독립 출발지/목적지 DB 일치로
+인정하지 않는다. 새 목적지 직접 수집은 한 시점의 관측이며 기존 복제 권한 역할을 사용했다.
+pooler 뒤의 실제 DB 신원, 최소 권한 수집기, 현재 계획의 같은 유효 창 안에서 수집한 양쪽 증거가 필요하다.
+T22의 실제 브라우저 재접속 8조합 역시 DB 컷오버·쓰기 개방의 증거가 아니다.
+[정정 원문](https://github.com/Softbank-Hackathon-Finals/platform/blob/bb174860bedf100de3970c3e8e410f02f23994e2/docs/evidence/t19-direct-database-2026-11-06/README.md)을 보존한다.
 
 플랫폼 T15 이미지 발행 workflow의 `ignore-unfixed: true`와 달리 이 서비스의 수집 정책은 미수정
 HIGH/CRITICAL도 BLOCK이다. OCI/digest 발행 경로는 재사용 후보지만 두 정책의 의미를 같다고 취급하지 않는다.
@@ -55,10 +62,18 @@ lease·effect 원장과 별도 보안 PG를 독립 TLS 서비스로 연결한다
 Sova 소비 CI에는 보안 서비스의 실제 컨테이너 모드도 추가한다. 패치 대상 이미지 실행과
 측정 내용, TokenReview 공급자는 여전히 시험 모형이다. 두 이미지의 역할을 혼동하지 않는다.
 
-현재 고정 생산자는 `269e1e509245bd5bb1cd62a753f7b3ef5e860992`다. 서비스 토큰은 단일
+현재 고정 생산자는 `f25433a3905737c97e8aab3a6ced6832c8d6d7eb`다. 같은 0.11.0이라도 전체 source SHA와
+lock/wheel hash를 함께 인수한다. 서비스 토큰은 단일
 audience·원래 수명 600초 이하여야 한다. 전용 DB는 다섯 테이블의 고정 RLS뿐 아니라 PUBLIC
 definer 함수/뷰·열 단위 쓰기·추가 객체 권한도 정리해야 한다. 자동 권한 변경은 하지 않는다.
 security ADR-0008·0009와 실제 PG/Kubernetes 시험을 인계 자료로 사용한다.
+
+TCP DB 연결은 접속 전에 단일 host/port/DB/reader, `sslmode=verify-full`과 절대 CA 경로를 요구한다.
+혼합 host, service 환경 우회, TLS 대신 GSS 선택을 허용하지 않는다. T9의 mounted DSN 회전은 유지한다.
+현재 DB의 RLS만으로 같은 서버의 다른 DB를 보호할 수 없으므로 운영자는 ADR-0017의
+`reader_hba_rules`로 전용 DB/reader/허용 CIDR의 TLS/SCRAM 규칙을 준비한다. 이 함수는 렌더링만 한다.
+CNPG 고정 규칙의 우선순위와 pooler의 실제 사용자/주소는 별도 확인한다. HBA reload는 기존 세션을
+종료하지 않으므로 host hold와 자격·세션 철회 절차를 함께 인수해야 한다. ADR-0018은 연결 전 검증을 설명한다.
 
 platform 소비는 `T10ProgramAuthority`로 원래 `T10GateAuthority`를 감싼다. 원래 계획
 digest/`PlanGateSession.fingerprint`, 문자열 profile version, `initial/post_apply`와
@@ -79,6 +94,8 @@ application_id를 그대로 사용한다. 프로그램 pre/postflight 축과 혼
 T33의 실제 Security Hub 접근 거부를 빈 탐지/PASS로 만들지 않는다. T14 listener v2의
 source NET-01.3 FAIL과 나머지 UNKNOWN을 유지하고 운영 v1 결과로 치환하지 않는다.
 강제 연결에 앞서 `compare_shadow`로 기존 결과와 차이를 읽기 전용으로 수집한다.
+`matched=true`는 같은 UNKNOWN/FAIL일 수도 있다. 일치율이나 서비스 응답 성공을 준비 완료로
+변환하지 않고 원래 개별 판정·근거·기한을 검토한다. 실행 접수 때는 새 enforce 판정과 기존 T10 조건이 필요하다.
 
 ## 로컬 실행
 
@@ -169,6 +186,7 @@ SPIFFE/SPIRE는 후보와 확장 경로이며 현재 팀의 Cloudflare·EKS/RKE2
 - [x] b19488e의 StoredGateServices·DB/pooler 원문 요구를 확인하고 같은 소비 시험을 통과한다.
 - [x] c225c86의 추가 변경을 검토하고 세 기준의 계약 CI 및 현재 전체 보안 회귀를 통과한다.
 - [x] 9e0d6a5·a610bbf·8b12236을 추가해 여섯 기준의 계약과 최신 실제 T10/이미지 소비를 통과한다.
+- [x] bb17486을 추가해 일곱 기준을 유지하고 새 WorkflowHost의 SHIFT 소유권·version별 판독 경계를 시험한다.
 - [x] 추가 서비스 소비에서 이전 PASS·만료·철회·shadow 우회를 차단하고 기존 실행 책임을 보존한다.
 - [x] 실제 Sova PG 원장과 독립 TLS/보안 PG를 연결해 사전 차단·사후 hold·단일 효과를 시험한다.
 - [ ] 실제 소비자의 projected audience·SA UID 등록과 CNPG 테넌트 전용 reader를 인수한다.

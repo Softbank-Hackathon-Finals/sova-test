@@ -149,3 +149,21 @@
   시험 후 동일 테스트 키의 철회 revision을 다시 기록한다. 서비스 계정에 삭제/관리자 권한을 부여하지 않는다.
 - 실제 두 PG/TLS 서비스의 관련 회귀 **11 PASS, 56.65초**. CI process/container에서도 검증한다.
   운영 복구 전에는 복원 대상과 독립된 실행 차단·원장 조정·현재 키/철회 재등록이 필요하다.
+
+### SOVA-SVC-07 CI 결과
+
+- `e14c17e` [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42227270467)
+  process/container 모두 성공. 실제 서비스 container 소비 **42 PASS, 51.83초**.
+
+## SOVA-SVC-08: 연결 전 DB 정책과 일곱 플랫폼 기준 소비
+
+- producer `f25433a3905737c97e8aab3a6ced6832c8d6d7eb`의
+  [CI](https://github.com/Softbank-Hackathon-Finals/security/actions/runs/42229814068) 전체 성공을 확인하고 고정한다.
+  Python 3.14 **983 PASS / 2 SKIP, 154.27초**, PG18.4 권한 경계 **42 PASS, 8.66초**,
+  실제 TLS/HBA **1 PASS, 1.11초**, image/T10 **11 PASS, 27.88초**, 일곱 기준 계약을 통과했다.
+- 변경은 연결 전 TLS/단일 DB 경로 검증, DB별 HBA 규칙의 운영자 렌더링, bb17486 WorkflowHost 계약,
+  전체 기준에서 생성하는 wheel 검증 명세다. 기존 Sova 승인·원장·실행 책임은 유지한다.
+- 인계 문서의 오래된 producer SHA를 정정하고 T19의 같은 출발지 DB 사용 정정, 별도 DB 신원 확인,
+  새 host의 SHIFT 책임 분리, shadow 일치와 실제 PASS의 차이를 명시한다.
+- 새 pin의 process/container 소비를 CI에서 재검증한다. 결과 확인 전에는 완료로 집계하지 않는다.
+  이미지 취약점 판정은 HIGH 49건으로 BLOCK이며 이 소비 시험은 운영 배포가 아니다.
