@@ -179,9 +179,11 @@ def setup_patch(tmp_path, now):
         clock=lambda: state["at"],
     )
     state["at"] += timedelta(seconds=1)
+    state["service"] = service
+    state["scope"] = scope
 
     def run():
-        return service.execute_step(
+        return state["service"].execute_step(
             "operator",
             scope.application_id,
             plan.plan_id,
@@ -195,6 +197,161 @@ def setup_patch(tmp_path, now):
 
     yield state, run, journal, plan
     conn.close()
+
+
+def attach_architecture_program(state, plan, *, missing=None):
+    """Synthetic producer facts, real stored-plan and SQLite effect execution."""
+    from sova.interfaces.security_program import example_program
+    from sova.security.application.security_program import with_security_program
+    from sova_security.application.security_program import SecurityProgramService
+    from sova_security.contracts.evidence import EvidenceRecord
+    from sova_security.domain.security_program import ProgramKind, obligation_id
+
+    scope = state["scope"]
+    example = example_program(ProgramKind.PATCH, state["at"]).program
+    bindings = tuple(replace(
+        b, revisions=plan.revisions,
+        obligation=replace(b.obligation, scope=scope,
+                           obligation_id=obligation_id(plan.fingerprint, b.check_id)),
+    ) for b in example.bindings)
+    program = replace(example, source=scope, target=scope, subject_digest=plan.fingerprint,
+                      bindings=bindings, valid_until=plan.valid_until)
+    records = tuple(EvidenceRecord(
+        "architecture:" + b.check_id, b.obligation.obligation_id, scope, b.revisions,
+        b.obligation.verifier_version, state["at"], plan.valid_until, R.PASS,
+        "synthetic:" + b.check_id, "d" * 64,
+    ) for b in bindings if b.check_id != missing)
+    state["program_records"] = records
+    state["program_trusted"] = True
+    program_service = SecurityProgramService(
+        program_for=lambda *_: program,
+        evidence_for=lambda *_: state["program_records"],
+        authenticate_program=lambda _: state["program_trusted"],
+        authenticate_evidence=lambda _: state["program_trusted"],
+        authorize=lambda *_: True, require_no_holds=lambda _: not state["hold"],
+        clock=lambda: state["at"],
+    )
+    service = state["service"]
+    original = service.stored
+    service.stored = with_security_program(original, program_service, actor="operator", scope=scope)
+    assert original.executor.governance_guard is None  # Shared executor is not mutated.
+    return program_service
+
+
+def test_document_program_and_patch_guards_share_the_existing_executor(setup_patch):
+    state, run, _, plan = setup_patch
+    attach_architecture_program(state, plan)
+    assert run().effect.status == EffectStatus.APPLIED
+    assert run().effect.status == EffectStatus.APPLIED
+    assert state["calls"] == 1
+
+
+def test_patch_program_factory_preserves_shared_service_and_requires_both_phases(setup_patch):
+    from sova.security.application.security_program import with_patch_security_program
+
+    state, run, _, plan = setup_patch
+    original = state["service"]
+    original_stored = original.stored
+    program_service = attach_architecture_program(state, plan)
+    original.stored = original_stored
+    configured = with_patch_security_program(original, program_service, scope=state["scope"])
+    assert original.program_service is None
+    assert original.stored is original_stored
+    assert configured.stored is original_stored
+    state["service"] = configured
+    assert run().program_review.passed
+    assert state["calls"] == 1
+    with pytest.raises(ContractError, match="silently replaced"):
+        with_patch_security_program(configured, program_service, scope=state["scope"])
+
+
+@pytest.mark.parametrize("case", ["pass", "missing", "failed", "old", "expires-during-review", "runtime-revoked-during-review"])
+def test_document_postflight_is_required_after_effect_and_never_replays(setup_patch, case):
+    from sova.application.stored_plans import StoredPlanExecutor
+    from sova.domain.evidence import VerificationResult
+    from sova_security.domain.security_program import ProgramPhase
+
+    state, run, journal, plan = setup_patch
+    original = state["service"].stored
+    program_service = attach_architecture_program(state, plan)
+    # Use the service's per-call integration instead of the preflight-only wrapper.
+    state["service"].stored = StoredPlanExecutor(original.repository, original.executor)
+    state["service"].program_service = program_service
+    state["service"].program_scope = state["scope"]
+    if case == "missing":
+        state["program_records"] = tuple(r for r in state["program_records"] if not r.obligation_id.endswith(":audit-trail"))
+    elif case == "failed":
+        state["program_records"] = tuple(replace(r, result=VerificationResult.FAIL)
+            if r.obligation_id.endswith(":recovery-verification") else r for r in state["program_records"])
+    elif case == "old":
+        state["at"] += timedelta(seconds=10)
+    elif case in {"expires-during-review", "runtime-revoked-during-review"}:
+        original_review = program_service.review
+
+        def review_with_change(*args, **kwargs):
+            report = original_review(*args, **kwargs)
+            if kwargs["phase"] == ProgramPhase.POSTFLIGHT:
+                if case == "expires-during-review":
+                    state["at"] = plan.valid_until
+                else:
+                    state["trusted"] = False
+            return report
+
+        program_service.review = review_with_change
+    if case == "pass":
+        result = run()
+        assert result.program_review.passed
+        assert result.program_review.phase == ProgramPhase.POSTFLIGHT
+        assert not state["hold"]
+    else:
+        with pytest.raises(PatchPostflightRequired):
+            run()
+        assert state["hold"]
+        with pytest.raises(ContractError):
+            run()
+    record = journal.get(plan.command("patch-1", operation_id="op", epoch=1))
+    assert record.status == EffectStatus.APPLIED
+    assert state["calls"] == 1
+
+
+@pytest.mark.parametrize("check", ["identity-boundary", "proposal-scope", "sandbox-isolation", "resource-budget", "recovery-assets", "approval-binding"])
+def test_document_control_gap_causes_zero_external_mutations(setup_patch, check):
+    state, run, _, plan = setup_patch
+    attach_architecture_program(state, plan, missing=check)
+    with pytest.raises(ContractError, match="preflight"):
+        run()
+    assert state["calls"] == 0
+
+
+def test_passing_document_checks_do_not_bypass_patch_or_human_approval(setup_patch):
+    state, run, _, plan = setup_patch
+    attach_architecture_program(state, plan)
+    state["revoked"] = True
+    with pytest.raises(ContractError):
+        run()
+    assert state["calls"] == 0
+
+
+def test_program_revocation_is_rechecked_on_later_dispatch(setup_patch):
+    state, run, _, plan = setup_patch
+    attach_architecture_program(state, plan)
+    assert run().effect.status == EffectStatus.APPLIED
+    state["program_trusted"] = False
+    with pytest.raises(ContractError):
+        run()
+    assert state["calls"] == 1
+
+
+def test_uncertain_apply_with_program_is_held_not_retried(setup_patch):
+    state, run, _, plan = setup_patch
+    attach_architecture_program(state, plan)
+    state["timeout"] = True
+    with pytest.raises(PatchPostflightRequired):
+        run()
+    assert state["hold"]
+    with pytest.raises(ContractError):
+        run()
+    assert state["calls"] == 1
 
 
 def test_verified_patch_reuses_existing_durable_effect_and_approval(setup_patch):
