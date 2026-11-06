@@ -9,9 +9,36 @@ jobs:
   patch-admission:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      security-postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: bravo_test_admin
+          POSTGRES_PASSWORD: ci-test-only
+          POSTGRES_DB: sova_security_test
+          POSTGRES_INITDB_ARGS: '-c cluster_name=sova-security-test'
+        volumes: ['/tmp/security-consumer-pg:/var/run/postgresql']
+        options: >-
+          --health-cmd "pg_isready -U bravo_test_admin -d sova_security_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      sova-postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: bravo_test_admin
+          POSTGRES_PASSWORD: ci-test-only
+          POSTGRES_DB: sova_test
+          POSTGRES_INITDB_ARGS: '-c cluster_name=sova-persistence-test'
+        volumes: ['/tmp/sova-consumer-pg:/var/run/postgresql']
+        options: >-
+          --health-cmd "pg_isready -U bravo_test_admin -d sova_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       UV_PYTHON_DOWNLOADS: 'never'
-      SECURITY_COMMIT: b3cbbe62cfdc2f762a4c223d13bb24c88963d620
+      SECURITY_COMMIT: a33863c474bd170dc3aea7d7179953d17d8755d1
+      SOVA_SECURITY_TEST_SOURCE: '${{ github.workspace }}/.local-notes/security-source'
+      SOVA_SECURITY_TEST_POSTGRES_DSN: 'host=/tmp/security-consumer-pg port=5432 user=bravo_test_admin password=ci-test-only dbname=sova_security_test'
+      SOVA_TEST_POSTGRES_DSN: 'host=/tmp/sova-consumer-pg port=5432 user=bravo_test_admin password=ci-test-only dbname=sova_test'
+      AWS_EC2_METADATA_DISABLED: 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -44,4 +71,4 @@ jobs:
         run: |
           PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
           "$PYTHON" -c "from importlib.metadata import version; assert version('sova-security') == '0.11.0'"
-          "$PYTHON" -m pytest tests/integration/test_security_patch_execution.py -q
+          "$PYTHON" -m pytest tests/integration/test_security_patch_execution.py tests/integration/test_security_review_runtime.py -q

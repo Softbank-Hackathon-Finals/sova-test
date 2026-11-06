@@ -1,9 +1,9 @@
 # 두 보안 설계의 개인 검증과 platform 인계
 
-2026-11-06 · `sova-security==0.11.0` · platform 현재 기준 `b19488e2debbee8bbe120f1309eadbe19df85b6f`
+2026-11-06 · `sova-security==0.11.0` · platform 현재 기준 `c225c86cf5e408b5fcd016b0e367d3672d1bac44`
 
-최초 기준 f602b39도 소비 시험으로 유지한다. 새 기준은 그 이후 46개 커밋을 검토하고
-실제 T10/T19 모듈의 계약 시험 15개를 별도로 통과한 값이다. 운영 배포 자동 갱신은 하지 않는다.
+앞선 f602b39와 b19488e도 소비 시험으로 유지한다. c225c86은 b19488e 이후 10개 커밋을
+검토하고 실제 T10/T19 소비 및 전체 보안 회귀를 통과한 값이다. 운영 배포 자동 갱신은 하지 않는다.
 
 ## 사용하는 경로
 
@@ -30,10 +30,13 @@ client는 고정 TLS origin, 기존 발급 경로의 현재 credential, 현재 �
 postflight는 기존 실행기가 넘기는 실제 `not_before`와 operation ID에 결속한다.
 실행 actor와 workload subject가 다르면 거부한다. 암묵적 사용자 위임은 지원하지 않는다.
 
-Sova 시험은 로컬 SQLite 원장과 합성 전송/측정을 사용한다. 사전 장애 시 외부 효과 0회,
+기존 Sova 시험은 로컬 SQLite 원장과 합성 전송/측정을 사용한다. 사전 장애 시 외부 효과 0회,
 사후 장애·철회·만료 시 기존 APPLIED 효과와 보류 유지, 재접수해도 재적용 없음, 병행 비교가
 상태를 바꾸지 않음을 확인한다. 실제 TLS·온라인 서명 토큰 검증기 모형·PostgreSQL 및
-독립 프로세스 시험은 security 저장소에서 수행한다.
+독립 프로세스 시험은 security 저장소에서 수행한다. 추가 Sova 통합 시험은 실제 PG의 승인·
+lease·effect 원장과 별도 보안 PG를 독립 TLS 서비스로 연결한다. 서명 원본과 현재 등록을 읽으며
+서비스 중단·승인 철회·호스트 등록 철회·오래된 사후 관측·응답 유실을 검증한다.
+이미지 실행과 측정 내용, TokenReview 공급자는 여전히 시험 모형이다.
 
 platform 소비는 `T10ProgramAuthority`로 원래 `T10GateAuthority`를 감싼다. 원래 계획
 digest/`PlanGateSession.fingerprint`, 문자열 profile version, `initial/post_apply`와
@@ -46,7 +49,11 @@ application_id를 그대로 사용한다. 프로그램 pre/postflight 축과 혼
 [개발 기록](../../security/docs/development/security-service-2026-11-06.md)에 있다.
 서비스 자체가 통과해도 기존 T19 전체 판정과 인간 승인은 유지한다.
 
-현재 기준에서 T7 자동 발급/철회 경로를 재사용하되 서비스 audience 등록은 별도다.
+현재 T7의 `acquire`는 마지막에 API SelfSubjectReview를 수행하므로 서비스 전용 audience를
+그대로 넣어 사용할 수 없다. 내부 소비자는 기존 SA의 별도 projected token과
+`MountedTokenCredential`을 연결한다. 기존 Kubernetes 발급/회전을 쓰고 새 issuer를 만들지 않는다.
+외부 소비자의 T7 확장은 별도 인계 사항이며 API audience나 복수 audience로 우회하지 않는다.
+[구체적 경계와 시험](../../security/docs/adr/0005-service-credential-audience.md)을 따른다.
 T33의 실제 Security Hub 접근 거부를 빈 탐지/PASS로 만들지 않는다. T14 listener v2의
 source NET-01.3 FAIL과 나머지 UNKNOWN을 유지하고 운영 v1 결과로 치환하지 않는다.
 강제 연결에 앞서 `compare_shadow`로 기존 결과와 차이를 읽기 전용으로 수집한다.
@@ -132,8 +139,10 @@ SPIFFE/SPIRE는 후보와 확장 경로이며 현재 팀의 Cloudflare·EKS/RKE2
 - [x] platform `505d451fd8c374de755b160fca24f1a481820a50`의 schema와 예제를 대조하고 명시적 소비 프로필을 추가한다.
 - [x] f602b39 기준 실제 T10/T19 모듈과 initial/post_apply·현재 권한·단일 접수·원장 조정을 시험한다.
 - [x] b19488e의 StoredGateServices·DB/pooler 원문 요구를 확인하고 같은 소비 시험을 통과한다.
+- [x] c225c86의 추가 변경을 검토하고 세 기준의 계약 CI 및 현재 전체 보안 회귀를 통과한다.
 - [x] 추가 서비스 소비에서 이전 PASS·만료·철회·shadow 우회를 차단하고 기존 실행 책임을 보존한다.
-- [ ] 실제 T7 서비스 audience·SA UID 등록과 CNPG 테넌트 전용 reader를 인수한다.
+- [x] 실제 Sova PG 원장과 독립 TLS/보안 PG를 연결해 사전 차단·사후 hold·단일 효과를 시험한다.
+- [ ] 실제 소비자의 projected audience·SA UID 등록과 CNPG 테넌트 전용 reader를 인수한다.
 - [ ] 플랫폼 plan-lock 아래 등록/철회와 실행기 IAM/RBAC의 직접 우회 거부를 실측한다.
 - [ ] platform 현재 계약별 실제 증거 생산자 어댑터를 담당자와 확정한다.
 - [ ] 팀 실제 AWS/RKE2에서 격리·거부·복원·컷오버·회귀 결과를 얻는다.

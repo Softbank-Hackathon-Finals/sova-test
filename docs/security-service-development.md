@@ -30,3 +30,35 @@
   암묵 대체하지 않는다. 이 CI는 클라우드/전체 Sova 인수 시험이 아니다.
 - 최신 로컬 전체 회귀: 1,102 PASS/3 SKIP, 107.56초. security 775 PASS와 함께 실행했다.
 - 상태: CI 구성 완료, 원격 실행 결과 확인 중. 결과를 확인하기 전에 CI 통과로 표시하지 않는다.
+
+## SOVA-SVC-02: 두 DB와 독립 보안 프로세스의 실제 연결
+
+- 요구: SEC-PATCH-05·06·07, POL-09·11, SG-2·3. 플랫폼 기준 c225c86, 이전 두 기준도 유지.
+- 생산자: `a33863c474bd170dc3aea7d7179953d17d8755d1`. 해당 security의
+  [원격 CI](https://github.com/Softbank-Hackathon-Finals/security/actions/runs/42203712045)는
+  세 플랫폼 계약·Python 3.11/3.14·secrets 모두 통과했다.
+- 수정: `tests/security_review_runtime_support.py`, `test_security_review_runtime.py`, 기존 PG
+  패치 fixture, 소비 manifest/CI. 운영 실행기나 platform 코드는 수정하지 않았다.
+- 실제 Sova PostgreSQL 승인·lease·effect·hold와 별도 security PostgreSQL의 등록·원본
+  Ed25519 서명·현재 신뢰를 연결한다. 보안 프로세스는 독립 TLS와 SELECT 전용 tenant 역할을
+  사용한다. 시험용 TLS/DB 도구는 명시적으로 고정한 producer checkout에서 읽으며 실제 패키지는
+  설치된 wheel을 소비한다. source 경로나 버전을 자동 추측하거나 src를 import 경로에 넣지 않는다.
+- 8개 시나리오: 정상/서비스 사전 중단/응답 후 승인 철회/호스트 등록 철회/사후 서비스 중단/
+  사후 issuer 철회/실행 이전 사후 관측/provider 응답 유실. 사전에는 효과 0회, 사후에는 기존
+  APPLIED 또는 UNKNOWN과 host hold를 유지하며 재접수도 추가 apply가 없다.
+- 첫 실행은 7 PASS/1 FAIL. 철회는 차단했지만 시험 호스트 callback이 저장소 예외를 그대로
+  전달해 예상한 공통 오류와 달랐다. 현재 등록 조회는 revoked를 명시적으로 읽고 None을 반환해
+  기존 소비자의 현재 등록 검사가 거부하도록 맞췄다. 거부를 허용으로 바꾸지 않았다.
+- 기존 SQLite 및 PG 패치 시험과 합쳐 **46 PASS, 56.83초**. 전체 회귀와 소비 CI도 수행한다.
+- 실제 컨테이너 이미지 적용/취약점 스캔/Tailscale·Kubernetes/CNI는 이 시험에서 모형 또는
+  미실행이다. 호스트 registrar의 운영 writer 및 실행 접수 잠금 배선은 별도 플랫폼 인수다.
+
+### 전체 회귀 결과
+
+- **1,110 PASS / 3 SKIP / 경고 1건, 152.44초**. skip은 앞선 실제 이미지·OTEL Collector·AWS SQS
+  등록 요구와 같다. 새 서비스 8개 시험은 실행됐다.
+- 경고를 `-W error`로 재확인했을 때 기존 consultation 시험 두 파일의 수집 단계에서
+  Starlette TestClient의 기존 httpx 사용 중단 예정 안내가 원인임을 확인했다.
+  [Starlette 공식 안내](https://www.starlette.io/testclient/)는 httpx2 사용을 권한다.
+  이 엄격 경고 실행은 수집 실패이며 통과로 집계하지 않는다. 보안 판정·서명·원장 실패가 아니며
+  데모 시험 클라이언트 의존성 갱신 사항으로 구분한다. 경고를 숨기는 전역 필터는 추가하지 않았다.
