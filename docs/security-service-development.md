@@ -210,3 +210,21 @@
 - producer의 Python 3.14 **1,008 PASS / 2 SKIP, 160.59초**, 여덟 플랫폼 계약 통과를 확인했다.
   실제 두 DB의 process/container 소비 결과는 아래에 따로 기록한다. 지속 시험의 이전 source를
   새 수정의 검증으로 소급하지 않는다. 이미지의 HIGH 49건/BLOCK은 유지한다.
+
+### SOVA-SVC-10 결과
+
+- `f9d5f42` [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42239334800) 성공.
+  process **44 PASS, 72.83초**, container **44 PASS, 67.71초**. 실제 두 PG와 TLS 소비를 확인했다.
+
+## SOVA-SVC-11: 아홉 플랫폼 기준과 역할별 연결 예산 소비
+
+- producer `ec4aac6c3d839111f76ef7466f7b6fc7fcea1e49`와 platform
+  `7edab5312f965bd683a7738e74d49b883190e8da`를 manifest에 고정한다. 앞선 여덟 기준도 유지한다.
+- producer는 직접 DB 자격의 연결 수 예산과 현재 drift 검사를 추가했다. 플랫폼 새 공개 서명 원장을
+  기존 실제 SQLite/Ed25519 경로로 소비해 원래 만료/현재 철회를 확인했고 26개 계약이 통과했다.
+- 새로운 실행기나 발급기는 추가하지 않는다. 기존 Sova effect/hold와 T10/T31 집행 책임을 유지하며,
+  T19의 새 양쪽 DB 관측도 만료된 부분 증거로 기록한다. 운영 역할 상한·ports 인수 조건을 보완했다.
+- 새 고정 producer의 process/container 실제 소비는 이 commit의 CI로 확인하며 결과를 후속 기록한다.
+- producer 전체 CI에서 시험 역할 정리와 autovacuum의 교착이 한 번 관측됐다. 동일한 정리 helper를
+  고정 producer에서 읽어 사용한다. 본인 생성 역할의 DDL만 rollback 후 최대 3회 재시도하며
+  실제 패치 효과나 시험 본문은 재시도하지 않는다. 운영 제품 경로에는 이 helper가 없다.

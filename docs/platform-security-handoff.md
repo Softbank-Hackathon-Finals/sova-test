@@ -1,8 +1,8 @@
 # 두 보안 설계의 개인 검증과 platform 인계
 
-2026-11-06 · `sova-security==0.11.0` · platform 검증 기준 `98885a69999398bfe3f49fbc8324a7b19aae3e16`
+2026-11-06 UTC · `sova-security==0.11.0` · platform 검증 기준 `7edab5312f965bd683a7738e74d49b883190e8da`
 
-앞선 f602b39·b19488e·c225c86·9e0d6a5·a610bbf·8b12236·bb17486도 소비 시험으로 유지한다. bb17486의
+앞선 f602b39·b19488e·c225c86·9e0d6a5·a610bbf·8b12236·bb17486·98885a6도 소비 시험으로 유지한다. bb17486의
 새 WorkflowHost는 plan/version별 준비 결과를 읽고 미연결 단계는 보류한다. SHIFT 실행은 이 드라이버의
 대상이 아니며 기존 T10 접수 책임을 유지한다. 단계별 운영 조립은 별도 인수 대상이다.
 실제 연결 계약을 시험한 정확한 SHA만 허용한다. 운영 배포 자동 갱신은 하지 않는다.
@@ -11,8 +11,14 @@
 실제 StoredGateServices/Ed25519Authority와 결합하여 승인 후 키 철회가 initial/post_apply의
 추가 원격 판정과 외부 접수를 막는지 검증했다. 별도의 T19 키 원장을 만들지 않는다.
 
+7edab53의 `PlanAuthorityRecords`는 같은 원장에 공개 서명을 저장하고 매번 현재 키/만료를 재조회한다.
+새 인스턴스의 조회도 원래 20초 기한을 보존하고 철회·만료 후 거부하는 계약 시험을 추가했다.
+개인 키 발급·서명 서버를 추가하지 않는다. 새 단계 구현의 REHEARSE/GATE는 기존 승인된 적용과
+APPLIED 후 재검사를 사용하고 SHIFT는 계속 운영자 접수가 담당한다. WATCH는 T36/T19 둘 다 PASS가
+필요하다. 최초 제안은 플랫폼 Job 경로를 사용하며 운영 ports·GitHub App·Job 권한 인수는 별도다.
+
 T28 `happy_path.py`의 JSONL은 결과 기록 전 중단 뒤 재시작할 때 모의 효과를 다시 호출했다.
-[고정 source 재현](https://github.com/Softbank-Hackathon-Finals/security/blob/5ddf281b31568e49cdd1a2c993e8d8172cdc7b1e/docs/evidence/t28-restart-boundary-2026-11-06/README.md)은 실제 운영 명령을 실행하지 않았다.
+[고정 source 재현](https://github.com/Softbank-Hackathon-Finals/security/blob/ec4aac6c3d839111f76ef7466f7b6fc7fcea1e49/docs/evidence/t28-restart-boundary-2026-11-06/README.md)은 실제 운영 명령을 실행하지 않았다.
 이 JSONL을 보안 집행 정본으로 채택하지 않는다. 기존 T10/T31의 영속 접수·현재 승인·효과 조정과
 하위 명령의 멱등성을 인수해야 한다. T10 코어 원장에 같은 결함이 있다는 뜻은 아니다.
 
@@ -30,6 +36,10 @@ T19 정정 기록상 이전 두 앱 경로는 같은 출발지 DB를 사용했�
 pooler 뒤의 실제 DB 신원, 최소 권한 수집기, 현재 계획의 같은 유효 창 안에서 수집한 양쪽 증거가 필요하다.
 T22의 실제 브라우저 재접속 8조합 역시 DB 컷오버·쓰기 개방의 증거가 아니다.
 [정정 원문](https://github.com/Softbank-Hackathon-Finals/platform/blob/bb174860bedf100de3970c3e8e410f02f23994e2/docs/evidence/t19-direct-database-2026-11-06/README.md)을 보존한다.
+
+[양쪽 직접 수집 후속 원문](https://github.com/Softbank-Hackathon-Finals/platform/blob/7edab5312f965bd683a7738e74d49b883190e8da/docs/evidence/t19-direct-database-2026-11-06/paired/README.md)은
+서로 다른 DB의 두 schema/PK가 같은 검증 문맥과 겹치는 30초 창에서 일치한 새 관측이다.
+이미 만료됐으며 운영 T10 신뢰 등록·전체 T19 PASS·업무 행 일치로 확대하지 않는다.
 
 플랫폼 T15 이미지 발행 workflow의 `ignore-unfixed: true`와 달리 이 서비스의 수집 정책은 미수정
 HIGH/CRITICAL도 BLOCK이다. OCI/digest 발행 경로는 재사용 후보지만 두 정책의 의미를 같다고 취급하지 않는다.
@@ -71,7 +81,7 @@ lease·effect 원장과 별도 보안 PG를 독립 TLS 서비스로 연결한다
 Sova 소비 CI에는 보안 서비스의 실제 컨테이너 모드도 추가한다. 패치 대상 이미지 실행과
 측정 내용, TokenReview 공급자는 여전히 시험 모형이다. 두 이미지의 역할을 혼동하지 않는다.
 
-현재 고정 생산자는 `5ddf281b31568e49cdd1a2c993e8d8172cdc7b1e`다. 같은 0.11.0이라도 전체 source SHA와
+현재 고정 생산자는 `ec4aac6c3d839111f76ef7466f7b6fc7fcea1e49`다. 같은 0.11.0이라도 전체 source SHA와
 lock/wheel hash를 함께 인수한다. 서비스 토큰은 단일
 audience·원래 수명 600초 이하여야 한다. 전용 DB는 다섯 테이블의 고정 RLS뿐 아니라 PUBLIC
 definer 함수/뷰·열 단위 쓰기·추가 객체 권한도 정리해야 한다. 자동 권한 변경은 하지 않는다.
@@ -82,6 +92,11 @@ TEMPORARY와 `lo_create`/`lo_creat`/`lo_from_bytea` EXECUTE를 회수하는 SQL�
 reader에게만 REVOKE해서는 PUBLIC 권한을 상쇄할 수 없다. 공유 DB라면 다른 사용자의 필요 권한을
 먼저 검토하고 명시적으로 부여해야 한다. 서비스는 변경을 자동 적용하지 않으며 권한 재부여를
 발견하면 새 판정을 거부한다. 운영 DB의 모든 자원 고갈 경로를 차단했다는 보증은 아니다.
+
+ADR-0020은 직접 DB 로그인의 연결 수 예산도 제한한다. reader 생성 기본값은 16이며 운영자는
+정수 1~64를 명시할 수 있다. 기존 역할은 자동 ALTER하지 않고 운영 전 상한을 인수해야 한다.
+무제한/0/64 초과 변경은 현재 세션 검사에서도 거부한다. 같은 역할의 replica는 예산을 공유한다.
+PostgreSQL의 근사 집행·관리자 예외·전체 DB 자원 제한을 별도로 고려한다.
 
 TCP DB 연결은 접속 전에 단일 host/port/DB/reader, `sslmode=verify-full`과 절대 CA 경로를 요구한다.
 혼합 host, service 환경 우회, TLS 대신 GSS 선택을 허용하지 않는다. T9의 mounted DSN 회전은 유지한다.
@@ -97,15 +112,15 @@ application_id를 그대로 사용한다. 프로그램 pre/postflight 축과 혼
 공유해야 한다. 원격 왕복만으로 즉각 철회나 분산 원자성을 보장하지 않는다.
 
 전체 계약·설정·권한·시계·실패 동작·배포 명세 생성법은
-[security 서비스 안내](https://github.com/Softbank-Hackathon-Finals/security/blob/5ddf281b31568e49cdd1a2c993e8d8172cdc7b1e/docs/security-review-service.md), 개발 판단과 결과는
-[개발 기록](https://github.com/Softbank-Hackathon-Finals/security/blob/5ddf281b31568e49cdd1a2c993e8d8172cdc7b1e/docs/development/security-service-2026-11-06.md)에 있다.
+[security 서비스 안내](https://github.com/Softbank-Hackathon-Finals/security/blob/ec4aac6c3d839111f76ef7466f7b6fc7fcea1e49/docs/security-review-service.md), 개발 판단과 결과는
+[개발 기록](https://github.com/Softbank-Hackathon-Finals/security/blob/ec4aac6c3d839111f76ef7466f7b6fc7fcea1e49/docs/development/security-service-2026-11-06.md)에 있다.
 서비스 자체가 통과해도 기존 T19 전체 판정과 인간 승인은 유지한다.
 
 현재 T7의 `acquire`는 마지막에 API SelfSubjectReview를 수행하므로 서비스 전용 audience를
 그대로 넣어 사용할 수 없다. 내부 소비자는 기존 SA의 별도 projected token과
 `MountedTokenCredential`을 연결한다. 기존 Kubernetes 발급/회전을 쓰고 새 issuer를 만들지 않는다.
 외부 소비자의 T7 확장은 별도 인계 사항이며 API audience나 복수 audience로 우회하지 않는다.
-[구체적 경계와 시험](https://github.com/Softbank-Hackathon-Finals/security/blob/5ddf281b31568e49cdd1a2c993e8d8172cdc7b1e/docs/adr/0005-service-credential-audience.md)을 따른다.
+[구체적 경계와 시험](https://github.com/Softbank-Hackathon-Finals/security/blob/ec4aac6c3d839111f76ef7466f7b6fc7fcea1e49/docs/adr/0005-service-credential-audience.md)을 따른다.
 T33의 실제 Security Hub 접근 거부를 빈 탐지/PASS로 만들지 않는다. T14 listener v2의
 source NET-01.3 FAIL과 나머지 UNKNOWN을 유지하고 운영 v1 결과로 치환하지 않는다.
 강제 연결에 앞서 `compare_shadow`로 기존 결과와 차이를 읽기 전용으로 수집한다.
@@ -203,6 +218,7 @@ SPIFFE/SPIRE는 후보와 확장 경로이며 현재 팀의 Cloudflare·EKS/RKE2
 - [x] 9e0d6a5·a610bbf·8b12236을 추가해 여섯 기준의 계약과 최신 실제 T10/이미지 소비를 통과한다.
 - [x] bb17486을 추가해 일곱 기준을 유지하고 새 WorkflowHost의 SHIFT 소유권·version별 판독 경계를 시험한다.
 - [x] 98885a6을 추가해 여덟 기준과 T19 현재 공개키 원장의 승인 후 철회 경계를 시험한다.
+- [x] 7edab53을 추가해 아홉 기준과 T19 공개 서명의 현재 만료·철회 재조회를 시험한다.
 - [x] 추가 서비스 소비에서 이전 PASS·만료·철회·shadow 우회를 차단하고 기존 실행 책임을 보존한다.
 - [x] 실제 Sova PG 원장과 독립 TLS/보안 PG를 연결해 사전 차단·사후 hold·단일 효과를 시험한다.
 - [ ] 실제 소비자의 projected audience·SA UID 등록과 CNPG 테넌트 전용 reader를 인수한다.

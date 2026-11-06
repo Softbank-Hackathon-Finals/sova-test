@@ -46,11 +46,12 @@ def producer_support():
     try:
         from tls_review_support import review_process, tls_server
         from tokenreview_tls_support import LocalTokenReview
+        from postgres_cleanup_support import drop_fixture_reader
         spec = importlib.util.spec_from_file_location("qualified_security_database", root / "tests/integration/test_postgres_boundary.py")
         boundary = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(boundary)
         yield SimpleNamespace(review_process=review_process, tls_server=tls_server, issuer=LocalTokenReview,
-            database=boundary.database.__wrapped__)
+            database=boundary.database.__wrapped__, drop_fixture_reader=drop_fixture_reader)
     finally:
         sys.path[:] = old_path
         for name in set(sys.modules) - old_modules:
@@ -154,5 +155,4 @@ def independent_service(support, database, directory, registration, records, pri
                     transport=HTTPSJSONTransport(origin, tls_context=context, timeout=5))
     finally:
         with psycopg.connect(dsn, autocommit=True) as admin:
-            admin.execute(sql.SQL("DROP OWNED BY {}").format(sql.Identifier(reader)))
-            admin.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(reader)))
+            support.drop_fixture_reader(admin, reader)
