@@ -1,8 +1,22 @@
 # 두 보안 설계의 개인 검증과 platform 인계
 
-2026-11-06 UTC · `sova-security==0.11.0` · platform 검증 기준 `7edab5312f965bd683a7738e74d49b883190e8da`
+2026-11-07 KST · `sova-security==0.11.0` · platform 개발 계약 `0795f65e24f58e43545b16b97757efcc0923fd4a`
 
-앞선 f602b39·b19488e·c225c86·9e0d6a5·a610bbf·8b12236·bb17486·98885a6도 소비 시험으로 유지한다. bb17486의
+최종 소비 source는 `546f6e0482cc06fa32f00ea8d554522551a84beb`다. 최신 개발 계약과 별도로
+GitOps 호스트 발행 원본 `445848d2ed9878e31eb6f5aabad0575c61739b47`을 포함해 총 12개 계약을 검증했다.
+실제 host binding에는 확인한 runtime source를 명시한다. develop SHA와 실제 이미지 source를 혼동하지 않는다.
+[소비 CI 42266814087](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42266814087)에서
+process **44 PASS / 67.36초**, container **44 PASS / 48.77초**, 최신 T28 **36 PASS / 2.16초**,
+이전 T28 **32 PASS / 4 SKIP / 2.02초**를 확인했다. 최신 전용 인자 시험 네 개만 이전 버전에서 건너뛴다.
+
+실환경 로그인·인수는 사용자 요청에 따라 **데모용 맥에서 후속 진행**한다. 플랫폼 AWS RKE2는
+`bravo-personal` SSO와 기존 SSM API 포워딩, namespace `platform-state`가 대상이다.
+`default`는 다른 계정이고 `.local-tools/team-test.json`·`bravo-target-test`는 온프렘 목적지용이다.
+플랫폼 일괄 배포가 끝난 뒤 공용 리소스를 바꾸지 않는 읽기 전용 확인부터 한다.
+[실환경 인수 실행안](https://github.com/Softbank-Hackathon-Finals/security/blob/e2709ee075c62b6c7b2c5249b50a6ea114e972ff/docs/platform-live-acceptance.md)에
+인증·권한·네트워크·감사·복구의 필요한 실제 근거와 변경을 수반하는 후속 시험을 구분했다.
+
+앞선 f602b39·b19488e·c225c86·9e0d6a5·a610bbf·8b12236·bb17486·98885a6·7edab53·42811da도 소비 시험으로 유지한다. bb17486의
 새 WorkflowHost는 plan/version별 준비 결과를 읽고 미연결 단계는 보류한다. SHIFT 실행은 이 드라이버의
 대상이 아니며 기존 T10 접수 책임을 유지한다. 단계별 운영 조립은 별도 인수 대상이다.
 실제 연결 계약을 시험한 정확한 SHA만 허용한다. 운영 배포 자동 갱신은 하지 않는다.
@@ -19,8 +33,17 @@ APPLIED 후 재검사를 사용하고 SHIFT는 계속 운영자 접수가 담당
 
 T28 `happy_path.py`의 JSONL은 결과 기록 전 중단 뒤 재시작할 때 모의 효과를 다시 호출했다.
 [고정 source 재현](https://github.com/Softbank-Hackathon-Finals/security/blob/ec4aac6c3d839111f76ef7466f7b6fc7fcea1e49/docs/evidence/t28-restart-boundary-2026-11-06/README.md)은 실제 운영 명령을 실행하지 않았다.
-이 JSONL을 보안 집행 정본으로 채택하지 않는다. 기존 T10/T31의 영속 접수·현재 승인·효과 조정과
-하위 명령의 멱등성을 인수해야 한다. T10 코어 원장에 같은 결함이 있다는 뜻은 아니다.
+이 JSONL을 보안 집행 정본으로 채택하지 않는다. 개인 환경의 `DurableT28Port`는 기존 effect journal과
+현재 승인·정확한 계획/명령/이미지 결속을 통해 재호출을 차단한다. 강제 종료·동시 접수·지연 HTTP 효과를
+검증했고, 불명확한 결과는 재적용하지 않고 보류한다. 호출자 사망이나 lease 만료만으로 원격 작업의
+종료를 추정하지 않는다. [구현·시험·조립 경계](platform-t28-restart.md)를 따른다.
+원본 플랫폼 CLI는 변경하지 않았으므로 실제 T10/T31 조립과 직접 실행 권한 제한은 후속 인수다.
+T10 코어 원장에 같은 결함이 있다는 뜻은 아니다.
+
+0795f65의 실행 직전 T19 재평가는 기존 GATE 결과와 별도로 보존하고 initial/post_apply의 새 판정에
+현재 계획 문맥을 결속한다. 원격 근거 누락, 새 BLOCK, binding 변경 시 실행하지 않는 소비 시험을 추가했다.
+승인자와 WorkflowHost 실행 주체를 구분하고 기존 사람 승인을 유지한다. T24의 기존 SSE `follow`를
+재사용하며 별도 감사 writer를 만들지 않는다. 런타임 writer 등록·상시 운영·실제 복원은 별도 인수다.
 
 새 `open_after_apply.py`는 운영자 경로이며 원격 보안 판정의 강제 집행을 추가한 것이 아니다.
 후속 인수는 쓰기 개방·Edge 전환·컷오버까지 현재 계획/반영 ID/이미지와 결속하고 직접 명령의
@@ -43,9 +66,13 @@ T22의 실제 브라우저 재접속 8조합 역시 DB 컷오버·쓰기 개방�
 
 플랫폼 T15 이미지 발행 workflow의 `ignore-unfixed: true`와 달리 이 서비스의 수집 정책은 미수정
 HIGH/CRITICAL도 BLOCK이다. OCI/digest 발행 경로는 재사용 후보지만 두 정책의 의미를 같다고 취급하지 않는다.
-현재 producer는 실제 OS 87개와 Python 10개를 대조했으며 **HIGH 49건 / 배포 BLOCK**이다.
-이는 13개 고유 CVE의 여러 OS 패키지 탐지다. 기능 CI 통과가 배포 허가를 뜻하지 않는다.
-scanner 원본·정책·정확한 source/image ID는 security의 `docs/evidence/service-image-scan-2026-11-06/`에 보존한다.
+이전 Debian producer의 실제 OS 87개/Python 10개에서 **HIGH 49건 / BLOCK**을 보존한다.
+이는 13개 고유 CVE의 여러 OS 패키지 탐지였다. 최종 producer는 공식 digest 고정 Alpine로 바꿔
+native amd64·arm64 각각 OS 38개/Python 10개를 전체 대조했으며 **모든 심각도 0건 / PASS**다.
+미수정 취약점 예외를 추가하지 않았다. scanner는 Docker socket/호스트 자격 없이 격리하고 실제 스캔은
+network none으로 수행한다. 검사한 exact image archive를 저장·재로딩해 inventory를 재확인했다.
+[scanner 원본·정책·source/image ID](https://github.com/Softbank-Hackathon-Finals/security/blob/e2709ee075c62b6c7b2c5249b50a6ea114e972ff/docs/evidence/service-image-scan-2026-11-07/README.md)를 인계한다.
+이는 관측 시점의 이미지 정책 PASS이며 registry 발행·서명·실제 플랫폼 배포를 완료한 결과는 아니다.
 
 ## 사용하는 경로
 
@@ -59,8 +86,9 @@ security (보안 판정·증거 계약의 정본)
 원문 보존·요구사항별 구현 위치는 security의 `docs/architecture-integration.md`와
 `docs/proposals/manifest.json`에 있다. Python 코드를 Sova에 다시 복사하지 않는다.
 `platform` 자체는 이번 변경 대상이 아니며 플랫폼 통합·운영 인수가 완료된 상태도 아니다.
-현재 서비스 이미지의 실측 아키텍처는 linux/amd64다. ARM64 배포에는 해당 이미지/의존성과
-동일 소비·거부 시험을 별도로 인수한다. 순수 Python 계약 통과로 이미지 아키텍처까지 검증했다고 보지 않는다.
+현재 서비스 이미지의 실측 아키텍처는 native linux/amd64·linux/arm64다. 양쪽 모두 실제 PG18.4,
+TLS/HBA, 서비스 이미지/T10 시험을 통과했다. 데모 맥의 아키텍처에 맞는 정확한 archive를 선택하고
+hash·source를 확인한다. 로컬 Docker 검증과 실제 클러스터 운영 인수는 구분한다.
 
 ## 서비스 확장과 현재 호환 기준
 
@@ -83,7 +111,7 @@ lease·effect 원장과 별도 보안 PG를 독립 TLS 서비스로 연결한다
 Sova 소비 CI에는 보안 서비스의 실제 컨테이너 모드도 추가한다. 패치 대상 이미지 실행과
 측정 내용, TokenReview 공급자는 여전히 시험 모형이다. 두 이미지의 역할을 혼동하지 않는다.
 
-현재 고정 생산자는 `ec4aac6c3d839111f76ef7466f7b6fc7fcea1e49`다. 같은 0.11.0이라도 전체 source SHA와
+현재 고정 생산자는 `546f6e0482cc06fa32f00ea8d554522551a84beb`다. 같은 0.11.0이라도 전체 source SHA와
 lock/wheel hash를 함께 인수한다. 서비스 토큰은 단일
 audience·원래 수명 600초 이하여야 한다. 전용 DB는 다섯 테이블의 고정 RLS뿐 아니라 PUBLIC
 definer 함수/뷰·열 단위 쓰기·추가 객체 권한도 정리해야 한다. 자동 권한 변경은 하지 않는다.
@@ -114,8 +142,8 @@ application_id를 그대로 사용한다. 프로그램 pre/postflight 축과 혼
 공유해야 한다. 원격 왕복만으로 즉각 철회나 분산 원자성을 보장하지 않는다.
 
 전체 계약·설정·권한·시계·실패 동작·배포 명세 생성법은
-[security 서비스 안내](https://github.com/Softbank-Hackathon-Finals/security/blob/ec4aac6c3d839111f76ef7466f7b6fc7fcea1e49/docs/security-review-service.md), 개발 판단과 결과는
-[현재 개발 기록](https://github.com/Softbank-Hackathon-Finals/security/blob/feature/security-service-integration/docs/development/security-service-2026-11-06.md)에 있다.
+[security 서비스 안내](https://github.com/Softbank-Hackathon-Finals/security/blob/e2709ee075c62b6c7b2c5249b50a6ea114e972ff/docs/security-review-service.md), 개발 판단과 결과는
+[현재 개발 기록](https://github.com/Softbank-Hackathon-Finals/security/blob/feature/security-service-integration/docs/development/security-acceptance-2026-11-07.md)에 있다.
 구현 source pin과 결과를 추가하는 문서 브랜치를 구분한다. 완료된 CI·지속 시험·이미지 원본과
 운영 인수 조건은 [현재 인계 현황](https://github.com/Softbank-Hackathon-Finals/security/blob/feature/security-service-integration/docs/platform-handoff-status.md)에 모았다.
 서비스 자체가 통과해도 기존 T19 전체 판정과 인간 승인은 유지한다.
@@ -223,6 +251,9 @@ SPIFFE/SPIRE는 후보와 확장 경로이며 현재 팀의 Cloudflare·EKS/RKE2
 - [x] bb17486을 추가해 일곱 기준을 유지하고 새 WorkflowHost의 SHIFT 소유권·version별 판독 경계를 시험한다.
 - [x] 98885a6을 추가해 여덟 기준과 T19 현재 공개키 원장의 승인 후 철회 경계를 시험한다.
 - [x] 7edab53을 추가해 아홉 기준과 T19 공개 서명의 현재 만료·철회 재조회를 시험한다.
+- [x] 42811da·0795f65·호스트 발행 source 445848d를 포함한 12개 계약과 실행 직전 재평가 경계를 시험한다.
+- [x] native amd64·arm64 이미지의 HIGH 49건을 예외 없이 해소하고 exact archive와 스캔 원본을 보존한다.
+- [x] 개인 T28 bridge의 강제 종료·동시 접수·지연 효과·현재 승인·인자 변경을 실제 프로세스와 PG로 시험한다.
 - [x] 추가 서비스 소비에서 이전 PASS·만료·철회·shadow 우회를 차단하고 기존 실행 책임을 보존한다.
 - [x] 실제 Sova PG 원장과 독립 TLS/보안 PG를 연결해 사전 차단·사후 hold·단일 효과를 시험한다.
 - [ ] 실제 소비자의 projected audience·SA UID 등록과 CNPG 테넌트 전용 reader를 인수한다.
@@ -233,4 +264,5 @@ SPIFFE/SPIRE는 후보와 확장 경로이며 현재 팀의 Cloudflare·EKS/RKE2
 
 기존 보안 tests, Sova 통합 tests, 실제 PostgreSQL/OPA, 실제 클라우드 운영 자격은
 서로 다른 검증 수준이다. 0.10.0 결과는 security의 `docs/validation-2026-11-06.md`,
-0.11.0 결과는 `docs/development/security-service-2026-11-06.md`를 따른다.
+0.11.0 초기 결과는 `docs/development/security-service-2026-11-06.md`, 이번 후속 결과는
+`docs/development/security-acceptance-2026-11-07.md`를 따른다. 실환경 다섯 항목은 미검증으로 남긴다.

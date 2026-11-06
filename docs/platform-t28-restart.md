@@ -4,8 +4,8 @@
 원문 SHA-256은 `e4bc607112512361d4bde4c6022bc59eb21191fdc139ade77b52f50bb013a355`이며
 Git blob `8a3e3993682f31ce262e1a82e21c4f11d60e75c5`와 대조했다. 기존 42811da 시험도 유지한다.
 
-현재 검증: [0f032c0 CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42264289594)에서
-최신 driver **36 PASS / 2.13초**, 이전 driver **32 PASS / 4 SKIP / 2.02초**다.
+현재 검증: 최종 producer 546f6e0을 사용하는 [a177276 CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42266814087)에서
+최신 driver **36 PASS / 2.16초**, 이전 driver **32 PASS / 4 SKIP / 2.02초**다.
 skip 네 개는 이전 driver에 없는 initial-proposal 인자 시험이다. 아래 실패·추가 과정은 이력으로 보존한다.
 
 기준 플랫폼 `42811da4cf19ce941491d4794ab49790881dc409`의 `scripts/happy_path.py`는
