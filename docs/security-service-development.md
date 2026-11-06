@@ -228,3 +228,9 @@
 - producer 전체 CI에서 시험 역할 정리와 autovacuum의 교착이 한 번 관측됐다. 동일한 정리 helper를
   고정 producer에서 읽어 사용한다. 본인 생성 역할의 DDL만 rollback 후 최대 3회 재시도하며
   실제 패치 효과나 시험 본문은 재시도하지 않는다. 운영 제품 경로에는 이 helper가 없다.
+
+### SOVA-SVC-11 결과
+
+- `5415fca` [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42242378539) 성공.
+  process **44 PASS / 66.32초**, 실제 service container **44 PASS / 39.86초**.
+  producer ec4aac6, 아홉 플랫폼 기준 manifest, 두 실제 PG/TLS 소비 및 정리 helper를 검증했다.
