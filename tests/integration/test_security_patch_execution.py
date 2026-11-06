@@ -238,6 +238,101 @@ def attach_architecture_program(state, plan, *, missing=None):
     return program_service
 
 
+def attach_remote_architecture_program(state, plan):
+    """Serialized network boundary simulation; actual TLS is tested by security."""
+    from types import SimpleNamespace
+    from sova.security.application.remote_program import RemoteProgramService
+    from sova_security.adapters.modernization_codec import encode
+    from sova_security.adapters.remote_review import RemoteReviewClient
+    from sova_security.adapters.review_https import BearerCredential, ReviewTransportError
+    from sova_security.application.review_service import SecurityReviewEndpoint
+    from sova_security.domain.review_service import HostReviewBinding, ReviewPrincipal, ReviewRegistration
+    from sova_security.domain.security_program import ProgramPhase
+
+    original = state["service"].stored
+    local = attach_architecture_program(state, plan)
+    state["service"].stored = original
+    scope = state["scope"]
+    program = local.program_for(scope, plan.fingerprint)
+    binding = HostReviewBinding("sova", "7d79d6517730e408d3663815e91e70e626806c88", plan.plan_id,
+                               plan.fingerprint, "6" * 64, "patch", "1")
+    pre = ReviewRegistration(program, binding, ProgramPhase.PREFLIGHT, state["at"], plan.valid_until)
+    post = ReviewRegistration(program, binding, ProgramPhase.POSTFLIGHT, state["at"], plan.valid_until, "op", state["at"])
+    registrations = {pre.phase: pre, post.phase: post}
+    principal = ReviewPrincipal("operator", scope.tenant_id, (scope,), ("enforce", "shadow"),
+                                state["at"], plan.valid_until, "7" * 64)
+    state.update(remote_calls=[], remote_fault=None, remote_audit=[])
+
+    def registered(_principal, _scope, fingerprint):
+        return next((r for r in registrations.values() if r.fingerprint == fingerprint), None)
+
+    endpoint = SecurityReviewEndpoint(authenticate=lambda token: principal if token == "local-test-token" else None,
+        registration_for=registered, service_for=lambda *_: local,
+        audit=lambda event: state["remote_audit"].append(event) or True, clock=lambda: state["at"])
+
+    def post_request(_path, raw, credential):
+        request = decode(raw)
+        phase = next(r.phase for r in registrations.values() if r.fingerprint == request.context_digest)
+        state["remote_calls"].append(phase)
+        if state["remote_fault"] == "offline" or (state["remote_fault"] == "post-offline" and phase == ProgramPhase.POSTFLIGHT):
+            raise ReviewTransportError("SERVICE_TRANSPORT_UNAVAILABLE")
+        if state["remote_fault"] == "post-revoked" and phase == ProgramPhase.POSTFLIGHT:
+            state["program_trusted"] = False
+        response = encode(endpoint.review(credential.token, request)).encode()
+        if state["remote_fault"] == "approval-revoked":
+            state["revoked"] = True
+        if state["remote_fault"] == "post-expired" and phase == ProgramPhase.POSTFLIGHT:
+            state["at"] += timedelta(seconds=6)
+        return response
+
+    client = RemoteReviewClient(transport=SimpleNamespace(post=post_request),
+        credential_for=lambda: BearerCredential("local-test-token", plan.valid_until),
+        current_registration=lambda _scope, _subject, phase: registrations[phase],
+        subject_id="operator", clock=lambda: state["at"])
+    state["service"].program_service = RemoteProgramService(client)
+    state["service"].program_scope = scope
+    return local, client
+
+
+@pytest.mark.parametrize("fault", [None, "offline", "approval-revoked", "post-offline", "post-revoked", "post-expired"])
+def test_remote_program_keeps_existing_approval_effect_and_postflight_boundaries(setup_patch, fault):
+    state, run, journal, plan = setup_patch
+    attach_remote_architecture_program(state, plan)
+    state["remote_fault"] = fault
+    if fault is None:
+        assert run().program_review.passed
+        assert run().program_review.passed
+        assert state["calls"] == 1
+    elif fault in {"offline", "approval-revoked"}:
+        with pytest.raises(ContractError):
+            run()
+        assert state["calls"] == 0
+    else:
+        with pytest.raises(PatchPostflightRequired):
+            run()
+        assert state["calls"] == 1 and state["hold"]
+        effect = journal.get(plan.command("patch-1", operation_id="op", epoch=1))
+        assert effect.status == EffectStatus.APPLIED
+        with pytest.raises(ContractError):
+            run()
+        assert state["calls"] == 1
+
+
+def test_shadow_comparison_never_dispatches_and_preserves_unknown(setup_patch):
+    from sova_security.application.shadow_review import compare_shadow
+    from sova_security.domain.security_program import ProgramPhase
+
+    state, _run, _journal, plan = setup_patch
+    local, client = attach_remote_architecture_program(state, plan)
+    args = dict(actor="operator", scope=state["scope"], subject_digest=plan.fingerprint, phase=ProgramPhase.PREFLIGHT)
+    report = compare_shadow(local, client, **args)
+    assert report.matched and not report.execution_authorized and state["calls"] == 0
+    state["remote_fault"] = "offline"
+    report = compare_shadow(local, client, **args)
+    assert not report.remote_available and not report.matched and not report.execution_authorized
+    assert state["calls"] == 0
+
+
 def test_document_program_and_patch_guards_share_the_existing_executor(setup_patch):
     state, run, _, plan = setup_patch
     attach_architecture_program(state, plan)

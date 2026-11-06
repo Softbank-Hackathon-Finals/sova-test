@@ -1,12 +1,12 @@
 # 두 보안 설계의 개인 검증과 platform 인계
 
-2026-11-06 · `sova-security==0.10.0`
+2026-11-06 · `sova-security==0.11.0` · platform 기준 `f602b39a949b99f3e2e7be901103063e78a52a70`
 
 ## 사용하는 경로
 
 ```text
 security (보안 판정·증거 계약의 정본)
-  └─ 검증한 wheel
+  └─ 검증한 wheel + 선택형 제한 보안 서비스
       ├─ sova-test: 기존 승인·작업·effect 원장과 개인 검증
       └─ platform: T5/T14/T19, T10, T11/T15, T24/T31 어댑터로 소비
 ```
@@ -14,6 +14,39 @@ security (보안 판정·증거 계약의 정본)
 원문 보존·요구사항별 구현 위치는 security의 `docs/architecture-integration.md`와
 `docs/proposals/manifest.json`에 있다. Python 코드를 Sova에 다시 복사하지 않는다.
 `platform` 자체는 이번 변경 대상이 아니며 플랫폼 통합·운영 인수가 완료된 상태도 아니다.
+
+## 서비스 확장과 현재 호환 기준
+
+0.11.0은 패키지의 검사 로직을 유지하면서 별도 TLS 서비스·현재 workload 인증·테넌트별
+읽기 계정·병행 판정과 실행 어댑터를 추가한다. 서비스의 정책/증거/신뢰 등록은 기존의
+별도 관리 경로가 담당한다. 서비스는 승인·실행·자격 발급 API를 갖지 않는다.
+
+Sova `RemoteProgramService(client)`를 기존 `with_patch_security_program`에 넣는다.
+client는 고정 TLS origin, 기존 발급 경로의 현재 credential, 현재 호스트 등록 조회,
+등록된 workload subject, 시계를 요구한다. preflight/postflight 등록을 따로 조회하고
+postflight는 기존 실행기가 넘기는 실제 `not_before`와 operation ID에 결속한다.
+실행 actor와 workload subject가 다르면 거부한다. 암묵적 사용자 위임은 지원하지 않는다.
+
+Sova 시험은 로컬 SQLite 원장과 합성 전송/측정을 사용한다. 사전 장애 시 외부 효과 0회,
+사후 장애·철회·만료 시 기존 APPLIED 효과와 보류 유지, 재접수해도 재적용 없음, 병행 비교가
+상태를 바꾸지 않음을 확인한다. 실제 TLS·온라인 서명 토큰 검증기 모형·PostgreSQL 및
+독립 프로세스 시험은 security 저장소에서 수행한다.
+
+platform 소비는 `T10ProgramAuthority`로 원래 `T10GateAuthority`를 감싼다. 원래 계획
+digest/`PlanGateSession.fingerprint`, 문자열 profile version, `initial/post_apply`와
+application_id를 그대로 사용한다. 프로그램 pre/postflight 축과 혼동하지 않는다.
+`load_registration(connection, principal, plan, phase)`과 관련 writer는 기존 계획 잠금을
+공유해야 한다. 원격 왕복만으로 즉각 철회나 분산 원자성을 보장하지 않는다.
+
+전체 계약·설정·권한·시계·실패 동작·배포 명세 생성법은
+[security 서비스 안내](../../security/docs/security-review-service.md), 개발 판단과 결과는
+[개발 기록](../../security/docs/development/security-service-2026-11-06.md)에 있다.
+서비스 자체가 통과해도 기존 T19 전체 판정과 인간 승인은 유지한다.
+
+현재 기준에서 T7 자동 발급/철회 경로를 재사용하되 서비스 audience 등록은 별도다.
+T33의 실제 Security Hub 접근 거부를 빈 탐지/PASS로 만들지 않는다. T14 listener v2의
+source NET-01.3 FAIL과 나머지 UNKNOWN을 유지하고 운영 v1 결과로 치환하지 않는다.
+강제 연결에 앞서 `compare_shadow`로 기존 결과와 차이를 읽기 전용으로 수집한다.
 
 ## 로컬 실행
 
@@ -94,9 +127,14 @@ SPIFFE/SPIRE는 후보와 확장 경로이며 현재 팀의 Cloudflare·EKS/RKE2
 - [x] 원본 생산자의 실제 서명과 PostgreSQL 등록·철회·최신 근거 조회를 연결한다.
 - [x] 실행 후 증거 누락·변경 전 관측·만료 시 기존 effect를 보존하고 보류한다.
 - [x] platform `505d451fd8c374de755b160fca24f1a481820a50`의 schema와 예제를 대조하고 명시적 소비 프로필을 추가한다.
+- [x] f602b39 기준 실제 T10/T19 모듈과 initial/post_apply·현재 권한·단일 접수·원장 조정을 시험한다.
+- [x] 추가 서비스 소비에서 이전 PASS·만료·철회·shadow 우회를 차단하고 기존 실행 책임을 보존한다.
+- [ ] 실제 T7 서비스 audience·SA UID 등록과 CNPG 테넌트 전용 reader를 인수한다.
+- [ ] 플랫폼 plan-lock 아래 등록/철회와 실행기 IAM/RBAC의 직접 우회 거부를 실측한다.
 - [ ] platform 현재 계약별 실제 증거 생산자 어댑터를 담당자와 확정한다.
 - [ ] 팀 실제 AWS/RKE2에서 격리·거부·복원·컷오버·회귀 결과를 얻는다.
 - [ ] 기업 인증·신뢰 키 관리·배포·감사 보존·감시 운영을 인수한다.
 
 기존 보안 tests, Sova 통합 tests, 실제 PostgreSQL/OPA, 실제 클라우드 운영 자격은
-서로 다른 검증 수준이다. 로컬 결과는 security의 `docs/validation-2026-11-06.md`를 따른다.
+서로 다른 검증 수준이다. 0.10.0 결과는 security의 `docs/validation-2026-11-06.md`,
+0.11.0 결과는 `docs/development/security-service-2026-11-06.md`를 따른다.

@@ -68,7 +68,7 @@
     "kubernetes_response"
   ],
   "package_distribution": "sova-security",
-  "package_version": "0.10.0",
+  "package_version": "0.11.0",
   "package_import": "sova_security",
   "canonical_python_root_note": "Compatibility aliases to installed sova_security; host execution runner and qualification adapters remain in Sova.",
   "public_contracts": "sova_security.contracts v1; versioned extraction baseline, not an assertion that team platform has adopted these contracts.",
