@@ -37,7 +37,7 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       UV_PYTHON_DOWNLOADS: 'never'
-      SECURITY_COMMIT: 269e1e509245bd5bb1cd62a753f7b3ef5e860992
+      SECURITY_COMMIT: 2898f54613874142c074a33cc2eb2f13461ce420
       SOVA_SECURITY_TEST_SOURCE: '${{ github.workspace }}/.local-notes/security-source'
       SOVA_SECURITY_TEST_POSTGRES_DSN: 'host=/tmp/security-consumer-pg port=5432 user=bravo_test_admin password=ci-test-only dbname=sova_security_test'
       SOVA_TEST_POSTGRES_DSN: 'host=/tmp/sova-consumer-pg port=5432 user=bravo_test_admin password=ci-test-only dbname=sova_test'

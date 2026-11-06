@@ -69,7 +69,7 @@
   ],
   "package_distribution": "sova-security",
   "package_version": "0.11.0",
-  "qualified_package_source": "269e1e509245bd5bb1cd62a753f7b3ef5e860992",
+  "qualified_package_source": "2898f54613874142c074a33cc2eb2f13461ce420",
   "review_service": {
     "consumer": "sova.security.application.remote_program.RemoteProgramService",
     "wire_kind": "security-review-response.v1",
