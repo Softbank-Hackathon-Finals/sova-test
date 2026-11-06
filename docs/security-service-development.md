@@ -99,3 +99,15 @@
   [CI](https://github.com/Softbank-Hackathon-Finals/security/actions/runs/42213904868)도 모두 통과했으며
   PostgreSQL 18.4 경계 **42 PASS, 11.39초**, 실제 이미지/T10 연결 **11 PASS, 39.47초**였다.
 - Sova 소비 결과는 해당 고정 SHA의 process/container CI에서 확인한다.
+
+## SOVA-SVC-05: 감사 파일 부분 기록의 실행 전후 소비
+
+- 이전 `b308a2d` [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42214730368)
+  process/container 모두 통과했고 container는 **39 PASS, 43.47초**였다.
+- 생산자 `465dc414b040e39566706ae4d95cc81901d37d11`의 전체 CI 성공을 확인하고 고정한다.
+  부분 감사 쓰기 이후 새 판정을 거부하는 수정이다. 요구 SEC-PATCH-10, POL-09·10, SG-2.
+- 별도 두 PostgreSQL과 실제 TLS 서비스 연결에서 실행 전/후 미완성 JSON tail을 주입한다.
+  실행 전에는 effect 0회, 실행 후에는 기존 APPLIED와 hold 및 재시도 effect 1회를 요구한다.
+  손상된 원본 bytes가 수정되지 않았는지도 검사한다. 디스크 전체를 소진시키는 시험은 아니다.
+- process/container 소비 CI로 확인한다. 현재 producer 이미지의 취약점 검사는 별도 **BLOCK**이며
+  이 기능 시험 성공을 운영 배포 승인으로 해석하지 않는다. OS/installer 후속 변경은 별도 검증 후 갱신한다.

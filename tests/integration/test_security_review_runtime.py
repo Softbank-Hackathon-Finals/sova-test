@@ -7,6 +7,7 @@ cloud, real image, kubelet, production account or network policy is qualified.
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+import os
 
 import pytest
 
@@ -29,7 +30,8 @@ pytestmark = pytest.mark.postgres
 
 
 @pytest.mark.parametrize("fault", [None, "service-offline", "approval-revoked", "host-registration-revoked",
-    "post-service-offline", "post-producer-revoked", "post-old-observation", "provider-response-lost"])
+    "post-service-offline", "post-producer-revoked", "post-old-observation", "provider-response-lost",
+    "audit-torn", "post-audit-torn"])
 def test_two_database_service_chain_keeps_approval_hold_and_single_effect(
     setup, producer_support, security_database, tmp_path, fault,
 ):
@@ -70,6 +72,15 @@ def test_two_database_service_chain_keeps_approval_hold_and_single_effect(
         state["review_started"] = None
         return run()
     with independent_service(producer_support, security_database, tmp_path, pre, records, principal) as runtime:
+        def damage_audit():
+            path = tmp_path / "audit.jsonl"
+            with path.open("ab") as stream:
+                path.chmod(0o600)
+                stream.write(b'{"interrupted":')
+                stream.flush()
+                os.fsync(stream.fileno())
+            state["damaged_audit"] = path.read_bytes()
+
         def post(path, body, credential):
             raw = runtime.transport.post(path, body, credential)
             if not state.get("injected"):
@@ -100,13 +111,17 @@ def test_two_database_service_chain_keeps_approval_hold_and_single_effect(
                 runtime.stop()
             elif fault == "post-producer-revoked":
                 runtime.publisher.revoke()
+            elif fault == "post-audit-torn":
+                damage_audit()
             return proof
         service.observe_runtime = observe
         if fault == "service-offline":
             runtime.stop()
         elif fault == "provider-response-lost":
             state["timeout"] = True
-        if fault in {"service-offline", "approval-revoked", "host-registration-revoked"}:
+        elif fault == "audit-torn":
+            damage_audit()
+        if fault in {"service-offline", "approval-revoked", "host-registration-revoked", "audit-torn"}:
             with pytest.raises(ContractError):
                 invoke()
             assert state["calls"] == 0
@@ -126,3 +141,5 @@ def test_two_database_service_chain_keeps_approval_hold_and_single_effect(
             with pytest.raises(ContractError):
                 invoke()
             assert state["calls"] == 1
+        if "damaged_audit" in state:
+            assert (tmp_path / "audit.jsonl").read_bytes() == state["damaged_audit"]
