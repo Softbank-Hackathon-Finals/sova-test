@@ -234,3 +234,10 @@
 - `5415fca` [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42242378539) 성공.
   process **44 PASS / 66.32초**, 실제 service container **44 PASS / 39.86초**.
   producer ec4aac6, 아홉 플랫폼 기준 manifest, 두 실제 PG/TLS 소비 및 정리 helper를 검증했다.
+
+### 최종 인계 문서 연결
+
+- 코드/서비스 계약 링크는 고정 producer source를 유지하고 후속 CI 결과를 추가하는 개발 기록·인계
+  현황은 문서 브랜치로 연결했다. source commit 안에 자기 자신의 CI 완료 기록이 있다고 가정하지 않는다.
+- 현재 이미지 실측이 linux/amd64임을 Sova 인계에도 명시한다. ARM64·실제 CNI/발급·T24·운영 복구
+  인수는 별도이며 기존 HIGH 49건/BLOCK과 T28 운영자 JSONL의 재시작 경계도 그대로 남긴다.

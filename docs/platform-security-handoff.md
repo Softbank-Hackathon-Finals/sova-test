@@ -59,6 +59,8 @@ security (보안 판정·증거 계약의 정본)
 원문 보존·요구사항별 구현 위치는 security의 `docs/architecture-integration.md`와
 `docs/proposals/manifest.json`에 있다. Python 코드를 Sova에 다시 복사하지 않는다.
 `platform` 자체는 이번 변경 대상이 아니며 플랫폼 통합·운영 인수가 완료된 상태도 아니다.
+현재 서비스 이미지의 실측 아키텍처는 linux/amd64다. ARM64 배포에는 해당 이미지/의존성과
+동일 소비·거부 시험을 별도로 인수한다. 순수 Python 계약 통과로 이미지 아키텍처까지 검증했다고 보지 않는다.
 
 ## 서비스 확장과 현재 호환 기준
 
@@ -113,7 +115,9 @@ application_id를 그대로 사용한다. 프로그램 pre/postflight 축과 혼
 
 전체 계약·설정·권한·시계·실패 동작·배포 명세 생성법은
 [security 서비스 안내](https://github.com/Softbank-Hackathon-Finals/security/blob/ec4aac6c3d839111f76ef7466f7b6fc7fcea1e49/docs/security-review-service.md), 개발 판단과 결과는
-[개발 기록](https://github.com/Softbank-Hackathon-Finals/security/blob/ec4aac6c3d839111f76ef7466f7b6fc7fcea1e49/docs/development/security-service-2026-11-06.md)에 있다.
+[현재 개발 기록](https://github.com/Softbank-Hackathon-Finals/security/blob/feature/security-service-integration/docs/development/security-service-2026-11-06.md)에 있다.
+구현 source pin과 결과를 추가하는 문서 브랜치를 구분한다. 완료된 CI·지속 시험·이미지 원본과
+운영 인수 조건은 [현재 인계 현황](https://github.com/Softbank-Hackathon-Finals/security/blob/feature/security-service-integration/docs/platform-handoff-status.md)에 모았다.
 서비스 자체가 통과해도 기존 T19 전체 판정과 인간 승인은 유지한다.
 
 현재 T7의 `acquire`는 마지막에 API SelfSubjectReview를 수행하므로 서비스 전용 audience를
