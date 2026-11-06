@@ -10,7 +10,7 @@ import time
 from types import SimpleNamespace
 import urllib.request
 
-from sova.adapters.platform_t28 import DurableT28Port, OperatorBinding, PLATFORM_COMMIT, load_driver
+from sova.adapters.platform_t28 import DurableT28Port, OperatorBinding, load_driver
 from sova.adapters.sqlite_effects import SQLiteEffectJournal
 from sova.application.effects import EffectExecutor
 from sova.domain.contracts import EffectCommand, EffectObservation, EffectStatus, ResourceScope, canonical_json
@@ -25,7 +25,7 @@ def runtime(root, work, phase="normal", *, deny=False):
     command = EffectCommand(ResourceScope("test-tenant", "test-app", "test-env", "test-resource"),
         "test-operation", "s4-fault-inject", "synthetic-t28", "t28_operator", "test-operation:fault",
         "a" * 64, "revision-1", 1, now + timedelta(minutes=5), canonical_json({
-            "argv": ["synthetic-effect"], "platform_commit": PLATFORM_COMMIT, "plan_id": "test-plan", "profile": "mock",
+            "argv": ["synthetic-effect"], "platform_commit": driver.__sova_platform_commit__, "plan_id": "test-plan", "profile": "mock",
             "application_id": "test-application", "diff_digest": "b" * 64, "image_digest": "sha256:" + "c" * 64}))
     effect = work / "effect.txt"
 

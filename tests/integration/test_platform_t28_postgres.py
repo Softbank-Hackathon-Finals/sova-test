@@ -13,7 +13,7 @@ import psycopg
 from psycopg.conninfo import make_conninfo
 import pytest
 
-from sova.adapters.platform_t28 import DurableT28Port, OperatorBinding, PLATFORM_COMMIT, load_driver
+from sova.adapters.platform_t28 import DurableT28Port, OperatorBinding, load_driver
 from sova.adapters.postgres_effects import PostgresEffectJournal
 from sova.adapters.postgres_execution import PostgresExecutionOwnership
 from sova.adapters.postgres_operations import PostgresOperationRepository
@@ -71,7 +71,7 @@ def registered(postgres_bundle, now):
     if not root:
         pytest.skip("Explicit qualified T28 platform source required")
     repo, original, _, _, _ = postgres_bundle
-    parameters = canonical_json({"argv": ["synthetic-effect"], "platform_commit": PLATFORM_COMMIT,
+    parameters = canonical_json({"argv": ["synthetic-effect"], "platform_commit": load_driver(root).__sova_platform_commit__,
         "plan_id": "plan", "application_id": "test-application", "diff_digest": "b" * 64, "profile": "mock",
         "image_digest": "sha256:" + "c" * 64})
     step = PlanStep("s4-fault-inject", original.steps[0].scope, "synthetic-t28", "t28_operator", parameters, "revision-1")

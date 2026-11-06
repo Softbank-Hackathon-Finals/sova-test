@@ -10,7 +10,7 @@ import time
 
 import pytest
 
-from sova.adapters.platform_t28 import DurableT28Port, OperatorBinding
+from sova.adapters.platform_t28 import DurableT28Port, OperatorBinding, load_driver
 from sova.domain.contracts import ContractError, EffectStatus, canonical_json
 from support import permit_for
 from t28_support import runtime
@@ -55,7 +55,7 @@ def test_actual_process_exit_before_jsonl_does_not_reissue_operator(platform, tm
         db.close()
 
 
-@pytest.mark.parametrize("fault", ["argv", "plan", "application", "diff", "image", "revoked", "forged-jsonl", "profile", "reader-command", "header-profile"])
+@pytest.mark.parametrize("fault", ["argv", "plan", "application", "diff", "image", "revoked", "forged-jsonl", "profile", "reader-command", "header-profile", "platform-context", "driver-source"])
 def test_changed_registration_or_authority_never_issues_effect(platform, tmp_path, fault):
     driver, args, port, binding, db = runtime(platform, tmp_path, deny=fault == "revoked")
     try:
@@ -76,6 +76,10 @@ def test_changed_registration_or_authority_never_issues_effect(platform, tmp_pat
             args.profile = "real"
         elif fault == "reader-command":
             args.plan_state_command = ["unregistered-subprocess"]
+        elif fault == "platform-context":
+            args.platform_context = "would-bypass-the-operator-port"
+        elif fault == "driver-source":
+            driver.__sova_platform_commit__ = "f" * 40
         elif fault == "header-profile":
             head = driver.header(args)
             head["profile"] = "real"
@@ -89,6 +93,44 @@ def test_changed_registration_or_authority_never_issues_effect(platform, tmp_pat
             with pytest.raises((ContractError, RuntimeError)):
                 port.run(driver, args)
         assert not (tmp_path / "effect.txt").exists()
+    finally:
+        db.close()
+
+
+@pytest.mark.parametrize("step_id", ["s2-ai-start", "s2-ai-collect"])
+@pytest.mark.parametrize("changed", [False, True])
+def test_latest_initial_arguments_are_part_of_registered_operator(platform, tmp_path, step_id, changed):
+    original = load_driver(platform)
+    if not hasattr(original, "INITIAL"):
+        pytest.skip("Historical driver predates initial-proposal operators")
+    step = next(step for step in original.STEPS if step.id == step_id)
+    driver, args, previous, binding, db = runtime(platform, tmp_path)
+    try:
+        driver.STEPS = (step,)
+        args.initial_args = ["--from", "/synthetic/registered-input.json"]
+        argv = list(step.command) + args.initial_args
+        parameters = binding.command.parameters | {"argv": argv}
+        command = replace(binding.command, step_id=step_id, parameters_json=canonical_json(parameters))
+
+        class RegisteredAdapter:
+            adapter_id = binding.adapter.adapter_id
+
+            def validate(self, value):
+                assert value.parameters["argv"] == argv
+
+            apply = binding.adapter.apply
+            readback = binding.adapter.readback
+
+        registered = OperatorBinding(command, permit_for(command), RegisteredAdapter())
+        port = DurableT28Port(platform, args.plan_id, args.application_id, (registered,), previous.executor)
+        if changed:
+            args.initial_args = ["--from", "/synthetic/different-input.json"]
+            with pytest.raises(ContractError):
+                port.run(driver, args)
+            assert not (tmp_path / "effect.txt").exists()
+        else:
+            assert port.run(driver, args) == 0
+            assert (tmp_path / "effect.txt").read_text() == "once\n"
     finally:
         db.close()
 

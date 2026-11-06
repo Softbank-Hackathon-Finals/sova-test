@@ -1,5 +1,9 @@
 # T28 재시작 경계: 기존 실행 원장에 연결
 
+후속 기준 `0795f65e24f58e43545b16b97757efcc0923fd4a`의 새 driver도 별도로 고정한다.
+원문 SHA-256은 `e4bc607112512361d4bde4c6022bc59eb21191fdc139ade77b52f50bb013a355`이며
+Git blob `8a3e3993682f31ce262e1a82e21c4f11d60e75c5`와 대조했다. 기존 42811da 시험도 유지한다.
+
 기준 플랫폼 `42811da4cf19ce941491d4794ab49790881dc409`의 `scripts/happy_path.py`는
 이전 재현 기준과 동일한 원문 SHA-256
 `edac61dcc4ec0f0bf26e5e7583f33fb3137c544836d9d1c6441453724210d14c`다.
@@ -86,3 +90,16 @@ profile/plan/platform SHA를 대조한다. 모의 실행을 real로 이름만 �
 실제 TCP와 두 프로세스를 사용하지만 효과·terminal 증거는 개인 시험 파일이다.
 운영 공급자의 지연 요청 취소·fencing 계약을 증명하지 않는다. 그 증거를 인증하는 책임은
 기존 호스트의 recovery authority에 남긴다. 추가 원격 CI 결과는 후속 기록한다.
+
+## 작업 중 플랫폼 갱신 대응
+
+0795f65는 새 `--platform-context`에서 `kubectl exec` 상태 조회를 직접 구성한다.
+이 경로도 영속 operator 포트 밖 subprocess이므로 개인 어댑터에서는 거부하고 호스트 reader
+callback을 요구한다. 새 initial-proposal `start/collect`의 `--initial-args`는 실제 호출 argv에
+덧붙는 값이므로 등록 fingerprint와 함께 대조한다. 인자를 바꾸면 효과 전에 거부한다.
+file 경로 결속만으로 그 파일 내용을 인증하지 않는다. 실제 공급자 adapter의 `validate`가
+현재 등록된 입력·계획·diff·이미지와 파일 내용을 대조해야 하며 일반 subprocess adapter는 제공하지 않는다.
+
+원본의 exit 10 대기는 별도 정책이다. 이 포트는 승인된 효과를 확인하는 APPLIED 영수증만 0으로
+반환하며 불명확한 비동기 작업을 다시 apply하지 않는다. 공급자 terminal/readback 후 기존 원장에서
+조정한다. 이 보수적인 경계를 원본의 자동 재호출로 우회하지 않는다.

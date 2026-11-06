@@ -18,25 +18,30 @@ from sova.application.effects import EffectExecutor
 from sova.domain.contracts import ContractError, EffectCommand, EffectStatus, ExecutionPermit
 from sova.ports.effects import EffectAdapter
 
-PLATFORM_COMMIT = "42811da4cf19ce941491d4794ab49790881dc409"
-DRIVER_SHA256 = "edac61dcc4ec0f0bf26e5e7583f33fb3137c544836d9d1c6441453724210d14c"
+PLATFORM_COMMIT = "0795f65e24f58e43545b16b97757efcc0923fd4a"
+DRIVER_HASHES = {
+    "42811da4cf19ce941491d4794ab49790881dc409": "edac61dcc4ec0f0bf26e5e7583f33fb3137c544836d9d1c6441453724210d14c",
+    PLATFORM_COMMIT: "e4bc607112512361d4bde4c6022bc59eb21191fdc139ade77b52f50bb013a355",
+}
 
 
 def load_driver(root):
     """Import only the reviewed source from a clean, pinned platform checkout."""
     root = Path(root).resolve(strict=True)
     git = ["git", "-c", f"safe.directory={root.as_posix()}", "-C", str(root)]
-    if subprocess.check_output(git + ["rev-parse", "HEAD"], timeout=10).decode().strip() != PLATFORM_COMMIT:
+    commit = subprocess.check_output(git + ["rev-parse", "HEAD"], timeout=10).decode().strip()
+    if commit not in DRIVER_HASHES:
         raise ContractError("Unqualified T28 platform commit")
     if subprocess.check_output(git + ["status", "--porcelain", "--untracked-files=normal"], timeout=10):
         raise ContractError("T28 source must be clean")
     path = root / "scripts/happy_path.py"
-    if path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != DRIVER_SHA256:
+    if path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != DRIVER_HASHES[commit]:
         raise ContractError("T28 source differs from the reviewed driver")
     spec = importlib.util.spec_from_file_location("sova_pinned_t28", path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
+    module.__sova_platform_commit__ = commit
     return module
 
 
@@ -62,6 +67,9 @@ class DurableT28Port:
         if type(bindings) is not tuple or not bindings:
             raise ContractError("Immutable server-registered operator bindings required")
         self.bindings, self.executor = bindings, executor
+        self.platform_commit = bindings[0].command.parameters.get("platform_commit")
+        if self.platform_commit not in DRIVER_HASHES:
+            raise ContractError("Unqualified T28 operator source")
         seen = set()
         for binding in bindings:
             command = binding.command
@@ -73,7 +81,7 @@ class DurableT28Port:
             argv = value["argv"]
             if (type(argv) is not list or not argv or len(argv) > 64
                     or any(type(v) is not str or not v or len(v) > 4096 or "\x00" in v for v in argv)
-                    or value["platform_commit"] != PLATFORM_COMMIT
+                    or value["platform_commit"] != self.platform_commit
                     or value["plan_id"] != plan_id or value["application_id"] != application_id
                     or value["profile"] not in {"real", "local", "mock"}
                     or not re.fullmatch(r"[0-9a-f]{64}", value["diff_digest"])
@@ -102,26 +110,35 @@ class DurableT28Port:
 
     def run(self, driver, args, *, read_state=None):
         if (Path(driver.ROOT).resolve() != self.root or args.plan_id != self.plan_id
+                or getattr(driver, "__sova_platform_commit__", None) != self.platform_commit
                 or (args.application_id or "") != self.application_id
                 or any(b.command.parameters["profile"] != args.profile for b in self.bindings)):
             raise ContractError("T28 run identity differs from the registered operation")
         # Original T28 accepts a subprocess pretending to be a read-only reader.
         # It would bypass the operator port. Only a host-owned reader callback is
         # accepted here; a CLI command is never a read-only capability.
-        if args.plan_state_command is not None:
+        if args.plan_state_command is not None or getattr(args, "platform_context", None) is not None:
             raise ContractError("Use the host-owned T10 reader, not a subprocess command")
         # A forged/old JSONL completion cannot bypass the durable receipt.
         head, outcomes = driver.read_record(Path(args.record))
         if head is not None and (head.get("plan_id") != self.plan_id or head.get("profile") != args.profile
-                                 or head.get("develop_sha") != PLATFORM_COMMIT):
+                                 or head.get("develop_sha") != self.platform_commit):
             raise ContractError("T28 record belongs to a different plan/profile/platform")
         values = {"kubeconfig": args.kubeconfig or "", "fault_record": args.fault_record,
                   "application_id": args.application_id or "", "receipts": args.receipts or ""}
         steps = {step.id: step for step in driver.STEPS}
         for binding in self.bindings:
             step = steps.get(binding.command.step_id)
-            if (step is None or step.kind != "operator" or step.command is None
-                    or [part.format(**values) for part in step.command] != binding.command.parameters["argv"]):
+            if step is None or step.kind != "operator" or step.command is None:
+                raise ContractError("Registered T28 step differs from the driver invocation")
+            expected = [part.format(**values) for part in step.command]
+            initial = getattr(driver, "INITIAL", ())
+            if initial and step.command[:len(initial)] == initial:
+                extra = getattr(args, "initial_args", None)
+                if type(extra) is not list or not extra:
+                    raise ContractError("Registered initial-proposal arguments required")
+                expected += extra
+            if expected != binding.command.parameters["argv"]:
                 raise ContractError("Registered T28 step differs from the driver invocation")
         for step in driver.STEPS:
             if step.kind == "operator" and outcomes.get(step.id, {}).get("status") in {"done", "human_confirmed"}:
