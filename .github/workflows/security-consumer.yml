@@ -92,7 +92,7 @@ jobs:
           PY
       - name: Verify offline T14/T33 intake through the installed wheel
         run: |
-          "$PWD/.local-notes/security-source/.venv/bin/python" -m pytest -q tests/unit/test_security_intake_cli.py
+          "$PWD/.local-notes/security-source/.venv/bin/python" -m pytest -q tests/unit/test_security_intake_cli.py tests/unit/test_security_program_cli.py tests/security/test_module_boundary.py
       - name: Build the exact producer service image for container mode
         if: matrix.runtime == 'container'
         run: |

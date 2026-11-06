@@ -25,6 +25,16 @@ def test_private_or_missing_input_errors_do_not_echo_path_or_contents(capsys, tm
     assert "sensitive-operator" not in text
 
 
+def test_too_many_files_rejected_before_any_file_is_read(capsys, monkeypatch):
+    from sova.adapters.kubernetes import https
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Must bound the list before reading any file")
+    monkeypatch.setattr(https, "private_text", forbidden)
+    assert main(["security-intake-plan", "--control-run", "one", "--control-run", "two",
+        "--control-run", "three"]) == 2
+    assert "three" not in capsys.readouterr().err
+
+
 @pytest.mark.skipif(not hasattr(os, "geteuid") or not hasattr(os, "O_NOFOLLOW"), reason="Mac/Linux owner-check contract")
 def test_owner_checked_status_intake_never_claims_positive_detection(capsys, tmp_path):
     from datetime import UTC, datetime
