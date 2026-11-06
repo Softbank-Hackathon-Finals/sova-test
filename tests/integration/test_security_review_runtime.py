@@ -31,7 +31,7 @@ pytestmark = pytest.mark.postgres
 
 @pytest.mark.parametrize("fault", [None, "service-offline", "approval-revoked", "host-registration-revoked",
     "post-service-offline", "post-producer-revoked", "post-old-observation", "provider-response-lost",
-    "audit-torn", "post-audit-torn"])
+    "audit-torn", "post-audit-torn", "post-producer-history-restored"])
 def test_two_database_service_chain_keeps_approval_hold_and_single_effect(
     setup, producer_support, security_database, tmp_path, fault,
 ):
@@ -109,7 +109,7 @@ def test_two_database_service_chain_keeps_approval_hold_and_single_effect(
             registrations[current.phase] = current
             if fault == "post-service-offline":
                 runtime.stop()
-            elif fault == "post-producer-revoked":
+            elif fault in {"post-producer-revoked", "post-producer-history-restored"}:
                 runtime.publisher.revoke()
             elif fault == "post-audit-torn":
                 damage_audit()
@@ -138,8 +138,39 @@ def test_two_database_service_chain_keeps_approval_hold_and_single_effect(
             command = plan.command("patch-1", operation_id=lease.operation_id, epoch=lease.epoch)
             expected = EffectStatus.UNKNOWN if fault == "provider-response-lost" else EffectStatus.APPLIED
             assert journal.get(command).status == expected
-            with pytest.raises(ContractError):
-                invoke()
+            if fault == "post-producer-history-restored":
+                # Model only the security trust-history component of a restore.
+                # This administrator is never available to the review service.
+                import psycopg
+                change = runtime.publisher.change
+                held = holds.active_holds(plan.application_id)
+                with psycopg.connect(security_database[0], autocommit=True) as admin:
+                    assert admin.info.host.startswith("/")
+                    assert admin.execute("SELECT current_setting('cluster_name'),current_database()").fetchone() == (
+                        "sova-security-test", "sova_security_test")
+                    with lifecycle.connect() as host_connection:
+                        assert host_connection.execute("SELECT current_database()").fetchone()[0] != "sova_security_test"
+                    removed = admin.execute("""DELETE FROM sova_control.verifier_trust_events
+                        WHERE tenant_id=%s AND application_id=%s AND issuer_id=%s AND key_id=%s AND revision=2
+                        RETURNING revision""", (scope.tenant_id, scope.application_id,
+                            change.trust.issuer_id, change.trust.key_id)).fetchall()
+                    assert removed == [(2,)]
+                try:
+                    # A valid old trust snapshot can pass again; the service has
+                    # no independent monotonic checkpoint to detect this restore.
+                    restored = client.review(scope=scope, subject_digest=plan.fingerprint,
+                        phase=ProgramPhase.PREFLIGHT, mode="enforce")
+                    assert restored.review.passed and not restored.execution_authorized
+                    assert holds.active_holds(plan.application_id) == held
+                    with pytest.raises(ContractError):
+                        invoke()
+                    assert journal.get(command).status == EffectStatus.APPLIED
+                    assert holds.active_holds(plan.application_id) == held
+                finally:
+                    runtime.publisher.revoke()
+            else:
+                with pytest.raises(ContractError):
+                    invoke()
             assert state["calls"] == 1
         if "damaged_audit" in state:
             assert (tmp_path / "audit.jsonl").read_bytes() == state["damaged_audit"]

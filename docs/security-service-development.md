@@ -129,3 +129,23 @@
   모두 대조한다. 수집은 성공했지만 미수정 OS HIGH 49건 때문에 배포 BLOCK은 그대로다.
 - platform 8b12236의 T7 object open·T15 host·T14 부분 증거를 인수 문서에 반영한다.
   작업 PASS를 보안 PASS로 확대하지 않는다. 현재 pin의 process/container 소비 결과는 후속 기록한다.
+
+### SOVA-SVC-06 결과
+
+- `65fc4e0` [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42224614030)는
+  process/container 모두 성공했다. container **41 PASS, 47.84초**.
+- 복구된 Ubuntu의 기존 Python 3.12/PG17/OPA 환경에서 전체 **1,112 PASS / 3 SKIP / 경고 1개, 160.22초**.
+  skip은 상담 앱 이미지·OTEL Collector·실제 AWS SQS의 별도 환경 등록이다. 보안 서비스 소비는 실행했다.
+  기존 Starlette/httpx 사용 중단 예정 경고는 그대로 표시한다. 이 환경은 CI의 잠금 3.14 환경과 구별한다.
+
+## SOVA-SVC-07: 보안 신뢰 이력의 과거 복원과 독립 호스트 보류
+
+- 복구가 철회 기록까지 과거로 되돌릴 수 있는 조건을 시험한다. 실제 보안 PG의 본인 테스트 키 revision 2만
+  관리자로 제거해 신뢰 이력 회귀를 주입하고, 기존 독립 Sova PG의 보류/효과 원장은 유지한다.
+  전체 백업·CNPG PITR·재해 복구를 실행한 시험은 아니다.
+- 재복원된 유효한 과거 신뢰 아래 원격 preflight가 다시 PASS할 수 있음을 확인한다. 서비스에는 외부의
+  단조 증가 복구 기준점이 없으므로 이 복원을 스스로 탐지했다고 주장하지 않는다.
+- 원격 PASS 이후에도 기존 호스트 보류가 유지되어 재접수가 거부되고 APPLIED 효과는 정확히 1회다.
+  시험 후 동일 테스트 키의 철회 revision을 다시 기록한다. 서비스 계정에 삭제/관리자 권한을 부여하지 않는다.
+- 실제 두 PG/TLS 서비스의 관련 회귀 **11 PASS, 56.65초**. CI process/container에서도 검증한다.
+  운영 복구 전에는 복원 대상과 독립된 실행 차단·원장 조정·현재 키/철회 재등록이 필요하다.
