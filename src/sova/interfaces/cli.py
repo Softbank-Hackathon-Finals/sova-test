@@ -28,6 +28,8 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command", required=True)
     from sova.interfaces.security_program import add_commands
     add_commands(commands)
+    from sova.interfaces.security_intake import add_commands as add_intake_commands
+    add_intake_commands(commands)
     commands.add_parser(
         "example",
         help="Print a synthetic registration valid for one hour; no live resources",
@@ -72,6 +74,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         now = datetime.now(timezone.utc)
+        if args.command == "security-intake-plan":
+            from sova.interfaces.security_intake import run as run_intake
+            return run_intake(args, now)
         if args.command.startswith("security-program-"):
             from sova.interfaces.security_program import run
             return run(args, now)

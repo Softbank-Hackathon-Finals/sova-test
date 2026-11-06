@@ -1,5 +1,13 @@
 # 두 보안 설계의 개인 검증과 platform 인계
 
+현재 T14·T33 로컬 준비 도구는 `sova-security==0.11.1`, 생산자
+`27e6e85514a7cbb3e43d216464b72d9bd78f3fcf`를 소비한다. 최신 계약 검증에 platform
+`c364e6284d2e635ff86001e2feac88560ed23ebc`를 추가했다. 아래 0.11.0 이미지·소비 결과는
+이전 검증 기록이며 새 버전의 실환경 인수로 승격하지 않는다. 하단의 T14·T33 추가 절차와
+`docs/development/security-intake-2026-11-07.md`를 함께 읽는다.
+
+## 이전 0.11.0 검증 기록
+
 2026-11-07 KST · `sova-security==0.11.0` · platform 개발 계약 `0795f65e24f58e43545b16b97757efcc0923fd4a`
 
 최종 소비 source는 `546f6e0482cc06fa32f00ea8d554522551a84beb`다. 최신 개발 계약과 별도로
@@ -266,3 +274,11 @@ SPIFFE/SPIRE는 후보와 확장 경로이며 현재 팀의 Cloudflare·EKS/RKE2
 서로 다른 검증 수준이다. 0.10.0 결과는 security의 `docs/validation-2026-11-06.md`,
 0.11.0 초기 결과는 `docs/development/security-service-2026-11-06.md`, 이번 후속 결과는
 `docs/development/security-acceptance-2026-11-07.md`를 따른다. 실환경 다섯 항목은 미검증으로 남긴다.
+## T14·T33 로컬 인수 도구 (2026-11-07 추가)
+
+`security` 0.11.1을 고정한 소비 환경에서 `sova security-intake-plan`으로 T5 `full:1`
+20개 시험의 준비 조건과 source/target 보고 상태를 조회한다. 입력 없이 실행하면 모든 행은
+NOT_PROVIDED이며 실제 시험·인증·실행 승인을 수행하지 않는다. 기존 공식 접속과 T14/T19/T33
+원문 조회를 재사용하는 [맥 실행 안내](https://github.com/Softbank-Hackathon-Finals/security/blob/main/docs/mac-t14-t33-intake.md)를 따른다.
+위 과거 산출물·이미지 기록의 소스 고정값은 이 새 버전으로 자동 갱신되지 않는다.
+

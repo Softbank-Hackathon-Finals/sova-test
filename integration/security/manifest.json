@@ -68,8 +68,8 @@
     "kubernetes_response"
   ],
   "package_distribution": "sova-security",
-  "package_version": "0.11.0",
-  "qualified_package_source": "546f6e0482cc06fa32f00ea8d554522551a84beb",
+  "package_version": "0.11.1",
+  "qualified_package_source": "27e6e85514a7cbb3e43d216464b72d9bd78f3fcf",
   "review_service": {
     "consumer": "sova.security.application.remote_program.RemoteProgramService",
     "wire_kind": "security-review-response.v1",
@@ -85,7 +85,8 @@
       "7edab5312f965bd683a7738e74d49b883190e8da",
       "42811da4cf19ce941491d4794ab49790881dc409",
       "445848d2ed9878e31eb6f5aabad0575c61739b47",
-      "0795f65e24f58e43545b16b97757efcc0923fd4a"
+      "0795f65e24f58e43545b16b97757efcc0923fd4a",
+      "c364e6284d2e635ff86001e2feac88560ed23ebc"
     ],
     "execution_owner": "existing Sova effect journal or platform T10/T31; the service never dispatches"
   },
@@ -103,6 +104,8 @@
     "producer_authentication": "sova_security.adapters.program_evidence.SignedProgramEvidence",
     "wire_kind": "security-program.v1",
     "diagnostic_wire_kind": "security-program-input.v1",
+    "platform_intake_cli": "sova security-intake-plan",
+    "platform_intake_wire_kind": "platform-security-intake.v1",
     "producer_route_kind": "program-evidence-route.v1",
     "projection_kind": "program-evidence-projection.v1",
     "current_team_contract_commit": "0795f65e24f58e43545b16b97757efcc0923fd4a",
