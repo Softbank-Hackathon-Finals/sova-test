@@ -1,11 +1,14 @@
 """Synthetic operator only; actual pinned T28 driver and durable SQLite journal."""
 
 from datetime import UTC, datetime, timedelta
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
 import os
 from pathlib import Path
 import sqlite3
 import time
 from types import SimpleNamespace
+import urllib.request
 
 from sova.adapters.platform_t28 import DurableT28Port, OperatorBinding, PLATFORM_COMMIT, load_driver
 from sova.adapters.sqlite_effects import SQLiteEffectJournal
@@ -33,6 +36,13 @@ def runtime(root, work, phase="normal", *, deny=False):
             assert command.parameters["argv"] == ["synthetic-effect"]
 
         def apply(self, command):
+            if phase == "remote-http":
+                port = int((work / "remote-port").read_text())
+                request = urllib.request.Request(f"http://127.0.0.1:{port}/effect",
+                    data=command.fingerprint.encode(), method="POST")
+                with urllib.request.urlopen(request, timeout=15) as response:
+                    assert response.status == 200
+                return
             if phase == "pause-before-effect":
                 (work / "claimed").write_text("claimed")
                 deadline = time.monotonic() + 10
@@ -54,9 +64,11 @@ def runtime(root, work, phase="normal", *, deny=False):
                 EffectStatus.APPLIED if applied else EffectStatus.NOT_APPLIED, now,
                 canonical_json({"synthetic_effect_observed": applied}))
 
-    def authorize(*_):
+    def authorize(_command, _permit, _now, mutation):
         if deny:
             raise PermissionError("Synthetic current authority revoked")
+        if phase == "remote-http" and not mutation and not (work / "remote-terminal").exists():
+            raise PermissionError("Caller death is not remote operation quiescence")
 
     db = sqlite3.connect(work / "journal.sqlite")
     db.execute("PRAGMA synchronous=FULL")
@@ -75,3 +87,40 @@ def runtime(root, work, phase="normal", *, deny=False):
         application_id="test-application", kubeconfig=None, fault_record="unused", receipts=None,
         wait=0, interval=1, step_timeout=30, plan_state_command=None)
     return driver, args, port, binding, db
+
+
+def delayed_remote(work):
+    """A separate local process keeps an accepted request alive after caller death."""
+    work = Path(work)
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *_):
+            pass
+
+        def do_POST(self):
+            assert self.path == "/effect" and self.headers.get("Content-Length") == "64"
+            digest = self.rfile.read(64).decode("ascii")
+            assert len(digest) == 64 and all(c in "0123456789abcdef" for c in digest)
+            with (work / "remote-requests").open("a") as stream:
+                stream.write(json.dumps({"command": digest}) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            deadline = time.monotonic() + 15
+            while not (work / "remote-release").exists():
+                assert time.monotonic() < deadline
+                time.sleep(0.02)
+            with (work / "effect.txt").open("a") as stream:
+                stream.write("once\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            (work / "remote-terminal").write_text(digest)
+            try:
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"done")
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+    with HTTPServer(("127.0.0.1", 0), Handler) as server:
+        (work / "remote-port").write_text(str(server.server_port))
+        server.serve_forever(poll_interval=0.05)

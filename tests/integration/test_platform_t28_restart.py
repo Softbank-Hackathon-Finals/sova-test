@@ -127,3 +127,53 @@ def test_two_processes_cannot_dispatch_the_same_operator(platform, tmp_path):
         if first.poll() is None:
             first.kill()
         first.communicate(timeout=5)
+
+
+def test_remote_request_survives_caller_death_without_reinvocation(platform, tmp_path):
+    paths = [str(Path(__file__).parents[1]), str(Path(__file__).parents[2] / "src")]
+    env = os.environ | {"PYTHONPATH": os.pathsep.join(paths + [os.environ.get("PYTHONPATH", "")]), "PYTHONDONTWRITEBYTECODE": "1"}
+    server_code = "from t28_support import delayed_remote; import sys; delayed_remote(sys.argv[1])"
+    worker_code = "from t28_support import runtime; import sys; d,a,p,b,db=runtime(*sys.argv[1:]); sys.exit(p.run(d,a))"
+    server = subprocess.Popen([sys.executable, "-c", server_code, str(tmp_path)], env=env,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    worker, db = None, None
+
+    def observed(name):
+        deadline = time.monotonic() + 10
+        while not (tmp_path / name).exists():
+            assert server.poll() is None and time.monotonic() < deadline
+            time.sleep(0.02)
+
+    try:
+        observed("remote-port")
+        worker = subprocess.Popen([sys.executable, "-c", worker_code, str(platform), str(tmp_path), "remote-http"],
+                                  env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        observed("remote-requests")
+        worker.kill()
+        worker.communicate(timeout=5)
+        assert worker.returncode != 0 and server.poll() is None
+        assert not (tmp_path / "effect.txt").exists()
+        driver, args, port, binding, db = runtime(platform, tmp_path, "remote-http")
+        assert port.executor.journal.get(binding.command).status == EffectStatus.IN_FLIGHT
+        assert port.run(driver, args) == 3
+        # Caller death and an empty GET cannot prove a remote request stopped.
+        with pytest.raises(PermissionError, match="remote operation quiescence"):
+            port.executor.reconcile(binding.command, binding.permit, binding.adapter)
+        (tmp_path / "remote-release").touch()
+        observed("remote-terminal")
+        assert (tmp_path / "effect.txt").read_text() == "once\n"
+        assert port.executor.reconcile(binding.command, binding.permit, binding.adapter).status == EffectStatus.APPLIED
+        args.step, args.by, args.note, args.status = "s4-fault-inject", "test-reconciler", "remote test terminal", "done"
+        assert driver.cmd_mark(args, "resolved") == 0
+        assert port.run(driver, args) == 0
+        requests = (tmp_path / "remote-requests").read_text().splitlines()
+        assert len(requests) == 1 and json.loads(requests[0])["command"] == binding.command.fingerprint
+        assert (tmp_path / "effect.txt").read_text() == "once\n"
+    finally:
+        if db is not None:
+            db.close()
+        for process in (worker, server):
+            if process is not None:
+                if process.poll() is None:
+                    process.kill()
+                process.communicate(timeout=5)
