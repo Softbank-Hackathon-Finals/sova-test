@@ -82,15 +82,15 @@ application_id를 그대로 사용한다. 프로그램 pre/postflight 축과 혼
 공유해야 한다. 원격 왕복만으로 즉각 철회나 분산 원자성을 보장하지 않는다.
 
 전체 계약·설정·권한·시계·실패 동작·배포 명세 생성법은
-[security 서비스 안내](../../security/docs/security-review-service.md), 개발 판단과 결과는
-[개발 기록](../../security/docs/development/security-service-2026-11-06.md)에 있다.
+[security 서비스 안내](https://github.com/Softbank-Hackathon-Finals/security/blob/f25433a3905737c97e8aab3a6ced6832c8d6d7eb/docs/security-review-service.md), 개발 판단과 결과는
+[개발 기록](https://github.com/Softbank-Hackathon-Finals/security/blob/f25433a3905737c97e8aab3a6ced6832c8d6d7eb/docs/development/security-service-2026-11-06.md)에 있다.
 서비스 자체가 통과해도 기존 T19 전체 판정과 인간 승인은 유지한다.
 
 현재 T7의 `acquire`는 마지막에 API SelfSubjectReview를 수행하므로 서비스 전용 audience를
 그대로 넣어 사용할 수 없다. 내부 소비자는 기존 SA의 별도 projected token과
 `MountedTokenCredential`을 연결한다. 기존 Kubernetes 발급/회전을 쓰고 새 issuer를 만들지 않는다.
 외부 소비자의 T7 확장은 별도 인계 사항이며 API audience나 복수 audience로 우회하지 않는다.
-[구체적 경계와 시험](../../security/docs/adr/0005-service-credential-audience.md)을 따른다.
+[구체적 경계와 시험](https://github.com/Softbank-Hackathon-Finals/security/blob/f25433a3905737c97e8aab3a6ced6832c8d6d7eb/docs/adr/0005-service-credential-audience.md)을 따른다.
 T33의 실제 Security Hub 접근 거부를 빈 탐지/PASS로 만들지 않는다. T14 listener v2의
 source NET-01.3 FAIL과 나머지 UNKNOWN을 유지하고 운영 v1 결과로 치환하지 않는다.
 강제 연결에 앞서 `compare_shadow`로 기존 결과와 차이를 읽기 전용으로 수집한다.

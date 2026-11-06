@@ -175,3 +175,19 @@
   검증에서 거부됐다. 서비스 연결에 도달하지 않은 설정 오류이며 이 실행을 통과로 취급하지 않는다.
 - 정확한 SHA와 일곱 플랫폼 기준을 manifest에 반영한다. CI는 그 manifest의 SHA만 읽어 checkout하며,
   설치한 package version/PLATFORM_BASELINES도 대조한다. 다음 갱신부터 중복 pin이 갈라지지 않게 한다.
+
+### SOVA-SVC-08 수정 결과
+
+- `319fe38` [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42231908277) 성공.
+  process **42 PASS, 57.98초**, 실제 서비스 container **42 PASS, 65.89초**.
+  이 결과는 producer f25433a 및 일곱 플랫폼 기준 manifest를 소비한 결과다.
+
+## SOVA-SVC-09: shadow 일치와 실행 자격의 구분
+
+- 기존 시험은 일치와 장애를 확인했지만 UNKNOWN/FAIL의 일치를 직접 확인하지 않았다.
+  합성 위험 평가 근거를 각각 UNKNOWN/FAIL로 바꿔 양쪽 판정이 일치하더라도 실제 실행 접수가
+  거부되고 effect가 등록되지 않음을 검증한다. 원격/로컬 정책과 실행 코드는 변경하지 않는다.
+- 처음 두 시험은 빈 원장을 None으로 가정한 시험 코드 때문에 실패했다. 실제 원장 계약은
+  EffectConflict이므로 이를 바로잡았다. SQLite/직렬화 경계 회귀 **33 PASS, 1.17초**.
+- GitHub에서도 인계 경로가 열리도록 저장소 밖의 상대 링크를 고정 producer URL로 바꿨다.
+  실제 두 DB/TLS container 소비는 같은 CI에서 다시 확인한다.

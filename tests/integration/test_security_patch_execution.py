@@ -333,6 +333,34 @@ def test_shadow_comparison_never_dispatches_and_preserves_unknown(setup_patch):
     assert state["calls"] == 0
 
 
+@pytest.mark.parametrize("result", [R.UNKNOWN, R.FAIL])
+def test_matching_shadow_failure_cannot_admit_an_execution(setup_patch, result):
+    from sova.ports.effects import EffectConflict
+    from sova_security.application.shadow_review import compare_shadow
+    from sova_security.domain.security_program import ProgramPhase
+
+    state, run, journal, plan = setup_patch
+    local, client = attach_remote_architecture_program(state, plan)
+    records = state["program_records"]
+    assessment = next(record for record in records if record.evidence_id == "architecture:risk-assessment")
+    state["program_records"] = tuple(
+        replace(record, result=result) if record == assessment else record for record in records)
+    args = dict(actor="operator", scope=state["scope"], subject_digest=plan.fingerprint,
+                phase=ProgramPhase.PREFLIGHT)
+    local_review = local.review(**args)
+    assert not local_review.passed
+    assert next(row for row in local_review.results if row.check_id == "risk-assessment").result == result
+    report = compare_shadow(local, client, **args)
+    assert report.matched and report.remote_available and not report.changed_checks
+    assert report.execution_authorized is False
+    assert state["calls"] == 0 and not state["hold"]
+    with pytest.raises(ContractError):
+        run()
+    assert state["calls"] == 0
+    with pytest.raises(EffectConflict, match="not registered"):
+        journal.get(plan.command("patch-1", operation_id="op", epoch=1))
+
+
 def test_document_program_and_patch_guards_share_the_existing_executor(setup_patch):
     state, run, _, plan = setup_patch
     attach_architecture_program(state, plan)
