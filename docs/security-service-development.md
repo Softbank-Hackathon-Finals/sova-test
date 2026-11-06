@@ -167,3 +167,11 @@
   새 host의 SHIFT 책임 분리, shadow 일치와 실제 PASS의 차이를 명시한다.
 - 새 pin의 process/container 소비를 CI에서 재검증한다. 결과 확인 전에는 완료로 집계하지 않는다.
   이미지 취약점 판정은 HIGH 49건으로 BLOCK이며 이 소비 시험은 운영 배포가 아니다.
+
+### SOVA-SVC-08 pin 불일치와 수정
+
+- `ca75e6e` [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42231127867)는
+  **31 PASS / 11 ERROR**였다. workflow만 갱신되고 통합 manifest가 이전 SHA여서 producer checkout
+  검증에서 거부됐다. 서비스 연결에 도달하지 않은 설정 오류이며 이 실행을 통과로 취급하지 않는다.
+- 정확한 SHA와 일곱 플랫폼 기준을 manifest에 반영한다. CI는 그 manifest의 SHA만 읽어 checkout하며,
+  설치한 package version/PLATFORM_BASELINES도 대조한다. 다음 갱신부터 중복 pin이 갈라지지 않게 한다.

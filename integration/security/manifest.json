@@ -69,7 +69,7 @@
   ],
   "package_distribution": "sova-security",
   "package_version": "0.11.0",
-  "qualified_package_source": "d9c878f7be63b72a2d693f24af37148776fb7fe2",
+  "qualified_package_source": "f25433a3905737c97e8aab3a6ced6832c8d6d7eb",
   "review_service": {
     "consumer": "sova.security.application.remote_program.RemoteProgramService",
     "wire_kind": "security-review-response.v1",
@@ -79,7 +79,8 @@
       "c225c86cf5e408b5fcd016b0e367d3672d1bac44",
       "9e0d6a59d7a00925ddafc50cfa2ccad00c5ba768",
       "a610bbfb60d3a633597d75dc6e070addd3c3b559",
-      "8b12236ae4277de16cebdf1391f87721e5851d47"
+      "8b12236ae4277de16cebdf1391f87721e5851d47",
+      "bb174860bedf100de3970c3e8e410f02f23994e2"
     ],
     "execution_owner": "existing Sova effect journal or platform T10/T31; the service never dispatches"
   },

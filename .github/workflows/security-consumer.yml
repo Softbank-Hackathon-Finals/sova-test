@@ -37,7 +37,6 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       UV_PYTHON_DOWNLOADS: 'never'
-      SECURITY_COMMIT: f25433a3905737c97e8aab3a6ced6832c8d6d7eb
       SOVA_SECURITY_TEST_SOURCE: '${{ github.workspace }}/.local-notes/security-source'
       SOVA_SECURITY_TEST_POSTGRES_DSN: 'host=/tmp/security-consumer-pg port=5432 user=bravo_test_admin password=ci-test-only dbname=sova_security_test'
       SOVA_TEST_POSTGRES_DSN: 'host=/tmp/sova-consumer-pg port=5432 user=bravo_test_admin password=ci-test-only dbname=sova_test'
@@ -46,6 +45,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      - name: Select the exact producer from the consumer contract
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, re
+          manifest = json.loads(pathlib.Path('integration/security/manifest.json').read_text())
+          revision = manifest['qualified_package_source']
+          assert type(revision) is str and re.fullmatch(r'[0-9a-f]{40}', revision)
+          with open(os.environ['GITHUB_ENV'], 'a') as stream:
+              stream.write('SECURITY_COMMIT=' + revision + '\n')
+          PY
       - name: Read the pinned security producer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -73,7 +82,14 @@ jobs:
       - name: Verify the package and current execution boundaries
         run: |
           PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
-          "$PYTHON" -c "from importlib.metadata import version; assert version('sova-security') == '0.11.0'"
+          "$PYTHON" - <<'PY'
+          import json, pathlib
+          from importlib.metadata import version
+          from sova_security.adapters.platform_review import PLATFORM_BASELINES
+          manifest = json.loads(pathlib.Path('integration/security/manifest.json').read_text())
+          assert version(manifest['package_distribution']) == manifest['package_version']
+          assert set(manifest['review_service']['platform_baselines']) == set(PLATFORM_BASELINES)
+          PY
       - name: Build the exact producer service image for container mode
         if: matrix.runtime == 'container'
         run: |
