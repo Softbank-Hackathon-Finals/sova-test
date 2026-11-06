@@ -191,3 +191,22 @@
   EffectConflict이므로 이를 바로잡았다. SQLite/직렬화 경계 회귀 **33 PASS, 1.17초**.
 - GitHub에서도 인계 경로가 열리도록 저장소 밖의 상대 링크를 고정 producer URL로 바꿨다.
   실제 두 DB/TLS container 소비는 같은 CI에서 다시 확인한다.
+
+### SOVA-SVC-09 결과
+
+- `1fae0e4` [CI](https://github.com/Softbank-Hackathon-Finals/sova-test/actions/runs/42232541073) 성공.
+  process **44 PASS, 64.73초**, container **44 PASS, 56.71초**. UNKNOWN/FAIL끼리의 shadow 일치는
+  실행 자격이 되지 않는다. 이 실행의 producer는 f25433a다.
+
+## SOVA-SVC-10: 여덟 플랫폼 기준과 전용 DB 저장 생성 제한 소비
+
+- producer를 `5ddf281b31568e49cdd1a2c993e8d8172cdc7b1e`로 고정한다. manifest를 CI checkout의
+  단일 출처로 유지하고 기본 플랫폼 및 계약 목록에 `98885a69999398bfe3f49fbc8324a7b19aae3e16`을 반영한다.
+- T19 현재 공개키 원장과 승인 후 철회를 실제 플랫폼 코드로 검증했다. T28 운영자 JSONL의
+  결과 기록 전 중단/재시작 재호출 경계는 인계 조건으로 남기고 Sova 기존 effect 원장을 유지한다.
+- 전용 보안 DB는 PUBLIC TEMP와 세 대형 객체 생성 함수 권한을 별도로 제한한다. 기존 producer의
+  owned fixture가 준비/원상복구를 담당하므로 Sova에 관리자 변경 코드를 복제하지 않는다.
+  사용자/운영 DB에는 적용하지 않는다. 역할 권한이 drift하면 신규 판정만 보류한다.
+- producer의 Python 3.14 **1,008 PASS / 2 SKIP, 160.59초**, 여덟 플랫폼 계약 통과를 확인했다.
+  실제 두 DB의 process/container 소비 결과는 아래에 따로 기록한다. 지속 시험의 이전 source를
+  새 수정의 검증으로 소급하지 않는다. 이미지의 HIGH 49건/BLOCK은 유지한다.

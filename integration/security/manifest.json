@@ -69,7 +69,7 @@
   ],
   "package_distribution": "sova-security",
   "package_version": "0.11.0",
-  "qualified_package_source": "f25433a3905737c97e8aab3a6ced6832c8d6d7eb",
+  "qualified_package_source": "5ddf281b31568e49cdd1a2c993e8d8172cdc7b1e",
   "review_service": {
     "consumer": "sova.security.application.remote_program.RemoteProgramService",
     "wire_kind": "security-review-response.v1",
@@ -80,7 +80,8 @@
       "9e0d6a59d7a00925ddafc50cfa2ccad00c5ba768",
       "a610bbfb60d3a633597d75dc6e070addd3c3b559",
       "8b12236ae4277de16cebdf1391f87721e5851d47",
-      "bb174860bedf100de3970c3e8e410f02f23994e2"
+      "bb174860bedf100de3970c3e8e410f02f23994e2",
+      "98885a69999398bfe3f49fbc8324a7b19aae3e16"
     ],
     "execution_owner": "existing Sova effect journal or platform T10/T31; the service never dispatches"
   },
@@ -100,7 +101,7 @@
     "diagnostic_wire_kind": "security-program-input.v1",
     "producer_route_kind": "program-evidence-route.v1",
     "projection_kind": "program-evidence-projection.v1",
-    "current_team_contract_commit": "505d451fd8c374de755b160fca24f1a481820a50",
+    "current_team_contract_commit": "98885a69999398bfe3f49fbc8324a7b19aae3e16",
     "platform_handoff": "docs/platform-security-handoff.md",
     "authority": "Additional evidence requirements only; existing approval, T19, executor and runtime verification remain authoritative"
   }
