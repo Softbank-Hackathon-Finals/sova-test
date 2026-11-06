@@ -90,6 +90,9 @@ jobs:
           assert version(manifest['package_distribution']) == manifest['package_version']
           assert set(manifest['review_service']['platform_baselines']) == set(PLATFORM_BASELINES)
           PY
+      - name: Verify offline T14/T33 intake through the installed wheel
+        run: |
+          "$PWD/.local-notes/security-source/.venv/bin/python" -m pytest -q tests/unit/test_security_intake_cli.py
       - name: Build the exact producer service image for container mode
         if: matrix.runtime == 'container'
         run: |
