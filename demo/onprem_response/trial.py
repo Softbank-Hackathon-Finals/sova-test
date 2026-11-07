@@ -691,7 +691,7 @@ class Trial:
                 # Preserve original observations; never renew evidence at shutdown.
                 expiry = (
                     datetime.fromisoformat(body["observed_at"])
-                    + timedelta(microseconds=1)
+                    + timedelta(milliseconds=1)
                 ).isoformat()
                 body["expires_at"] = expiry
                 body["source_label"] = (
