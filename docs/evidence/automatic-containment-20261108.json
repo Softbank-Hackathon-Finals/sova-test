@@ -2,8 +2,8 @@
   "kind": "owned-auto-containment-qualification.v1",
   "date": "2026-11-08",
   "qualified_sources": {
-    "api_and_worker": "52927c4a5e63b9c1244e0d8623260da7a0b03308",
-    "api_only_and_pre_event_revocation": "4737aad080359157512d6fcedf6fd30848e0e653"
+    "multiple_components_commit": "52927c4a5e63b9c1244e0d8623260da7a0b03308",
+    "single_component_and_revocation_commit": "4737aad080359157512d6fcedf6fd30848e0e653"
   },
   "qualification_only": true,
   "product_workflow_qualified": false,
