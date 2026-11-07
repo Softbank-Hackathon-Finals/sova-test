@@ -60,7 +60,9 @@ def stream_reader(component,nonce,connection,response):
     record.update(pod_uid=v['pod_uid'],lines=record['lines']+1,last_line=time.monotonic())
  except Exception:
   with LOCK:STREAMS[component]['unconfirmed']=True
- finally:connection.close()
+ finally:
+  connection.close()
+  with LOCK:STREAMS[component]['reader_finished']=True
 def expanded_probe_get(self):
  path=urlsplit(self.path).path;q=parse_qs(urlsplit(self.path).query)
  component=q.get('component',[''])[0]

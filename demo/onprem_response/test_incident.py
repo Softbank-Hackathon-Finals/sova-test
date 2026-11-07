@@ -38,7 +38,7 @@ def skeleton(tmp_path, components=("api", "worker")):
         {c: "old-" + c for c in components},
         {c: "d" * 32 for c in components},
     )
-    trial.commands, trial.receipts = {}, {}
+    trial.commands, trial.receipts, trial.checks = {}, {}, {}
     trial.deadline = now() + timedelta(minutes=5)
     trial.route = lambda c: {"environment_id": trial.ns["blue"], "revision": 1}
     trial.publish = lambda *a, **k: None
@@ -260,6 +260,12 @@ def test_real_existing_stream_identity_close_and_green_fault(tmp_path):
             )
             stream = client.get(url + "/streams").json()["streams"]["api"]
             assert stream["client_socket_closed"] is True
+            for _ in range(30):
+                stream = client.get(url + "/streams").json()["streams"]["api"]
+                if stream.get("reader_finished"):
+                    break
+                time.sleep(0.02)
+            assert stream.get("reader_finished") is True
             app = f"http://127.0.0.1:{app_port}"
             assert (
                 client.post(
@@ -317,3 +323,32 @@ def test_api_omitted_empty_deny_arrays_and_additive_allow_are_distinct(tmp_path)
     p["spec"]["ingress"] = []
     p["spec"]["podSelector"] = {}
     assert not t.policy_matches("api", p)
+
+
+def test_failed_read_only_verification_has_no_effect_reservation(tmp_path):
+    from sova_security.contracts.evidence import VerificationResult
+
+    t = skeleton(tmp_path)
+    t.prepare_plan("respond")
+    t.active_plan = t.pending_plan
+    c = t.pending_plan.command(
+        "verify-api", operation_id=t.pending_plan.plan_id, epoch=1
+    )
+    checks = []
+    t.executor = SimpleNamespace(check=lambda *a, **kw: checks.append(kw))
+    t.incident_adapter = object()
+    t.probe = lambda *a: {
+        "ok": False,
+        "connected": True,
+        "upstream_status": 503,
+        "response": {"error": "injected_verification_failure"},
+    }
+    t.current_pod = lambda *a: {"metadata": {"uid": "actual-pod"}}
+    record = t.verify_target(c, object())
+    assert record.result == VerificationResult.FAIL
+    assert checks == [{"mutation": False}]
+    assert t.receipts == {}
+    with pytest.raises(ContractError, match="overwrite"):
+        t.verify_target(c, object())
+    t.prepare_plan("recheck")
+    assert t.pending_plan.steps[0].action == "clear_failure"

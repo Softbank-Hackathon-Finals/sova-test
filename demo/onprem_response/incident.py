@@ -11,9 +11,9 @@ import os
 import secrets
 import signal
 import time
+from datetime import timedelta
 from pathlib import Path
 
-from sova.application.effects import UncertainEffect
 from sova.domain.contracts import (
     ContractError,
     EffectObservation,
@@ -22,8 +22,15 @@ from sova.domain.contracts import (
     ResourceScope,
     canonical_json,
 )
-from sova_security.contracts.evidence import Gate, RevisionSet, VerificationObligation
+from sova_security.contracts.evidence import (
+    EvidenceRecord,
+    Gate,
+    RevisionSet,
+    VerificationObligation,
+    VerificationResult,
+)
 from sova_security.contracts.plans import LifecyclePlan, PlanPurpose, PlanStep
+from sova_security.domain.signed_evidence import evidence_document
 
 from .controls import read
 from .egress import EgressProbe
@@ -255,15 +262,21 @@ class IncidentAdapter:
         elif action == "fence":
             t.wait_absent(c)
             stream = t.routes.call("/streams")["streams"][c]
+            until = time.monotonic() + 5
+            while not stream.get("reader_finished") and time.monotonic() < until:
+                time.sleep(0.1)
+                stream = t.routes.call("/streams")["streams"][c]
             if (
                 stream.get("pod_uid") != t.old_pods[c]
                 or stream.get("nonce") != t.streams[c]
                 or stream.get("client_socket_closed") is not True
+                or stream.get("reader_finished") is not True
             ):
                 raise ContractError("Registered old stream termination unconfirmed")
             facts.update(
                 original_pod_absent=True,
                 client_socket_closed=True,
+                reader_finished=True,
                 old_pod_uid=t.old_pods[c],
                 mechanism="source-pod-fence-and-probe-socket-close",
                 natural_eof=stream.get("eof") is True,
@@ -325,6 +338,7 @@ class IncidentTrial(TerminalTrial):
         self.components = components
         self.artifacts, self.egress, self.old_pods, self.streams = {}, {}, {}, {}
         self.commands, self.receipts, self.policy_uids = {}, {}, {}
+        self.checks = {}
         self.baseline_pods = {}
         self.active_plan = None
         self.stage, self.revalidated, self.returned = "normal", False, False
@@ -692,10 +706,75 @@ class IncidentTrial(TerminalTrial):
             previous = self.active_plan.command(
                 dependency, operation_id=self.active_plan.plan_id, epoch=1
             )
-            if self.receipts.get(previous.fingerprint) != EffectStatus.APPLIED:
+            prior_step = next(
+                s for s in self.active_plan.steps if s.step_id == dependency
+            )
+            check = self.checks.get(previous.fingerprint)
+            if prior_step.action == "verify":
+                if (
+                    not check
+                    or check.result != VerificationResult.PASS
+                    or at >= check.valid_until
+                ):
+                    raise ContractError(
+                        "Previous verification is missing, failed or stale"
+                    )
+            elif self.receipts.get(previous.fingerprint) != EffectStatus.APPLIED:
                 raise ContractError("Previous effect is not confirmed")
         self.api.verify_identity()
         return True
+
+    def verify_target(self, command, permit):
+        # A predicate failure is evidence, not an uncertain external mutation.
+        # This check NEVER reserves a resource in the effect journal.
+        self.executor.check(command, permit, self.incident_adapter, mutation=False)
+        component = command.parameters["component"]
+        path = self.root / ("verification-" + command.fingerprint + ".private.json")
+        if path.exists():
+            raise ContractError("Verification cannot overwrite prior evidence")
+        proof = self.probe("green", component)
+        pod = self.current_pod("green", component)
+        body = proof.get("response", {})
+        passed = (
+            proof.get("ok") is True
+            and body.get("application") == self.app
+            and body.get("environment") == "green"
+            and body.get("component") == component
+            and body.get("pod_uid") == pod["metadata"]["uid"]
+        )
+        result = (
+            VerificationResult.PASS
+            if passed
+            else VerificationResult.FAIL
+            if proof.get("connected") is True
+            else VerificationResult.UNKNOWN
+        )
+        at = now()
+        record = EvidenceRecord(
+            "verify-" + command.fingerprint[:32],
+            "target-health-" + component,
+            command.scope,
+            self.active_plan.revisions,
+            "owned-http-nonce-v2",
+            at,
+            min(at + timedelta(seconds=30), self.deadline),
+            result,
+            "probe-" + command.fingerprint[:32],
+            sha(proof),
+        )
+        atomic_json(
+            path,
+            {
+                "kind": "verification",
+                "command_digest": command.fingerprint,
+                "plan_digest": command.plan_digest,
+                "evidence": evidence_document(record),
+                "proof": proof,
+                "qualification_only": True,
+            },
+        )
+        self.checks[command.fingerprint] = record
+        return record
 
     def accept_plan(self, approval):
         self.active_plan = self.pending_plan
@@ -715,12 +794,18 @@ class IncidentTrial(TerminalTrial):
                 if not verified:
                     raise ContractError("Current complete verifier set required")
                 self.revalidated = len(verified) == len(self.components) and all(
-                    self.receipts.get(
-                        self.active_plan.command(
-                            s.step_id, operation_id=self.active_plan.plan_id, epoch=1
-                        ).fingerprint
+                    (
+                        check := self.checks.get(
+                            self.active_plan.command(
+                                s.step_id,
+                                operation_id=self.active_plan.plan_id,
+                                epoch=1,
+                            ).fingerprint
+                        )
                     )
-                    == EffectStatus.APPLIED
+                    is not None
+                    and check.result == VerificationResult.PASS
+                    and now() < check.valid_until
                     for s in verified
                 )
             command = self.active_plan.command(
@@ -734,12 +819,9 @@ class IncidentTrial(TerminalTrial):
                 1,
                 command.expires_at,
             )
-            try:
-                record = self.executor.execute(command, permit, self.incident_adapter)
-            except UncertainEffect:
-                if self.pending_kind == "respond" and step.action == "verify":
-                    # Only this read-only verification may be followed by a NEW
-                    # plan. Never replay an uncertain mutation.
+            if step.action == "verify":
+                check = self.verify_target(command, permit)
+                if check.result != VerificationResult.PASS:
                     if any(
                         self.route(c)["environment_id"] != self.ns["blue"]
                         for c in self.components
@@ -751,20 +833,41 @@ class IncidentTrial(TerminalTrial):
                         self.root / "verification-failure.private.json",
                         {
                             "command_digest": command.fingerprint,
-                            "read_only_effect": True,
+                            "read_only_verification": True,
+                            "verification_result": str(check.result),
                             "route_unchanged": True,
                             "incident_hold_active": True,
                             "at": now().isoformat(),
                         },
                     )
                     self.publish("verification_failed")
+                    if self.pending_kind != "respond":
+                        raise ContractError(
+                            "Revalidation failed; incident remains held"
+                        )
                     self.prepare_plan("recheck")
                     return
-                raise
+                self.steps.append(
+                    {
+                        "action": step.step_id,
+                        "record_type": "verification",
+                        "command_digest": command.fingerprint,
+                        "observed_at": check.observed_at.isoformat(),
+                        "observation": {
+                            "result": str(check.result),
+                            "artifact_digest": check.artifact_digest,
+                        },
+                    }
+                )
+                atomic_json(self.root / "effects-summary.private.json", self.steps)
+                self.publish(step.step_id)
+                continue
+            record = self.executor.execute(command, permit, self.incident_adapter)
             self.receipts[command.fingerprint] = record.status
             self.steps.append(
                 {
                     "action": step.step_id,
+                    "record_type": "effect",
                     "command_digest": command.fingerprint,
                     "observed_at": record.observation.observed_at.isoformat(),
                     "observation": record.observation.evidence,
