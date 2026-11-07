@@ -185,7 +185,42 @@ class TerminalTrial(Trial):
             self.root / "attempt-intent.private.json",
             {"nonce": request_id, "at": now().isoformat(), "retry": False},
         )
-        response = self.routes.call("/attempt", {"nonce": request_id})
+        try:
+            response = self.routes.call("/attempt", {"nonce": request_id})
+        except ContractError:
+            # These Pods are freshly created, credential-free fixed fixtures.
+            # Preserve their bounded diagnostics before exact-UID cleanup.
+            try:
+                pods = self.api.request(
+                    "GET", f"/api/v1/namespaces/{self.ns['blue']}/pods"
+                )
+                logs = []
+                for pod in pods["items"]:
+                    if (
+                        pod["metadata"].get("labels", {}).get("app.kubernetes.io/name")
+                        != "api"
+                    ):
+                        continue
+                    name = pod["metadata"]["name"]
+                    raw = self.api.client.get(
+                        f"/api/v1/namespaces/{self.ns['blue']}/pods/{name}/log",
+                        params={
+                            "container": "api",
+                            "tailLines": 25,
+                            "limitBytes": 4096,
+                        },
+                        timeout=3,
+                    )
+                    if raw.status_code == 200 and len(raw.content) <= 4096:
+                        logs.append(
+                            {"pod_uid": pod["metadata"]["uid"], "log": raw.text}
+                        )
+                atomic_json(
+                    self.root / "fixture-failure.private.json", {"actor_logs": logs}
+                )
+            except Exception:
+                pass
+            raise
         audit = self.routes.call("/audit?nonce=" + request_id).get("audit")
         pods = self.api.request("GET", f"/api/v1/namespaces/{self.ns['blue']}/pods")[
             "items"
