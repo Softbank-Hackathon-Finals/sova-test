@@ -43,6 +43,7 @@ from sova.security.qualification.kubernetes_response import OwnedKubernetesRespo
 from sova_security.domain.governance import SecurityHold, StoredHold
 
 from .manifests import manifests, names, validate_names
+from .controls import read as read_control
 
 
 def now():
@@ -441,6 +442,43 @@ class Trial:
         self.guard(self.plan, at)
         return True
 
+    def operator_control(self, path):
+        return read_control(
+            path,
+            key=self.hmac_key,
+            binding=self.plan_binding,
+            revision=self.source_revision,
+            at=now(),
+            deadline=self.deadline,
+        )
+
+    def stop_requested(self, directory):
+        control = self.operator_control(directory / "stop.private.json")
+        if control and control["action"] != "stop":
+            raise ContractError("Stop control requires the stop action")
+        return bool(control)
+
+    def await_operator(self, directory):
+        last_publish = time.monotonic()
+        while now() < self.deadline - timedelta(seconds=40):
+            if self.stop_requested(directory):
+                return False
+            control = self.operator_control(directory / "respond.private.json")
+            if control:
+                if control["action"] != "respond":
+                    raise ContractError("Response approval required")
+                if self.deadline - now() < timedelta(minutes=4):
+                    raise ContractError(
+                        "Insufficient time for bounded response; prepare a new trial"
+                    )
+                atomic_json(self.root / "consumed-control.private.json", control)
+                return True
+            if time.monotonic() - last_publish >= 8:
+                self.publish("normal", record_event=False)
+                last_publish = time.monotonic()
+            time.sleep(0.5)
+        return False
+
     def wait(self, side, component, seconds=55):
         until = time.monotonic() + seconds
         while time.monotonic() < until:
@@ -546,7 +584,7 @@ class Trial:
             namespace=self.ns[side],
             location="onprem-trial",
             observed_at=now(),
-            valid_until=min(now() + timedelta(minutes=4), self.deadline),
+            valid_until=min(now() + timedelta(minutes=5), self.deadline),
         )
         findings = tuple(
             decode_finding(f) for f in posture_projection((dep, svc), graph)["findings"]
@@ -644,7 +682,12 @@ class Trial:
             plan_id="response-" + self.run_id,
             created_by="member-04-qualification",
             now=now(),
-            valid_until=min(now() + timedelta(minutes=3), self.deadline),
+            valid_until=min(
+                now() + timedelta(minutes=5),
+                self.deadline,
+                source.graph.valid_until,
+                target.graph.valid_until,
+            ),
         )
         self.adapter = Adapter(
             kubeconfig=os.environ["KUBECONFIG"],
@@ -710,7 +753,7 @@ class Trial:
         atomic_json(self.root / "effects-summary.private.json", self.steps)
         self.publish(action)
 
-    def publish(self, phase):
+    def publish(self, phase, *, record_event=True):
         from .projection import projection
 
         self.observation_started_at = now()
@@ -726,8 +769,9 @@ class Trial:
                 "apply_isolation", operation_id=self.app, epoch=1
             )
             self.isolation = self.adapter.readback(command, now())
-        if phase != "watch" or (
-            self.entry.get("ok") and self.probes["neighbor"].get("ok")
+        if record_event and (
+            phase != "watch"
+            or (self.entry.get("ok") and self.probes["neighbor"].get("ok"))
         ):
             self.events.append(
                 {"phase": phase, "occurred_at": self.observation_started_at.isoformat()}
@@ -791,6 +835,7 @@ def main():
     parser.add_argument("--image", required=True)
     parser.add_argument("--hold-seconds", type=int, default=240)
     parser.add_argument("--start-delay", type=int, default=15)
+    parser.add_argument("--operator-control", type=Path)
     args = parser.parse_args()
     if not 0 <= args.hold_seconds <= 300 or not 0 <= args.start_delay <= 30:
         parser.error("Bounded qualification interval required")
@@ -807,7 +852,15 @@ def main():
         print(
             "Owned on-prem trial ready; waiting before controlled response.", flush=True
         )
-        time.sleep(args.start_delay)
+        if args.operator_control:
+            directory = args.operator_control
+            if directory.is_symlink() or directory.stat().st_mode & 0o077:
+                raise ContractError("Private operator control directory required")
+            if not trial.await_operator(directory):
+                result["stopped_before_response"] = True
+                return
+        else:
+            time.sleep(args.start_delay)
         trial.inject_and_bind()
         time.sleep(4)
         for action in (
@@ -822,7 +875,9 @@ def main():
         result["response_verified"] = True
         until = min(now() + timedelta(seconds=args.hold_seconds), trial.deadline)
         while now() < until:
-            trial.publish("watch")
+            if args.operator_control and trial.stop_requested(args.operator_control):
+                break
+            trial.publish("watch", record_event=False)
             time.sleep(6)
     except Exception as error:
         result.update(response_verified=False, error_type=type(error).__name__)
