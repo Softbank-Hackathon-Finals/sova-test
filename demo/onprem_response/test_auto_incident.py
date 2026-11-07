@@ -273,6 +273,8 @@ def test_policy_approval_is_signed_exact_scope_and_wrong_body_creates_no_control
         assert not (manager.session / "arm.private.json").exists()
     assert manager.act(body) == {"accepted": True, "duplicate": False}
     assert manager.act(body) == {"accepted": True, "duplicate": True}
+    current.update(pending_kind="respond", can_respond=False, plan_digest="e" * 64)
+    assert manager.act(body) == {"accepted": True, "duplicate": True}
     from .controls import read
 
     assert (

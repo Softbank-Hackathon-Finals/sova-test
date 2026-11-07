@@ -103,6 +103,17 @@ class AutoIncidentSupervisor(IncidentSupervisor):
         return value
 
     def act(self, body):
+        # A delayed response/retry may arrive after ARMED changed the visible
+        # plan. Acknowledge this same request without redispatching its grant.
+        request = body.get("request_id")
+        with self.lock:
+            if isinstance(request, str) and request in self.requests:
+                encoded = hashlib.sha256(
+                    json.dumps(body, sort_keys=True).encode()
+                ).hexdigest()
+                if self.requests[request] != encoded:
+                    raise ValueError("request_identity_conflict")
+                return {"accepted": True, "duplicate": True}
         current = self.status()
         special = (
             body.get("action") == "respond" and current.get("pending_kind") == "arm"
