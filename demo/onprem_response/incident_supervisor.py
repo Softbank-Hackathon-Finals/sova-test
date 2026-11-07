@@ -20,6 +20,10 @@ class IncidentSupervisor(TerminalSupervisor):
         terminal = private_json(state / "terminal-status.private.json")
         plan = private_json(state / "response-plan.private.json")
         result = private_json(state / "result.private.json")
+        if not terminal and not result:
+            # Registration can precede worker readiness, outbound baselines and
+            # the actual preexisting-stream proof. Do not publish early READY.
+            value.update(phase="preparing", can_attempt=False, can_respond=False)
         if terminal and not result:
             phase = terminal["phase"]
             kind = terminal.get("pending_kind")

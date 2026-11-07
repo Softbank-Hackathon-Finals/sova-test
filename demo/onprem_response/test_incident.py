@@ -14,6 +14,8 @@ import pytest
 
 from onprem_response.expanded_fixture import expanded_manifests
 from onprem_response.incident import IncidentAdapter, IncidentTrial
+from onprem_response.incident_supervisor import IncidentSupervisor
+from onprem_response.terminal_supervisor import TerminalSupervisor
 from onprem_response.terminal import TerminalTrial
 from onprem_response.trial import now
 from sova.domain.contracts import ContractError, EffectStatus
@@ -284,3 +286,20 @@ def test_real_existing_stream_identity_close_and_green_fault(tmp_path):
 
 def test_original_terminal_admission_reused():
     assert IncidentTrial.observe_attempt is TerminalTrial.observe_attempt
+
+
+def test_registration_does_not_publish_ready_before_stream_baseline(
+    tmp_path, monkeypatch
+):
+    session = tmp_path / "session-00000000000000000000000000000000"
+    (session / "state").mkdir(parents=True)
+    manager = object.__new__(IncidentSupervisor)
+    manager.root, manager.session_id = tmp_path, "0" * 32
+    monkeypatch.setattr(
+        TerminalSupervisor,
+        "status",
+        lambda _: {"phase": "ready", "can_attempt": True, "can_respond": True},
+    )
+    result = manager.status()
+    assert result["phase"] == "preparing"
+    assert result["can_attempt"] is False and result["can_respond"] is False
