@@ -126,6 +126,21 @@ def test_proxy_cannot_choose_a_destination(path):
         routes.call(path)
 
 
+def test_proxy_post_paths_remain_literal_and_get_probe_has_a_nonce():
+    calls = []
+    api = SimpleNamespace(
+        namespaces={"probe": "owned-probe"},
+        request=lambda *args: calls.append(args) or {"ok": False},
+    )
+    routes = ProxyRoutes(api, "source", "target")
+    routes.call("/attempt", {"nonce": "a" * 32})
+    routes.call("/route", {"request": "fixed"})
+    assert calls[0][0] == "POST" and calls[0][1].endswith("/proxy/attempt")
+    assert calls[1][1].endswith("/proxy/route") and "?" not in calls[1][1]
+    routes.call("/probe?target=blue")
+    assert "target=blue&request_id=" in calls[2][1]
+
+
 def test_no_effect_can_execute_before_exact_post_observation_approval():
     trial = object.__new__(TerminalTrial)
     trial.approved = False

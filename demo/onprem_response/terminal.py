@@ -34,7 +34,11 @@ class ProxyRoutes(Routes):
         ):
             raise ContractError("Fixed trial proxy path required")
         nonce = secrets.token_hex(16)
-        query = path + ("&" if "?" in path else "?") + "request_id=" + nonce
+        query = (
+            (path + ("&" if "?" in path else "?") + "request_id=" + nonce)
+            if body is None
+            else path
+        )
         route = (
             f"/api/v1/namespaces/{self.api.namespaces['probe']}/services/probe:8080/proxy"
             + query
