@@ -51,6 +51,20 @@ class IncidentSupervisor(TerminalSupervisor):
             )
             if plan:
                 value.update(plan_id=plan["plan_id"], plan_digest=plan["plan_digest"])
+                value["approval_scope"] = {
+                    "selected_components": terminal["components"],
+                    "steps": [
+                        {
+                            "action": s["action"],
+                            "component": json.loads(s["parameters_json"])["component"],
+                        }
+                        for s in plan["plan"]["steps"]
+                    ],
+                    "image_digest": plan["plan"]["revisions"]["source"],
+                    "valid_until": plan["valid_until"],
+                    "incident_hold_release": False,
+                    "production_resources_affected": False,
+                }
                 value["can_respond"] = value["can_respond"] and datetime.now(
                     UTC
                 ) < datetime.fromisoformat(plan["valid_until"])

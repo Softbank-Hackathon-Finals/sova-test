@@ -333,7 +333,7 @@ class IncidentAdapter:
 
 class IncidentTrial(TerminalTrial):
     def __init__(self, *args, components=("api", "worker"), **kwargs):
-        if components not in {("api",), ("worker",), ("api", "worker")}:
+        if components not in {("api",), ("api", "worker")}:
             raise ContractError("Only explicitly admitted stateless components")
         self.components = components
         self.artifacts, self.egress, self.old_pods, self.streams = {}, {}, {}, {}
@@ -943,7 +943,9 @@ def main():
     p.add_argument("--operator-control", type=Path, required=True)
     p.add_argument("--hold-seconds", type=int, default=60)
     p.add_argument(
-        "--components", choices=["api", "worker", "api,worker"], default="api,worker"
+        "--components",
+        choices=["api", "api,worker"],
+        default=os.environ.get("SOVA_OWNED_TRIAL_COMPONENTS", "api,worker"),
     )
     args = p.parse_args()
     if not 0 <= args.hold_seconds <= 120:
