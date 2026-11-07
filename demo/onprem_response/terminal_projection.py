@@ -1,6 +1,5 @@
 """Actual terminal exercise evidence through the existing display-only graph."""
 
-
 from .projection import projection as configured_projection
 
 
@@ -17,6 +16,9 @@ def projection(trial):
         "Tailscale Kubernetes API의 고정 시험 HTTP 경로 · 운영 Edge 아님"
     )
     attack = trial.attack
+    if not trial.approved:
+        # Terminal flow pauses for a separate post-observation approval.
+        doc["evidence"] = [e for e in doc["evidence"] if e["kind"] != "approval"]
     if attack and nodes["api"]["security"] != "isolated":
         nodes["api"]["security"] = "hold"
         key = "terminal-incident-hold"

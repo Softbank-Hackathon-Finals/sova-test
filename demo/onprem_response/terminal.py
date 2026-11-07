@@ -216,6 +216,33 @@ class TerminalTrial(Trial):
             raise ContractError(
                 "Actual actor Pod and independent denial audit must match"
             )
+        owners = [
+            o
+            for o in selected[0]["metadata"].get("ownerReferences", [])
+            if o.get("controller") is True
+        ]
+        if (
+            len(owners) != 1
+            or owners[0].get("kind") != "ReplicaSet"
+            or not re.fullmatch(r"[a-z0-9][a-z0-9.-]{0,252}", owners[0].get("name", ""))
+        ):
+            raise ContractError("Actor Pod controller ownership unconfirmed")
+        replica = self.api.request(
+            "GET",
+            f"/apis/apps/v1/namespaces/{self.ns['blue']}/replicasets/{owners[0]['name']}",
+        )
+        deployment_owners = [
+            o
+            for o in replica["metadata"].get("ownerReferences", [])
+            if o.get("controller") is True
+        ]
+        if (
+            replica["metadata"].get("uid") != owners[0].get("uid")
+            or len(deployment_owners) != 1
+            or deployment_owners[0].get("kind") != "Deployment"
+            or deployment_owners[0].get("uid") != self.source["metadata"]["uid"]
+        ):
+            raise ContractError("Actor Pod does not belong to registered Deployment")
         self.attack = {
             "nonce": request_id,
             "actor_pod_uid": response["actor_pod_uid"],
