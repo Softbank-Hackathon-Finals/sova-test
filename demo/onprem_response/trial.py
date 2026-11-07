@@ -486,8 +486,11 @@ class Trial:
             graph,
             findings,
             hashlib.sha256(
-                canonical_json(
-                    {"deployment": dep, "service": svc}, limit=131072
+                json.dumps(
+                    {"deployment": dep, "service": svc},
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    allow_nan=False,
                 ).encode()
             ).hexdigest(),
         )
