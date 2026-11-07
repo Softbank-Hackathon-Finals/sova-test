@@ -8,14 +8,14 @@ APP_CODE = r"""import http.client,json,os,re,threading,time,socket
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import urlsplit,parse_qs
 APP=os.environ['APPLICATION'];ENV=os.environ['ENVIRONMENT'];COMP=os.environ['COMPONENT'];UID=os.environ['POD_UID']
-AUDIT={};ATTEMPTS={};LOCK=threading.Lock()
+AUDIT={};ATTEMPTS={};LOCK=threading.Lock();EGRESS_PEER=None
 class Handler(BaseHTTPRequestHandler):
  def log_message(self,*args):pass
  def reply(self,status,body):
   raw=json.dumps(body).encode();self.send_response(status);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
  def do_GET(self):
   path=urlsplit(self.path).path;nonce=parse_qs(urlsplit(self.path).query).get('nonce',[''])[0]
-  base={'application':APP,'environment':ENV,'component':COMP,'pod_uid':UID,'request_id':self.headers.get('X-Request-ID')}
+  base={'application':APP,'environment':ENV,'component':COMP,'pod_uid':UID,'pod_ip':os.environ.get('POD_IP'),'request_id':self.headers.get('X-Request-ID')}
   if path=='/health':return self.reply(200,base)
   if path=='/protected' and COMP=='neighbor':
    nonce=self.headers.get('X-Request-ID','')
@@ -27,7 +27,39 @@ class Handler(BaseHTTPRequestHandler):
   if path=='/audit' and COMP=='neighbor' and re.fullmatch('[a-f0-9]{32}',nonce):
    with LOCK:return self.reply(200,{'audit':AUDIT.get(nonce),'application':APP})
   return self.reply(404,{'error':'not_found'})
+ def egress_check(self):
+  global EGRESS_PEER
+  try:
+   self.connection.settimeout(3);length=int(self.headers.get('Content-Length','0'))
+   if self.headers.get('Transfer-Encoding') or not 0<length<=128:raise ValueError()
+   body=json.loads(self.rfile.read(length));nonce=body['nonce']
+   if set(body)!={'nonce'} or not re.fullmatch('[a-f0-9]{32}',nonce):raise ValueError()
+  except Exception:return self.reply(400,{'error':'invalid_egress_check'})
+  with LOCK:peer=EGRESS_PEER
+  base={'nonce':nonce,'application':APP,'actor_pod_uid':UID,'baseline_cached':peer is not None,'peer_pod_uid':peer['uid'] if peer else None,'peer_ip':peer['ip'] if peer else None}
+  c=http.client.HTTPConnection(peer['ip'] if peer else os.environ['NEIGHBOR_HOST'],int(os.environ.get('SOVA_TRIAL_NEIGHBOR_PORT','8080')),timeout=2)
+  connected=False
+  try:
+   c.connect();connected=True;ip=c.sock.getpeername()[0]
+   c.request('GET','/health',headers={'X-Request-ID':nonce});r=c.getresponse();v=json.loads(r.read(4097))
+   if r.status!=200 or v.get('request_id')!=nonce or v.get('application')!=APP or v.get('component')!='neighbor':raise ValueError()
+   if peer is None:
+    import ipaddress
+    address=str(ipaddress.ip_address(v['pod_ip']));expected_uid=v['pod_uid'];c.close()
+    c=http.client.HTTPConnection(address,int(os.environ.get('SOVA_TRIAL_NEIGHBOR_PORT','8080')),timeout=2)
+    c.connect();ip=c.sock.getpeername()[0];c.request('GET','/health',headers={'X-Request-ID':nonce});r=c.getresponse();v=json.loads(r.read(4097))
+    if r.status!=200 or v.get('request_id')!=nonce or v.get('application')!=APP or v.get('pod_uid')!=expected_uid or v.get('pod_ip')!=address or ip!=address:raise ValueError()
+   observed={'ip':ip,'uid':v['pod_uid']}
+   with LOCK:
+    if EGRESS_PEER is None:EGRESS_PEER=observed
+    if EGRESS_PEER!=observed:raise ValueError()
+   return self.reply(200,dict(base,connected=True,http_ok=True,baseline_cached=True,peer_ip=ip,peer_pod_uid=v['pod_uid']))
+  except (OSError,TimeoutError):
+   return self.reply(200,dict(base,connected=connected,http_ok=False,error='new_connection_unreachable' if not connected and peer else 'probe_unconfirmed'))
+  except Exception:return self.reply(200,dict(base,connected=connected,http_ok=False,error='probe_unconfirmed'))
+  finally:c.close()
  def do_POST(self):
+  if self.path=='/egress-check' and ENV=='blue' and COMP=='api':return self.egress_check()
   if self.path!='/attempt' or ENV!='blue' or COMP!='api':return self.reply(404,{'error':'not_found'})
   try:
    self.connection.settimeout(3);length=int(self.headers.get('Content-Length','0'))
@@ -100,6 +132,12 @@ def terminal_manifests(run_id, image):
     for doc in documents:
         if doc["kind"] == "Deployment":
             doc["spec"]["template"]["spec"]["enableServiceLinks"] = False
+            doc["spec"]["template"]["spec"]["containers"][0]["env"].append(
+                {
+                    "name": "POD_IP",
+                    "valueFrom": {"fieldRef": {"fieldPath": "status.podIP"}},
+                }
+            )
         if doc["kind"] == "ConfigMap" and doc["metadata"]["name"] == "api-code":
             doc["data"]["main.py"] = APP_CODE
         elif doc["kind"] == "ConfigMap" and doc["metadata"]["name"] == "neighbor-code":

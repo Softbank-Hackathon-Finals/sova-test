@@ -79,6 +79,55 @@ def projection(trial):
         )
         # This edge shows a recorded request, not continuing attack traffic or
         # proof that the network currently permits it.
+    egress = getattr(trial.isolation, "evidence", {}) if trial.isolation else {}
+    if (
+        egress.get("outbound_new_connection_denied") is True
+        and egress.get("dns_independent") is True
+        and egress.get("samples") == 2
+        and attack
+        and egress.get("actor_uid") == attack["actor_pod_uid"]
+    ):
+        detail = "정상 연결 대조 후 같은 이웃 Pod IP로 향한 발신 새 TCP 연결 2회 거부 확인 · 기존 연결 종료는 별도"
+        doc["evidence"].append(
+            dict(
+                id="terminal-egress-node",
+                resource_id="api",
+                resource_uid=nodes["api"]["resource_uid"],
+                kind="isolation",
+                outcome="verified",
+                summary=detail,
+                observed_at=doc["observed_at"],
+                expires_at=doc["expires_at"],
+            )
+        )
+        edge_id = "actor-egress-neighbor"
+        edge_uid = (
+            trial.run_id + "-egress-" + egress["actor_uid"] + "-" + egress["peer_uid"]
+        )
+        doc["edges"].append(
+            dict(
+                id=edge_id,
+                source="api",
+                target="neighbor",
+                label="발신 새 TCP 연결 · 차단 실측",
+                kind="http",
+                resource_uid=edge_uid,
+                state="blocked",
+                evidence_id="terminal-egress-edge",
+            )
+        )
+        doc["evidence"].append(
+            dict(
+                id="terminal-egress-edge",
+                resource_id=edge_id,
+                resource_uid=edge_uid,
+                kind="isolation",
+                outcome="verified",
+                summary=detail,
+                observed_at=doc["observed_at"],
+                expires_at=doc["expires_at"],
+            )
+        )
     relevant = [e for e in trial.events[-50:] if e["phase"] != "normal"]
     for event, original in zip(doc["events"], relevant):
         if original["phase"] == "approved":
