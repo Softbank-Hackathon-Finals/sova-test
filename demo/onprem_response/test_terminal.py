@@ -14,7 +14,12 @@ import pytest
 
 from onprem_response.controls import read, seal
 from onprem_response.terminal import ProxyRoutes, TerminalTrial
-from onprem_response.terminal_fixture import APP_CODE, terminal_manifests
+from onprem_response.manifests import PROBE_CODE
+from onprem_response.terminal_fixture import (
+    APP_CODE,
+    PROBE_EXTENSION,
+    terminal_manifests,
+)
 
 
 def free_port():
@@ -109,6 +114,80 @@ def test_manifest_is_bounded_and_keeps_probe_ingress_closed():
     assert not any(
         d["kind"] in {"Secret", "ClusterRole", "ClusterRoleBinding"} for d in docs
     )
+
+
+def test_actual_http_proxy_forwards_attempt_and_audit(tmp_path):
+    ports = [free_port(), free_port(), free_port()]
+    end = "ThreadingHTTPServer(('0.0.0.0',8080),Handler).serve_forever()"
+    probe = PROBE_CODE.replace(end, PROBE_EXTENSION + "\n" + end)
+    probe = probe.replace(
+        "HTTPConnection(TARGETS['blue'],8080,",
+        f"HTTPConnection(TARGETS['blue'],{ports[1]},",
+    )
+    probe = probe.replace(
+        "HTTPConnection(TARGETS['neighbor'],8080,",
+        f"HTTPConnection(TARGETS['neighbor'],{ports[0]},",
+    )
+    probe = probe.replace(
+        end, f"ThreadingHTTPServer(('127.0.0.1',{ports[2]}),Handler).serve_forever()"
+    )
+    processes = []
+    try:
+        for component, port, code in [
+            ("neighbor", ports[0], APP_CODE),
+            ("api", ports[1], APP_CODE),
+            ("probe", ports[2], probe),
+        ]:
+            path = tmp_path / (component + ".py")
+            path.write_text(code)
+            env = dict(
+                os.environ,
+                APPLICATION="owned-test",
+                ENVIRONMENT="blue",
+                COMPONENT=component,
+                POD_UID=component + "-pod",
+                LISTEN_HOST="127.0.0.1",
+                LISTEN_PORT=str(port),
+                NEIGHBOR_HOST="127.0.0.1",
+                NEIGHBOR_PORT=str(ports[0]),
+                SOURCE_ENV="owned-blue",
+                TARGET_ENV="owned-green",
+                TARGETS=json.dumps(
+                    {k: "127.0.0.1" for k in ["blue", "green", "neighbor"]}
+                ),
+            )
+            processes.append(
+                subprocess.Popen(
+                    [sys.executable, "-I", "-B", str(path)],
+                    env=env,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            )
+            until = time.monotonic() + 5
+            while True:
+                try:
+                    with socket.create_connection(("127.0.0.1", port), timeout=0.1):
+                        break
+                except OSError:
+                    if time.monotonic() > until:
+                        raise RuntimeError("fixture_start_failed")
+                    time.sleep(0.05)
+        nonce = "c" * 32
+        with httpx.Client(trust_env=False, timeout=5) as client:
+            r = client.post(
+                f"http://127.0.0.1:{ports[2]}/attempt", json={"nonce": nonce}
+            )
+            assert r.status_code == 200, r.text
+            assert r.json()["upstream_status"] == 403
+            audit = client.get(
+                f"http://127.0.0.1:{ports[2]}/audit?nonce={nonce}"
+            ).json()["audit"]
+            assert audit["nonce"] == nonce and audit["actor_pod_uid"] == "api-pod"
+    finally:
+        for process in processes:
+            process.terminate()
+            process.wait(timeout=3)
 
 
 @pytest.mark.parametrize(

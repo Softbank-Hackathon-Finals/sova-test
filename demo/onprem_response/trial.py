@@ -144,6 +144,9 @@ class TrialAPI:
                     if candidate in {
                         "attempt_result_unknown",
                         "attempt_actor_unavailable",
+                        "attempt_actor_timeout",
+                        "attempt_actor_invalid_response",
+                        "attempt_probe_internal_error",
                         "attempt_neighbor_dns",
                         "attempt_neighbor_timeout",
                         "attempt_neighbor_response",

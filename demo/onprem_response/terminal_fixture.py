@@ -85,7 +85,10 @@ def post(self):
  try:
   raw=json.dumps(body);c.request('POST','/attempt',body=raw,headers={'Content-Type':'application/json'});r=c.getresponse();data=json.loads(r.read(8193))
   return self.reply(r.status,data)
- except Exception:return self.reply(503,{'error':'attempt_actor_unavailable'})
+ except TimeoutError:return self.reply(503,{'error':'attempt_actor_timeout'})
+ except json.JSONDecodeError:return self.reply(503,{'error':'attempt_actor_invalid_response'})
+ except OSError:return self.reply(503,{'error':'attempt_actor_unavailable'})
+ except Exception:return self.reply(503,{'error':'attempt_probe_internal_error'})
  finally:c.close()
 old_post=Handler.do_POST
 Handler.do_GET=get;Handler.do_POST=post
