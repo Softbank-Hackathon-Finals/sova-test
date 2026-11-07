@@ -279,11 +279,13 @@ class TerminalTrial(Trial):
             self.events.append(
                 {"phase": phase, "occurred_at": self.observation_started_at.isoformat()}
             )
-        self.write_feed(projection(self))
+        document = projection(self)
+        self.write_feed(document)
         atomic_json(
             self.root / "terminal-status.private.json",
             {
                 "phase": phase,
+                "observation_revision": document["revision"],
                 "attack_observed": self.attack is not None,
                 "approved": self.approved,
                 "response_binding": self.response_binding

@@ -40,6 +40,24 @@ class TerminalSupervisor(Supervisor):
         response = private_json(self.session / "state/response-plan.private.json")
         result = private_json(self.session / "state/result.private.json")
         if terminal and not result:
+            value["observation_revision"] = terminal["observation_revision"]
+            # An effect receipt can precede its independently read-back graph.
+            # Completion is visible only after publication of that observation.
+            published_complete = (
+                terminal["approved"] is True
+                and terminal["phase"] in {"switch_route", "watch"}
+                and terminal["steps"]
+                == [
+                    "apply_isolation",
+                    "activate_replacement",
+                    "verify_replacement",
+                    "switch_route",
+                ]
+            )
+            if value["phase"] == "complete" and not published_complete:
+                value.update(
+                    phase="responding", response_verified=False, can_stop=False
+                )
             value["attack_observed"] = terminal["attack_observed"]
             value["can_attempt"] = (
                 value["phase"] == "ready" and not terminal["attack_observed"]

@@ -265,3 +265,52 @@ def test_approval_for_initial_display_binding_cannot_authorize_response_plan(tmp
     p.chmod(0o600)
     with pytest.raises(ValueError):
         trial.command(tmp_path, "respond")
+
+
+@pytest.mark.parametrize("published", [False, True])
+def test_completion_waits_for_final_readback_publication(
+    tmp_path, monkeypatch, published
+):
+    from onprem_response.supervisor import Supervisor
+    from onprem_response.terminal_supervisor import TerminalSupervisor
+
+    steps = [
+        "apply_isolation",
+        "activate_replacement",
+        "verify_replacement",
+        "switch_route",
+    ]
+    monkeypatch.setattr(
+        Supervisor,
+        "status",
+        lambda _: {
+            "phase": "complete",
+            "steps": steps,
+            "response_verified": True,
+            "remaining_seconds": 200,
+            "can_stop": True,
+        },
+    )
+    state = tmp_path / "state"
+    state.mkdir()
+    path = state / "terminal-status.private.json"
+    path.write_text(
+        json.dumps(
+            {
+                "phase": "watch" if published else "verify_replacement",
+                "observation_revision": 10,
+                "steps": steps if published else steps[:-1],
+                "attack_observed": True,
+                "approved": True,
+            }
+        )
+    )
+    path.chmod(0o600)
+    (tmp_path / "respond.private.json").touch()
+    manager = object.__new__(TerminalSupervisor)
+    monkeypatch.setattr(TerminalSupervisor, "session", property(lambda _: tmp_path))
+    value = manager.status()
+    assert value["response_verified"] is published
+    assert value["phase"] == ("complete" if published else "responding")
+    assert value["can_stop"] is published
+    assert value["observation_revision"] == 10
