@@ -35,13 +35,16 @@ const phase = el("p", "접속 확인 중", "terminal-phase");
 const policyNote = el("p", "", "muted");
 phase.setAttribute("role", "status");
 const consentLabel = el("label", undefined, "terminal-consent"),
-  consent = el("input");
+  consent = el("input"),
+  consentText = document.createTextNode("");
 consent.type = "checkbox";
-consentLabel.append(
-  consent,
-  document.createTextNode(
-    "전용 시험 자원 생성 또는 표시된 대응 계획의 격리·대체 전환을 승인합니다. 제품 T10 승인이 아닌 개인 시험 승인입니다.",
-  ),
+consentLabel.append(consent, consentText);
+const prepareConsentLabel = el("label", undefined, "terminal-consent"),
+  prepareConsent = el("input");
+prepareConsent.type = "checkbox";
+prepareConsentLabel.append(
+  prepareConsent,
+  document.createTextNode("전용 시험 자원 생성을 허용합니다."),
 );
 const buttons = el("div", undefined, "terminal-actions"),
   prepare = el("button", "1. 시험 준비"),
@@ -81,6 +84,7 @@ const stages = el("ol", undefined, "terminal-stages");
 panel.append(
   phase,
   policyNote,
+  prepareConsentLabel,
   consentLabel,
   approvalScope,
   buttons,
@@ -132,8 +136,20 @@ function draw() {
       ? ` · 시험 만료까지 ${status.remaining_seconds}초`
       : "");
   policyNote.textContent = status?.automatic_mode
-    ? "시험 준비 → 정확한 자동 대응 정책을 사전 승인 → 터미널에서 금지된 발신 접근 주입 → 추가 클릭 없이 격리. 단순 403 응답이나 일반 침해 탐지와 다릅니다. 재검증·복귀는 별도 승인입니다."
+    ? "지정된 탐지 조건이 확인되면 추가 확인 없이 격리합니다. 격리 해제와 원본 복귀는 별도 승인이 필요합니다. 이 시험의 탐지 조건은 시험 워크로드의 금지된 발신 접근이며, 단순 403 응답만으로 격리하지 않습니다."
     : "";
+  prepareConsentLabel.hidden = !status?.can_prepare;
+  prepareConsent.disabled = busy || !status?.can_prepare;
+  consentLabel.hidden = !status?.can_respond;
+  consent.disabled = busy || !status?.can_respond;
+  consentText.textContent =
+    status?.pending_kind === "arm"
+      ? "선택한 시험 워크로드에 자동 격리를 허용합니다. 표시된 범위의 기존 연결 종료와 대체 실행 준비를 포함합니다."
+      : status?.pending_kind === "recheck"
+        ? "표시된 변경으로 대체 실행을 재검증하고, 검증 통과 후 경로를 전환하도록 승인합니다."
+        : status?.pending_kind === "return"
+          ? "새 원본의 검증과 원본 경로 복귀를 승인합니다. 사건 보류는 유지됩니다."
+          : "선택한 시험 워크로드의 격리·기존 연결 종료·대체 실행 준비를 승인합니다.";
   respond.textContent =
     status?.pending_kind === "arm"
       ? "2. 자동 격리 정책 사전 승인·활성화"
@@ -145,7 +161,7 @@ function draw() {
   approvalDetails.textContent = status?.approval_scope
     ? JSON.stringify(status.approval_scope, null, 2)
     : "시험 준비 후 정확한 선택 범위·계획이 표시됩니다.";
-  prepare.disabled = busy || !consent.checked || !status?.can_prepare;
+  prepare.disabled = busy || !prepareConsent.checked || !status?.can_prepare;
   respond.disabled = busy || !consent.checked || !status?.can_respond;
   stop.disabled = busy || !status?.can_stop;
   copy.disabled = status?.automatic_mode && !status?.can_attempt;
@@ -214,7 +230,9 @@ async function act(action) {
         request_id: crypto.randomUUID().replaceAll("-", ""),
         session_id: status.session_id,
         plan_digest: status.plan_digest,
-        approved: action === "stop" || consent.checked,
+        approved:
+          action === "stop" ||
+          (action === "prepare" ? prepareConsent.checked : consent.checked),
       }),
       signal: AbortSignal.timeout(15000),
     });
@@ -222,6 +240,7 @@ async function act(action) {
       throw Error("요청을 확정하지 못했습니다. 자동 재시도하지 않습니다.");
     feedback.textContent = "요청 접수 · 실제 실행 결과를 기다립니다.";
     consent.checked = false;
+    prepareConsent.checked = false;
   } catch (e) {
     feedback.textContent = e.message;
   } finally {
@@ -233,6 +252,7 @@ prepare.onclick = () => act("prepare");
 respond.onclick = () => act("respond");
 stop.onclick = () => act("stop");
 consent.onchange = draw;
+prepareConsent.onchange = draw;
 copy.onclick = async () => {
   try {
     await navigator.clipboard.writeText(command.textContent);
@@ -254,9 +274,12 @@ async function poll() {
       throw Error("scope");
     if (
       status?.plan_digest !== next.plan_digest ||
-      status?.session_id !== next.session_id
-    )
+      status?.session_id !== next.session_id ||
+      status?.pending_kind !== next.pending_kind
+    ) {
       consent.checked = false;
+      prepareConsent.checked = false;
+    }
     status = next;
     if (status.session_id && status.plan_id) {
       const f = await fetch("/__trial/feed", {
@@ -291,6 +314,8 @@ async function poll() {
       }
     } else raw = null;
   } catch {
+    consent.checked = false;
+    prepareConsent.checked = false;
     status = null;
     raw = null;
     renderer.reset();
