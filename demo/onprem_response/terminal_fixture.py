@@ -4,7 +4,7 @@ import json
 
 from .manifests import manifests
 
-APP_CODE = r"""import http.client,json,os,re,threading,time
+APP_CODE = r"""import http.client,json,os,re,threading,time,socket
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import urlsplit,parse_qs
 APP=os.environ['APPLICATION'];ENV=os.environ['ENVIRONMENT'];COMP=os.environ['COMPONENT'];UID=os.environ['POD_UID']
@@ -43,7 +43,9 @@ class Handler(BaseHTTPRequestHandler):
   try:
    connection.request('GET','/protected',headers={'X-Request-ID':nonce,'X-Actor-Pod':UID});r=connection.getresponse();result=json.loads(r.read(4097))
    value={'nonce':nonce,'application':APP,'actor_pod_uid':UID,'upstream_status':r.status,'authorization_denied':r.status==403 and result.get('nonce')==nonce and result.get('application')==APP}
-  except Exception:return self.reply(503,{'error':'attempt_result_unknown','nonce':nonce})
+  except socket.gaierror:return self.reply(503,{'error':'attempt_neighbor_dns','nonce':nonce})
+  except TimeoutError:return self.reply(503,{'error':'attempt_neighbor_timeout','nonce':nonce})
+  except Exception:return self.reply(503,{'error':'attempt_neighbor_response','nonce':nonce})
   finally:connection.close()
   with LOCK:ATTEMPTS[nonce]=value
   return self.reply(200,value)
@@ -83,7 +85,7 @@ def post(self):
  try:
   raw=json.dumps(body);c.request('POST','/attempt',body=raw,headers={'Content-Type':'application/json'});r=c.getresponse();data=json.loads(r.read(8193))
   return self.reply(r.status,data)
- except Exception:return self.reply(503,{'error':'attempt_result_unknown'})
+ except Exception:return self.reply(503,{'error':'attempt_actor_unavailable'})
  finally:c.close()
 old_post=Handler.do_POST
 Handler.do_GET=get;Handler.do_POST=post

@@ -135,6 +135,31 @@ class TrialAPI:
         if response.status_code == 404 and method == "GET" and allow_absent:
             return None
         if response.status_code >= 400 or len(response.content) > 1048576:
+            # Fixed fixture diagnostics only; never retain arbitrary response
+            # bodies, credentials, exception messages or admission output.
+            code = None
+            if len(response.content) <= 8192:
+                try:
+                    candidate = response.json().get("error")
+                    if candidate in {
+                        "attempt_result_unknown",
+                        "attempt_actor_unavailable",
+                        "attempt_neighbor_dns",
+                        "attempt_neighbor_timeout",
+                        "attempt_neighbor_response",
+                        "audit_unavailable",
+                    }:
+                        code = candidate
+                except (ValueError, AttributeError):
+                    pass
+            atomic_json(
+                self.root / "api-failure.private.json",
+                {
+                    "status": response.status_code,
+                    "fixture_code": code,
+                    "at": now().isoformat(),
+                },
+            )
             raise ContractError(f"Trial API refused request ({response.status_code})")
         return response.json()
 

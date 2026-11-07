@@ -1,6 +1,7 @@
 """Local contract tests. Fixtures are not actual on-prem acceptance evidence."""
 
 import copy
+import json
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
@@ -39,6 +40,32 @@ def test_json_patch_intent_is_durable_before_dispatch(tmp_path):
 
 
 IMAGE = "docker.io/library/python@sha256:" + "a" * 64
+
+
+@pytest.mark.parametrize(
+    "code", ["attempt_neighbor_dns", "untrusted diagnostic secret"]
+)
+def test_api_failure_retains_only_fixed_fixture_code(tmp_path, code):
+    api = object.__new__(TrialAPI)
+    api.root = tmp_path
+    api.namespaces = names("abcdef12")
+    api.token_deadline = datetime.now(UTC) + timedelta(minutes=3)
+    with httpx.Client(
+        base_url="https://unit.invalid",
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(
+                503, json={"error": code, "detail": "never persist this"}
+            )
+        ),
+    ) as client:
+        api.client = client
+        with pytest.raises(ContractError):
+            api.request(
+                "GET", "/api/v1/namespaces/sova-wr-abcdef12-blue/services/api/proxy"
+            )
+    value = json.loads((tmp_path / "api-failure.private.json").read_text())
+    assert value["fixture_code"] == (code if code == "attempt_neighbor_dns" else None)
+    assert "never persist" not in json.dumps(value)
 
 
 def test_reused_api_does_not_admit_general_kubectl_operations():
