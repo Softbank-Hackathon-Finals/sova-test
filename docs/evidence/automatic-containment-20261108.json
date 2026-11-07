@@ -1,0 +1,32 @@
+{
+  "kind": "owned-auto-containment-qualification.v1",
+  "date": "2026-11-08",
+  "qualified_sources": {
+    "api_and_worker": "52927c4a5e63b9c1244e0d8623260da7a0b03308",
+    "api_only_and_pre_event_revocation": "4737aad080359157512d6fcedf6fd30848e0e653"
+  },
+  "qualification_only": true,
+  "product_workflow_qualified": false,
+  "generic_attack_detection_qualified": false,
+  "customer_chat_response_qualified": false,
+  "cloud_app_database_migration_qualified": false,
+  "preauthorization_required": true,
+  "post_event_approval_clicks_for_containment": 0,
+  "separate_revalidation_and_return_approvals": true,
+  "real_ingress_and_egress_denial": true,
+  "existing_stream_close_verified": true,
+  "unselected_workloads_healthy": true,
+  "verification_failure_holds_route": true,
+  "fresh_source_return_verified": true,
+  "incident_hold_preserved": true,
+  "pre_event_revocation_containment_effects": 0,
+  "all_four_owned_sessions_cleanup_verified": true,
+  "local_protocol_tests_passed": 109,
+  "new_policy_regressions_included": 23,
+  "browser_page_errors": [],
+  "navigation_mutations": 0,
+  "mobile_overflow": false,
+  "ci_commit": "4737aad080359157512d6fcedf6fd30848e0e653",
+  "ci_process_and_container_passed": true,
+  "private_operational_evidence_published": false
+}
