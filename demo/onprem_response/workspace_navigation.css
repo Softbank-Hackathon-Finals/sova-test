@@ -1,9 +1,11 @@
-body[data-observation-only][data-live-view] #workspace-main > #sova-live-pages {
+body[data-observation-only][data-live-view]
+  #workspace-main
+  > section#sova-live-pages.sova-live-pages {
   display: block !important;
 }
 body[data-observation-only][data-live-view="topology"]
   #workspace-main
-  > #sova-live-pages {
+  > section#sova-live-pages.sova-live-pages {
   display: none !important;
 }
 body[data-observation-only][data-live-view]:not([data-live-view="topology"])
