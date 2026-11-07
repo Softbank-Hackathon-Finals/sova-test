@@ -315,7 +315,7 @@ class Supervisor:
             "--",
             str(settings.python),
             "-m",
-            "onprem_response.trial",
+            getattr(self, "worker_module", "onprem_response.trial"),
             "--state",
             str(self.session / "state"),
             "--profile",

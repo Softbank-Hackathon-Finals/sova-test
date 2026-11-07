@@ -35,7 +35,16 @@ def seal(key, *, action, request_id, binding, revision, expires_at):
     }
 
 
-def read(path, *, key, binding, revision, at, deadline):
+def read(
+    path,
+    *,
+    key,
+    binding,
+    revision,
+    at,
+    deadline,
+    actions=frozenset({"respond", "stop"}),
+):
     if not path.exists():
         return None
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
@@ -78,7 +87,7 @@ def read(path, *, key, binding, revision, at, deadline):
     if (
         body != expected["body"]
         or body["schema"] != "owned-trial-control.v1"
-        or body["action"] not in {"respond", "stop"}
+        or body["action"] not in actions
         or not re.fullmatch(r"[a-f0-9]{32}", body["request_id"])
         or not isinstance(envelope["signature"], str)
         or not hmac.compare_digest(envelope["signature"], expected["signature"])

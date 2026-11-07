@@ -494,25 +494,10 @@ class Trial:
             time.sleep(1)
         raise ContractError("Trial Deployment readiness deadline exceeded")
 
-    def start(self):
-        atomic_json(
-            self.root / "trial.private.json",
-            {
-                "run_id": self.run_id,
-                "namespaces": self.ns,
-                "image": self.image,
-                "subject": self.api.subject,
-                "deadline": self.deadline.isoformat(),
-                "cluster_uid": self.api.profile["cluster_uid"],
-                "source_revision": self.source_revision,
-                "qualification_only": True,
-            },
-        )
-        for doc in manifests(self.run_id, self.image):
-            self.api.create(doc)
-        self.wait("blue", "api")
-        self.wait("blue", "neighbor")
-        self.wait("probe", "probe")
+    def documents(self):
+        return manifests(self.run_id, self.image)
+
+    def connect_probe(self):
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
@@ -544,6 +529,27 @@ class Trial:
         else:
             raise ContractError("Owned probe forwarding unavailable")
         self.port = port
+
+    def start(self):
+        atomic_json(
+            self.root / "trial.private.json",
+            {
+                "run_id": self.run_id,
+                "namespaces": self.ns,
+                "image": self.image,
+                "subject": self.api.subject,
+                "deadline": self.deadline.isoformat(),
+                "cluster_uid": self.api.profile["cluster_uid"],
+                "source_revision": self.source_revision,
+                "qualification_only": True,
+            },
+        )
+        for doc in self.documents():
+            self.api.create(doc)
+        self.wait("blue", "api")
+        self.wait("blue", "neighbor")
+        self.wait("probe", "probe")
+        self.connect_probe()
         self.source = self.api.get("deployment", "blue", "api")
         self.neighbor = self.api.get("deployment", "blue", "neighbor")
         self.target = self.api.get("deployment", "green", "api")
@@ -623,12 +629,17 @@ class Trial:
             patch=True,
         )
         self.wait("blue", "api")
-        source, target = self.snapshot("blue"), self.snapshot("green")
+        source = self.snapshot("blue")
         if not any(
             f.control_id == "read-only-root" and str(f.result) == "fail"
             for f in source.findings
         ):
             raise ContractError("Controlled configuration violation was not observed")
+        self.bind_response(
+            source, self.snapshot("green"), "controlled-read-only-root-violation"
+        )
+
+    def bind_response(self, source, target, hold_reason):
         template = self.api.get("deployment", "green", "api")["spec"]["template"]
         cm = self.api.get("configmap", "green", "api-code")
         projection = {
@@ -663,7 +674,7 @@ class Trial:
                 "trial-hold-" + self.run_id,
                 resource.scope,
                 "personal-operator",
-                "controlled-read-only-root-violation",
+                hold_reason,
                 now(),
             ),
             1,
@@ -716,6 +727,10 @@ class Trial:
             self.plan.command(step.action, operation_id=self.app, epoch=1).fingerprint
             for step in self.plan.steps
         }
+        self.record_prepared_plan(hold)
+        self.publish("detected")
+
+    def record_prepared_plan(self, hold):
         atomic_json(
             self.root / "approved-trial.private.json",
             {
@@ -726,7 +741,6 @@ class Trial:
                 "not_a_product_approval": True,
             },
         )
-        self.publish("detected")
 
     def execute(self, action):
         command = self.plan.command(action, operation_id=self.app, epoch=1)
