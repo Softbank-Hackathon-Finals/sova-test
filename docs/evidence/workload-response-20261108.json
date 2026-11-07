@@ -1,0 +1,77 @@
+{
+  "kind": "owned-workload-qualification-summary.v1",
+  "production_workflow_qualified": false,
+  "shared_application_mutations": 0,
+  "security_runtime_source": "4d93137416ef947e9fc3924403c7a9580f50455c",
+  "ci_security_package_source": "27e6e85514a7cbb3e43d216464b72d9bd78f3fcf",
+  "runs": [
+    {
+      "profile": "api-and-worker",
+      "producer_revision": "16d4bb9e512276e7cf89be6e7bd7faf59bdc9cbd",
+      "checks": {
+        "completed": true,
+        "qualification_only": true,
+        "product_workflow_qualified": false,
+        "actual_unauthorized_http_status": 403,
+        "selected_components": [
+          "api",
+          "worker"
+        ],
+        "isolated_components": [
+          "blue-api",
+          "blue-worker"
+        ],
+        "failure_held": true,
+        "revalidation_verified": true,
+        "source_return_verified": true,
+        "incident_hold_preserved": true,
+        "cleanup_verified": true,
+        "page_errors": [],
+        "mobile_overflow": false,
+        "session_revocation_withdraws_trial": true
+      },
+      "private_evidence_sha256": {
+        "browser-result.private.json": "0af8777568dc654599953067ca372f2207b7cca4c1b17154af02256d63dee006",
+        "verification-held-feed.private.json": "d5b93aa4bd7dbbd1601b60a8b384514e3c6a77bee67a3e542ce0b24597145b95",
+        "replacement-feed.private.json": "1d11da77d5778e8ca7e701c2e81da6e6edb5959aa296810b14fe8000dc2c9fee",
+        "returned-feed.private.json": "3e9d3035936cea2743a414a553881fe5fcfe343480b6bee23e008c856638841e"
+      }
+    },
+    {
+      "profile": "api-only",
+      "producer_revision": "89fa11cfe8172c1466e05e0692f9d84ba9a565ca",
+      "checks": {
+        "completed": true,
+        "qualification_only": true,
+        "product_workflow_qualified": false,
+        "actual_unauthorized_http_status": 403,
+        "selected_components": [
+          "api"
+        ],
+        "isolated_components": [
+          "blue-api"
+        ],
+        "failure_held": true,
+        "revalidation_verified": true,
+        "source_return_verified": true,
+        "incident_hold_preserved": true,
+        "cleanup_verified": true,
+        "page_errors": [],
+        "mobile_overflow": false,
+        "session_revocation_withdraws_trial": true
+      },
+      "private_evidence_sha256": {
+        "browser-result.private.json": "6b09d20920015e45d35b26ec28ba34830247a7a0a3cc23c002145406c90f7e52",
+        "verification-held-feed.private.json": "376c0d5c1e42e82a3629e5820237e494131cbff8236202bd2eb5a0f4fe05369f",
+        "replacement-feed.private.json": "474fbdac5cd0074e2fc89b514b9b45999285717225b6adc0882525babf129780",
+        "returned-feed.private.json": "35d073c87329d19fe5364f9d7b6af86408c11a7a7d2d3acb06aad8ef0c99766c"
+      }
+    }
+  ],
+  "runtime_detector_connected": false,
+  "own_native_plan_http_status": 403,
+  "remaining_acceptance": [
+    "registered-runtime-detector-and-authenticated-T33-intake",
+    "native-T10-plan-authority-and-shared-app-execution-window"
+  ]
+}
