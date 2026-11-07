@@ -10,6 +10,8 @@ import httpx
 from onprem_response.manifests import manifests, names
 from onprem_response.projection import projection
 from onprem_response.trial import TrialAPI
+from onprem_response.trial import Adapter
+from sova.domain.contracts import ContractError
 from sova.domain.contracts import EffectStatus
 
 
@@ -37,6 +39,18 @@ def test_json_patch_intent_is_durable_before_dispatch(tmp_path):
 
 
 IMAGE = "docker.io/library/python@sha256:" + "a" * 64
+
+
+def test_reused_api_does_not_admit_general_kubectl_operations():
+    adapter = object.__new__(Adapter)
+    adapter.trial_api = SimpleNamespace(
+        namespaces=names("abcdef12"), request=lambda *args: {"ok": True}
+    )
+    assert adapter.get("deployment", names("abcdef12")["blue"], "api") == {"ok": True}
+    with pytest.raises(ContractError):
+        adapter.get("deployment", "target-dev", "demo-chat")
+    with pytest.raises(ContractError):
+        adapter.kube("delete", "namespace", "target-dev")
 
 
 def fixture():

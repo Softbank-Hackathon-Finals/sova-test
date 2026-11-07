@@ -300,6 +300,75 @@ class Adapter(OwnedKubernetesResponse):
         self.trial_api = api
         super().__init__(*args, **kwargs)
 
+    def get(self, kind, namespace, name):
+        if namespace not in self.trial_api.namespaces.values():
+            raise ContractError("Foreign namespace read refused by trial adapter")
+        base, plural = {
+            "deployment": ("/apis/apps/v1", "deployments"),
+            "service": ("/api/v1", "services"),
+            "configmap": ("/api/v1", "configmaps"),
+            "networkpolicy": ("/apis/networking.k8s.io/v1", "networkpolicies"),
+        }[kind]
+        if not name or "/" in name:
+            raise ContractError("Named trial resource required")
+        return self.trial_api.request(
+            "GET", f"{base}/namespaces/{namespace}/{plural}/{name}"
+        )
+
+    def kube(self, *args, input=None, timeout=20):
+        # Reuse the verified TLS connection instead of repeatedly launching the
+        # credential plugin. Only the existing adapter's exact operations exist.
+        if (
+            len(args) == 5
+            and args[:2] == ("get", "namespace")
+            and args[-2:] == ("-o", "json")
+        ):
+            if args[2] not in self.trial_api.namespaces.values():
+                raise ContractError("Foreign namespace refused")
+            result = self.trial_api.request("GET", "/api/v1/namespaces/" + args[2])
+        elif (
+            len(args) == 6
+            and args[0] == "-n"
+            and args[2:] == ("get", "networkpolicy", "-o", "json")
+        ):
+            if args[1] not in self.trial_api.namespaces.values():
+                raise ContractError("Foreign namespace refused")
+            result = self.trial_api.request(
+                "GET",
+                f"/apis/networking.k8s.io/v1/namespaces/{args[1]}/networkpolicies",
+            )
+        elif (
+            len(args) == 7
+            and args[0] == "-n"
+            and args[2:4] == ("get", "deployment")
+            and args[-2:] == ("-o", "json")
+        ):
+            result = self.get("deployment", args[1], args[4])
+        elif args == ("create", "-f", "-"):
+            document = json.loads(input)
+            if (
+                document.get("kind") != "NetworkPolicy"
+                or document["metadata"]["namespace"] != self.source_ns
+            ):
+                raise ContractError(
+                    "Only the owned source isolation policy is admitted"
+                )
+            result = self.trial_api.create(document)
+        elif (
+            len(args) == 8
+            and args[:4] == ("-n", self.target_ns, "patch", "deployment")
+            and args[4:7] == (self.target_name, "--type=json", "-p")
+        ):
+            result = self.trial_api.request(
+                "PATCH",
+                f"/apis/apps/v1/namespaces/{self.target_ns}/deployments/{self.target_name}",
+                json.loads(args[7]),
+                patch=True,
+            )
+        else:
+            raise ContractError("Unregistered trial API operation")
+        return json.dumps(result)
+
     def check_identities(self):
         self.trial_api.check_owned()
         super().check_identities()
