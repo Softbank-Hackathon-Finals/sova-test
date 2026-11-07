@@ -241,7 +241,7 @@ class IncidentAdapter:
             if (
                 len(p) != 1
                 or p[0]["metadata"]["uid"] != t.policy_uids[c]
-                or p[0]["spec"] != t.policy(c)["spec"]
+                or not t.policy_matches(c, p[0])
             ):
                 raise ContractError("Exact component policy required")
             for _ in range(2):
@@ -303,7 +303,12 @@ class IncidentAdapter:
         # An independent, unselected component must remain accessible throughout.
         if not t.routes.call("/probe?target=neighbor").get("ok"):
             raise ContractError("Unselected neighbor unavailable")
+        for untouched in {"api", "worker"} - set(t.components):
+            proof = t.checked_probe("blue", untouched)
+            if proof["response"]["pod_uid"] != t.baseline_pods[untouched]:
+                raise ContractError("Unselected workload was replaced")
         facts["neighbor_healthy"] = True
+        facts["unselected_workloads_healthy"] = True
         return EffectObservation(
             command.scope,
             command.fingerprint,
@@ -320,6 +325,7 @@ class IncidentTrial(TerminalTrial):
         self.components = components
         self.artifacts, self.egress, self.old_pods, self.streams = {}, {}, {}, {}
         self.commands, self.receipts, self.policy_uids = {}, {}, {}
+        self.baseline_pods = {}
         self.active_plan = None
         self.stage, self.revalidated, self.returned = "normal", False, False
         self.expanded_ready = False
@@ -347,6 +353,10 @@ class IncidentTrial(TerminalTrial):
                     "template": sha(dep["spec"]["template"]),
                     "code": sha({"uid": cm["metadata"]["uid"], "data": cm["data"]}),
                 }
+        self.baseline_pods = {
+            c: self.current_pod("blue", c)["metadata"]["uid"]
+            for c in ("api", "worker", "neighbor")
+        }
         for c in self.components:
             pod = self.current_pod("blue", c)
             self.old_pods[c] = pod["metadata"]["uid"]
@@ -424,7 +434,17 @@ class IncidentTrial(TerminalTrial):
             pods = self.api.request(
                 "GET", f"/api/v1/namespaces/{self.ns['blue']}/pods"
             )["items"]
-            if not any(p["metadata"]["uid"] == self.old_pods[component] for p in pods):
+            dep = self.api.get("deployment", "blue", component)
+            if dep["spec"].get("replicas") == 0 and not any(
+                p["metadata"]["uid"] == self.old_pods[component]
+                or (
+                    p["metadata"].get("labels", {}).get("app.kubernetes.io/name")
+                    == component
+                    and p["metadata"].get("labels", {}).get("app.kubernetes.io/part-of")
+                    == self.app
+                )
+                for p in pods
+            ):
                 return
             time.sleep(0.5)
         raise ContractError("Original execution still exists")
@@ -524,6 +544,21 @@ class IncidentTrial(TerminalTrial):
                 "egress": [],
             },
         }
+
+    def policy_matches(self, component, observed):
+        expected = self.policy(component)
+        spec = observed.get("spec", {})
+        meta = observed.get("metadata", {})
+        # Kubernetes omits empty ingress/egress arrays in GET serialization.
+        # Missing deny rules are equivalent to [], never to an allow rule.
+        return (
+            spec.get("podSelector") == expected["spec"]["podSelector"]
+            and set(spec.get("policyTypes", [])) == {"Ingress", "Egress"}
+            and not spec.get("ingress", [])
+            and not spec.get("egress", [])
+            and meta.get("annotations", {}) == expected["metadata"]["annotations"]
+            and meta.get("labels", {}).get("sova.io/trial") == self.run_id
+        )
 
     def route(self, component):
         return self.routes.call("/route" if component == "api" else "/worker-route")

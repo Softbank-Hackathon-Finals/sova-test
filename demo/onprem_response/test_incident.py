@@ -303,3 +303,17 @@ def test_registration_does_not_publish_ready_before_stream_baseline(
     result = manager.status()
     assert result["phase"] == "preparing"
     assert result["can_attempt"] is False and result["can_respond"] is False
+
+
+def test_api_omitted_empty_deny_arrays_and_additive_allow_are_distinct(tmp_path):
+    t = skeleton(tmp_path)
+    p = t.policy("api")
+    assert t.policy_matches("api", p)
+    del p["spec"]["ingress"]
+    del p["spec"]["egress"]
+    assert t.policy_matches("api", p)
+    p["spec"]["ingress"] = [{}]
+    assert not t.policy_matches("api", p)
+    p["spec"]["ingress"] = []
+    p["spec"]["podSelector"] = {}
+    assert not t.policy_matches("api", p)
