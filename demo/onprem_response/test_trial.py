@@ -5,11 +5,36 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+import httpx
 
 from onprem_response.manifests import manifests, names
 from onprem_response.projection import projection
 from onprem_response.trial import TrialAPI
 from sova.domain.contracts import EffectStatus
+
+
+def test_json_patch_intent_is_durable_before_dispatch(tmp_path):
+    api = object.__new__(TrialAPI)
+    api.root = tmp_path
+    api.namespaces = names("abcdef12")
+    api.token_deadline = datetime.now(UTC) + timedelta(minutes=3)
+
+    def receive(request):
+        assert request.headers["content-type"] == "application/json-patch+json"
+        assert (tmp_path / "requests.private.jsonl").stat().st_size > 0
+        return httpx.Response(200, json={"ok": True})
+
+    with httpx.Client(
+        base_url="https://unit.invalid", transport=httpx.MockTransport(receive)
+    ) as client:
+        api.client = client
+        assert api.request(
+            "PATCH",
+            "/apis/apps/v1/namespaces/sova-wr-abcdef12-blue/deployments/api",
+            [{"op": "test", "path": "/metadata/uid", "value": "unit"}],
+            patch=True,
+        ) == {"ok": True}
+
 
 IMAGE = "docker.io/library/python@sha256:" + "a" * 64
 

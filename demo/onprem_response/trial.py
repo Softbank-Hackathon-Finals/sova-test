@@ -108,7 +108,9 @@ class TrialAPI:
                             "method": method,
                             "path": path,
                             "body_digest": hashlib.sha256(
-                                canonical_json(body).encode()
+                                canonical_json(
+                                    {"document": body}, limit=131072
+                                ).encode()
                             ).hexdigest(),
                         }
                     )
