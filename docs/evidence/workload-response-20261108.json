@@ -68,14 +68,12 @@
       }
     }
   ],
-  "runtime_detector_connected": false,
-  "own_native_plan_http_status": 403,
-  "remaining_acceptance": [
-    "registered-runtime-detector-and-authenticated-T33-intake",
-    "native-T10-plan-authority-and-shared-app-execution-window"
-  ],
   "local_regression": {
     "focused_protocol_and_loopback_passed": 74,
     "including_existing_effect_executor_passed": 86
-  }
+  },
+  "separate_product_acceptance": [
+    "authenticated-runtime-detection-intake",
+    "native-plan-authority-and-customer-application-response"
+  ]
 }
