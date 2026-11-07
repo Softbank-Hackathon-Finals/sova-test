@@ -39,7 +39,7 @@ class Handler(BaseHTTPRequestHandler):
    if nonce in ATTEMPTS:return self.reply(409,{'error':'attempt_already_started'})
    if ATTEMPTS:return self.reply(409,{'error':'one_attempt_per_trial'})
    ATTEMPTS[nonce]={'status':'dispatched'}
-  connection=http.client.HTTPConnection(os.environ['NEIGHBOR_HOST'],int(os.environ.get('NEIGHBOR_PORT','8080')),timeout=2)
+  connection=http.client.HTTPConnection(os.environ['NEIGHBOR_HOST'],int(os.environ.get('SOVA_TRIAL_NEIGHBOR_PORT','8080')),timeout=2)
   try:
    connection.request('GET','/protected',headers={'X-Request-ID':nonce,'X-Actor-Pod':UID});r=connection.getresponse();result=json.loads(r.read(4097))
    value={'nonce':nonce,'application':APP,'actor_pod_uid':UID,'upstream_status':r.status,'authorization_denied':r.status==403 and result.get('nonce')==nonce and result.get('application')==APP}
@@ -98,6 +98,8 @@ Handler.do_GET=get;Handler.do_POST=post
 def terminal_manifests(run_id, image):
     documents = manifests(run_id, image)
     for doc in documents:
+        if doc["kind"] == "Deployment":
+            doc["spec"]["template"]["spec"]["enableServiceLinks"] = False
         if doc["kind"] == "ConfigMap" and doc["metadata"]["name"] == "api-code":
             doc["data"]["main.py"] = APP_CODE
         elif doc["kind"] == "ConfigMap" and doc["metadata"]["name"] == "neighbor-code":

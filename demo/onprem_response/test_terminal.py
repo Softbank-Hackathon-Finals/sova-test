@@ -47,7 +47,8 @@ def test_actual_actor_request_is_denied_and_independently_audited(tmp_path):
                 LISTEN_HOST="127.0.0.1",
                 LISTEN_PORT=str(port),
                 NEIGHBOR_HOST="127.0.0.1",
-                NEIGHBOR_PORT=str(ports[0]),
+                SOVA_TRIAL_NEIGHBOR_PORT=str(ports[0]),
+                NEIGHBOR_PORT="tcp://192.0.2.20:8080",
             )
             processes.append(
                 subprocess.Popen(
@@ -109,6 +110,8 @@ def test_manifest_is_bounded_and_keeps_probe_ingress_closed():
     policy = next(d for d in docs if d["kind"] == "NetworkPolicy")
     assert policy["spec"]["ingress"] == []
     for d in docs:
+        if d["kind"] == "Deployment":
+            assert d["spec"]["template"]["spec"]["enableServiceLinks"] is False
         if d["kind"] == "ConfigMap":
             compile(d["data"]["main.py"], "fixture", "exec")
     assert not any(
@@ -149,7 +152,8 @@ def test_actual_http_proxy_forwards_attempt_and_audit(tmp_path):
                 LISTEN_HOST="127.0.0.1",
                 LISTEN_PORT=str(port),
                 NEIGHBOR_HOST="127.0.0.1",
-                NEIGHBOR_PORT=str(ports[0]),
+                SOVA_TRIAL_NEIGHBOR_PORT=str(ports[0]),
+                NEIGHBOR_PORT="tcp://192.0.2.20:8080",
                 SOURCE_ENV="owned-blue",
                 TARGET_ENV="owned-green",
                 TARGETS=json.dumps(
