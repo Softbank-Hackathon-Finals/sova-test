@@ -1,11 +1,12 @@
 import { observedTopology } from "/console/observation-model.js";
 import { stageLabels, responseLabels } from "/console/workload-model.js";
+import { renderMigration } from "/__trial/migration_view.js";
 
 const views = {
   overview: ["워크스페이스", "실제 관측과 전용 시험의 연결 상태를 확인합니다."],
   migration: [
     "환경 이전",
-    "전용 시험의 전환·복귀와 제품 운영 이전을 구분합니다.",
+    "실제 채팅 앱의 AWS·온프렘 배포와 운영 이전 연결 상태를 확인합니다.",
   ],
   topology: [
     "워크로드 지도",
@@ -66,6 +67,7 @@ export function mountWorkspace({ trialPanel }) {
     trial = null,
     trialView = null;
   let observationRaw = null,
+    migrationConnection = null,
     reading = false,
     authorized = false,
     stopped = false,
@@ -151,6 +153,7 @@ export function mountWorkspace({ trialPanel }) {
       trial?.observation_revision,
       trialView?.fresh,
       authorized,
+      migrationConnection,
     ]);
     if (key === lastRender) return;
     lastRender = key;
@@ -233,6 +236,7 @@ export function mountWorkspace({ trialPanel }) {
         ]),
       );
     } else if (active === "migration") {
+      renderMigration(content, observation, migrationConnection);
       const c = card(
         "전용 시험의 전환·복귀",
         "같은 온프렘의 무상태 시험 경로입니다. AWS→온프렘 업무·데이터 이전과 구분합니다.",
@@ -246,10 +250,6 @@ export function mountWorkspace({ trialPanel }) {
             ["approve", "verify", "route", "recover"].includes(r.stage),
           )
           .map((r) => [stageLabels[r.stage], resultLabel(r), r.detail]),
-      );
-      unavailable(
-        "제품 운영 이전 계획",
-        "연결할 경로: 기존 환경·앱·계획 등록, T10 조회·승인, T19 판정, T12 전환·복구.",
       );
     } else if (["network", "analysis"].includes(active)) {
       const c = card(
@@ -393,10 +393,34 @@ export function mountWorkspace({ trialPanel }) {
         throw Error("old_observation");
       observationRaw = raw;
       observation = next;
+      try {
+        const response = await fetch("/__migration/status", {
+          credentials: "same-origin",
+          cache: "no-store",
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!response.ok) throw Error("migration_read_unavailable");
+        const connection = await response.json();
+        if (
+          connection.kind !== "native-plan-read-status.v1" ||
+          connection.plan_connected !== false ||
+          connection.authorizes_execution !== false ||
+          ![200, 401, 403, 404, 503].includes(connection.last_http_status) ||
+          !Number.isFinite(Date.parse(connection.checked_at)) ||
+          Date.parse(connection.checked_at) > Date.now() ||
+          typeof connection.current !== "boolean"
+        )
+          throw Error("migration_read_invalid");
+        if (generation === requestGeneration && authorized && !stopped)
+          migrationConnection = connection;
+      } catch {
+        if (generation === requestGeneration) migrationConnection = null;
+      }
     } catch {
       if (generation === requestGeneration) {
         observation = null;
         observationRaw = null;
+        migrationConnection = null;
       }
     } finally {
       reading = false;
@@ -417,6 +441,7 @@ export function mountWorkspace({ trialPanel }) {
     clearInterval(timer);
     observation = null;
     observationRaw = null;
+    migrationConnection = null;
     trial = null;
     trialView = null;
     render();
@@ -435,6 +460,7 @@ export function mountWorkspace({ trialPanel }) {
         generation++;
         observation = null;
         observationRaw = null;
+        migrationConnection = null;
       }
       if (authorized && observationRaw) {
         try {
