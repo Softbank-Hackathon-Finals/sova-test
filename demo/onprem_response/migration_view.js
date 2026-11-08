@@ -48,6 +48,118 @@ export function migrationSnapshot(observation, now = Date.now()) {
   });
 }
 
+// A successful read receipt is not a plan binding or execution approval.
+export function planConnectionState(connection, now = Date.now()) {
+  const age = now - Date.parse(connection?.checked_at);
+  const fresh = connection?.current === true && age >= 0 && age < 180000;
+  if (!connection)
+    return {
+      fresh: false,
+      tone: "unknown",
+      label: "계획 연결 필요",
+      detail: "운영 계획과 본인 조회 권한을 연결해 주세요.",
+    };
+  if (!fresh)
+    return {
+      fresh: false,
+      tone: "unknown",
+      label: "접속 상태 재확인 필요",
+      detail: "이전 조회 기록만 있습니다. 현재 계획 접근 권한은 미확인입니다.",
+    };
+  if (connection.last_http_status === 403)
+    return {
+      fresh,
+      tone: "attention",
+      label: "계획 조회 권한 필요",
+      detail:
+        "최근 본인 조회가 거부됐습니다(403). 운영 담당자의 계획별 권한 연결이 필요합니다.",
+    };
+  if (connection.last_http_status === 200)
+    return {
+      fresh,
+      tone: "unknown",
+      label: "계획 결속 확인 필요",
+      detail:
+        "조회 응답은 받았지만 현재 계획·승인·실행 연결은 확인되지 않았습니다.",
+    };
+  return {
+    fresh,
+    tone: "attention",
+    label: "계획 조회 미완료",
+    detail: "운영 콘솔에서 본인 인증과 계획 조회 상태를 확인해 주세요.",
+  };
+}
+
+export function renderJourney(
+  parent,
+  { observation, connection, trial, trialView, onNavigate },
+) {
+  const box = node("section", undefined, "card sova-live-card sova-journey");
+  box.append(
+    node("p", "SERVICE MIGRATION", "eyebrow"),
+    node("h2", "관측부터 이전·대응까지"),
+    node("p", "현재 확인된 근거와 다음 작업을 이어서 확인합니다.", "muted"),
+  );
+  const grid = node("div", undefined, "sova-journey-grid");
+  for (const lane of migrationSnapshot(observation)) {
+    const item = node("article", undefined, "sova-journey-item");
+    item.dataset.tone = lane.current ? "observed" : "unknown";
+    item.append(
+      node(
+        "small",
+        lane.lane === "source" ? "01 · AWS 출발지" : "02 · 온프렘 목적지",
+      ),
+      node("h3", lane.current ? "자원 관측 수신" : "현재 상태 미확인"),
+      node(
+        "p",
+        lane.current
+          ? `등록 Service ${lane.services.length}개 · 준비 상태와 HTTP 응답은 개별 확인`
+          : "유효한 수집 결과가 필요합니다.",
+      ),
+    );
+    grid.append(item);
+  }
+  const access = planConnectionState(connection);
+  const plan = node("article", undefined, "sova-journey-item");
+  plan.dataset.tone = access.tone;
+  plan.append(
+    node("small", "03 · 운영 이전"),
+    node("h3", access.label),
+    node("p", access.detail),
+  );
+  grid.append(plan);
+  box.append(grid);
+  const actions = node("div", undefined, "sova-journey-actions");
+  for (const [label, target] of [
+    ["이전 단계·필요 근거 보기", "migration"],
+    ["실제 워크로드 지도", "topology"],
+  ]) {
+    const b = node("button", label, "sova-live-link");
+    b.type = "button";
+    b.onclick = () => onNavigate(target);
+    actions.append(b);
+  }
+  box.append(actions);
+  const response = node("div", undefined, "sova-journey-response");
+  const state =
+    !trial || trial.phase === "idle"
+      ? "시험 준비 전"
+      : trial.phase === "ended"
+        ? "종료된 시험 기록"
+        : trialView?.fresh
+          ? "전용 시험 상태 수신"
+          : "시험 상태 재확인 필요";
+  response.append(
+    node("strong", `격리·대체·복귀 · ${state}`),
+    node(
+      "p",
+      "전용 무상태 시험 자원의 실제 대응입니다. 공유 채팅 앱의 운영 대응·AWS 이전 완료와 별도로 표시합니다.",
+    ),
+  );
+  box.append(response);
+  parent.append(box);
+}
+
 export function renderMigration(parent, observation, connection = null) {
   const box = node("section", undefined, "card sova-live-card sova-migration");
   box.append(
@@ -112,14 +224,9 @@ export function renderMigration(parent, observation, connection = null) {
     ),
   );
   const steps = node("ol", undefined, "sova-migration-steps");
-  const denied = connection?.last_http_status === 403;
-  const access = denied
-    ? "마지막 본인 운영자 조회: 권한 거부(403)"
-    : connection?.last_http_status === 200
-      ? "조회 응답 수신 · 현재 정본 계획 결속 확인 필요"
-      : "현재 정본 계획·운영자 조회 인수 필요";
+  const access = planConnectionState(connection);
   for (const [title, detail] of [
-    ["계획 연결", access],
+    ["계획 연결", access.detail],
     ["보안·데이터 준비 판정", "같은 계획의 T14 원문·T19 결과 연결 필요"],
     ["단계적 앱 트래픽 전환", "T10 승인·T17 실제 가중치 관측 필요"],
     ["DB 쓰기 대상 전환", "T12 쓰기 차단·최종 동기화·무결성 영수증 필요"],
@@ -127,15 +234,42 @@ export function renderMigration(parent, observation, connection = null) {
     ["안정화·복귀 준비", "관측 창과 역방향 데이터·Edge 복귀 근거 필요"],
   ]) {
     const step = node("li");
-    step.append(node("strong", title), node("p", detail));
+    step.dataset.state = steps.children.length === 0 ? access.tone : "unknown";
+    step.append(
+      node(
+        "span",
+        String(steps.children.length + 1).padStart(2, "0"),
+        "sova-step-number",
+      ),
+      node("strong", title),
+      node(
+        "span",
+        steps.children.length === 0 ? access.label : "근거 연결 필요",
+        "sova-step-state",
+      ),
+      node("p", detail),
+    );
     steps.append(step);
   }
-  box.append(node("h3", "운영 이전 연결 상태"), steps);
+  const next = node("div", undefined, "sova-migration-next");
+  next.append(
+    node("strong", `다음 작업 · ${access.label}`),
+    node("p", access.detail),
+  );
+  const link = node("a", "운영 계획·이벤트 콘솔 열기 ↗", "sova-live-link");
+  link.href = "/__native/console/";
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  next.append(link);
+  // Show the operational journey before individual resource inventories.
+  box.insertBefore(next, lanes);
+  box.insertBefore(node("h3", "운영 이전 단계"), lanes);
+  box.insertBefore(steps, lanes);
   if (connection?.checked_at)
     box.append(
       node(
         "p",
-        `운영 접점 확인 시각: ${new Date(connection.checked_at).toLocaleString("ko-KR")} · ${connection.current ? "최근 조회 기록" : "과거 기록 · 현재 권한 재확인 필요"}`,
+        `운영 접점 확인 시각: ${new Date(connection.checked_at).toLocaleString("ko-KR")} · ${access.fresh ? "최근 조회 기록" : "과거 기록 · 현재 권한 재확인 필요"}`,
       ),
     );
   box.append(
