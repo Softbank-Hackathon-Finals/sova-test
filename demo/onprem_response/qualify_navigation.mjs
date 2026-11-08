@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 
 const menus = {
   overview: "워크스페이스",
+  apps: "앱 배포",
   migration: "환경 이전",
   topology: "워크로드 지도",
   network: "네트워크 아틀라스",
@@ -34,9 +35,26 @@ export async function qualifyNavigation(page) {
       assert.equal(await button.getAttribute("aria-current"), "page");
       if (view === "topology") {
         assert.equal(
+          await page
+            .locator(
+              '#response-workspace svg[aria-label="실클러스터 워크로드 관계"]',
+            )
+            .isVisible(),
+          true,
+        );
+        assert.equal(
+          await page.locator("#terminal-response-workspace").isVisible(),
+          false,
+        );
+        const advanced = page.getByText("고급 · 기존 무상태 대응 시험 도구", {
+          exact: true,
+        });
+        await advanced.click();
+        assert.equal(
           await page.locator("#terminal-response-workspace").isVisible(),
           true,
         );
+        await advanced.click();
       } else {
         assert.equal(await page.locator("#sova-live-pages").isVisible(), true);
         assert.equal(

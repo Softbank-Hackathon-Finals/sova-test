@@ -31,3 +31,5 @@ ZIP 크기·파일 수·실제 확장 크기를 제한하고 경로 탈출·링�
 - 일반 앱의 AWS 배포·Cloudflare 공개와 팀 최신 이미지의 실제 반영은 아직 통합 인수되지 않았다. 콘솔 등록 화면만으로 이를 완료 처리하지 않는다.
 
 비공개 수집·빌드·브라우저 기록은 `team-bravo/.local-notes/validation/team-demo-app-20261108/`와 `app-deployment-20261108/`에 보존한다.
+
+후속: 위 main의 공식 [이미지 발행 실행](https://github.com/Softbank-Hackathon-Finals/demo-app/actions/runs/42441852331)이 성공했다. 고정 소스, 기존 취약점·비밀 검사 정책, registry pull, runtime packaging 검사를 통과했다. 발행 digest는 `sha256:a62af4209b53b74e67c7c95f8696c44b5cd64203fa193fc7bd54b926d5eae2be`다. [기존 private 전송 실행](https://github.com/Softbank-Hackathon-Finals/demo-app/actions/runs/42442264399)을 요청했다. 이미지 준비가 현재 AWS·온프렘 앱의 rollout 완료를 뜻하지 않는다.
