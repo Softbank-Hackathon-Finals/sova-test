@@ -156,6 +156,19 @@ export function mountApps(parent) {
               el("p", `Ready ${env.ready_replicas} / ${env.desired_replicas}`),
               el("p", "HTTP: " + (env.http_status || "미확인")),
             );
+          if (env.current && env.application_info) {
+            lane.append(
+              el("p", "앱 환경: " + (env.application_info.env || "미확인")),
+              el(
+                "p",
+                env.application_info.write_blocked === true
+                  ? "업무 쓰기 차단 활성"
+                  : env.application_info.write_blocked === false
+                    ? "앱 쓰기 차단 해제 상태 · DB writer 검증은 별도"
+                    : "앱 쓰기 상태 미확인",
+              ),
+            );
+          }
           lane.append(
             el(
               "small",
