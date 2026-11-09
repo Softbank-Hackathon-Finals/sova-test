@@ -19,7 +19,21 @@ export function motionPlan(session, view) {
     entering = [];
   let caption = "구성 요소를 선택해 연결과 대응 범위를 확인하세요.";
   const transfer = (id, from, to, label, tone = "blue") =>
-    transfers.push({ id, from, to, label, tone });
+    transfers.push({
+      id,
+      from,
+      to,
+      label,
+      tone,
+      englishLabel: {
+        image: "Deploy Image",
+        credential: "Refresh Credentials",
+        replica: "Add Worker Replica",
+        api: "Deploy API",
+        worker: "Deploy Worker",
+        data: "Synchronize Data",
+      }[id],
+    });
   if (session.phase === "executing") {
     if (moving) caption = "선택한 구성 요소를 논리적 격리 영역으로 분리합니다.";
     if (session.scenario === "egress")

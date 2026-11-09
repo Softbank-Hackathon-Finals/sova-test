@@ -30,6 +30,17 @@ export const HEALTH_LABELS = {
   unknown: "결과 미확인",
   patched: "수정본",
 };
+const SCENARIO_ENGLISH = {
+  isolate: "Component Isolation",
+  segment: "Segment Isolation",
+  egress: "Outbound Traffic Blocking",
+  credentials: "Credential Rotation",
+  patch: "Verified Patch Rollout",
+  restart: "Workload Restart",
+  scale: "Horizontal Scaling",
+  migrate: "AWS to On-Premises Migration",
+  rollback: "Deployment Rollback",
+};
 const scenario = (
   id,
   title,
@@ -44,6 +55,7 @@ const scenario = (
 ) => ({
   id,
   title,
+  englishTitle: SCENARIO_ENGLISH[id],
   group,
   summary,
   signal,
@@ -158,6 +170,22 @@ export const SCENARIOS = [
     "호환성 확인 뒤 이전 이미지로 복귀합니다. DB를 과거 시점으로 되돌리지 않습니다.",
   ),
 ];
+const NODE_ENGLISH = {
+  edge: "Fixed Entry Point",
+  external: "External Endpoint",
+  auth: "Authentication Service",
+  api: "Application API",
+  standby: "Standby API",
+  vault: "Secrets Store",
+  queue: "Task Queue",
+  worker: "Background Worker",
+  extra: "Additional Worker",
+  objects: "Object Storage",
+  db: "Source Database",
+  "target-api": "Target API",
+  "target-worker": "Target Worker",
+  "target-db": "Target Database",
+};
 export const NODES = [
   {
     id: "edge",
@@ -271,7 +299,7 @@ export const NODES = [
     x: 1150,
     y: 655,
   },
-];
+].map((node) => ({ ...node, englishLabel: NODE_ENGLISH[node.id] }));
 export const EDGES = [
   ["ingress", "edge", "api", "HTTP"],
   ["auth-api", "auth", "api", "인증"],

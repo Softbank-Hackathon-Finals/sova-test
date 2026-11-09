@@ -99,6 +99,14 @@ try {
         await evaluate("document.querySelectorAll('[data-node]').length"),
         14,
       );
+      const labels = await evaluate(
+        "Array.from(document.querySelectorAll('.map-node .node-english')).map(n=>({text:n.textContent,right:n.getBBox().x+n.getBBox().width}))",
+      );
+      assert.equal(labels.length, 14);
+      assert(
+        labels.every((n) => /[A-Za-z]/.test(n.text) && n.right <= 175),
+        JSON.stringify(labels),
+      );
       assert.equal(
         await evaluate("document.querySelector('.mock-banner')"),
         null,
@@ -126,6 +134,12 @@ try {
       await choose(id);
       const result = await finish();
       assert.equal(result.phase, "대응 완료", id);
+      assert.match(
+        await evaluate(
+          "document.getElementById('scenario-english').textContent",
+        ),
+        /^[A-Za-z]/,
+      );
     }
   });
   await check(

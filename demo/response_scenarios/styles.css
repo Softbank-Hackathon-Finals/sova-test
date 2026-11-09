@@ -199,6 +199,31 @@
 .scenario-summary h2 {
   font-size: 23px;
 }
+#scenario-english {
+  color: #8d9bb0;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.25px;
+  margin: 5px 0 11px;
+  line-height: 1.5;
+}
+.node-english {
+  fill: #8d9eb5;
+  font-size: 10.5px;
+  font-weight: 400;
+}
+.node-inspector .inspector-english {
+  color: #94a1b5;
+  font-size: 11px;
+  font-weight: 400;
+  margin: -3px 0 13px;
+  grid-column: 1 / -1;
+}
+.transfer-chip .transfer-english {
+  font-size: 9px;
+  font-weight: 400;
+  opacity: 0.7;
+}
 .response-map-card {
   background: white;
   border: 1px solid #e0e7f3;

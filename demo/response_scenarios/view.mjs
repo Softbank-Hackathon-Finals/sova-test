@@ -375,7 +375,7 @@ function renderGraph(view) {
       class: `map-node ${item.status} ${item.affected ? "affected" : ""} ${selected === item.id ? "selected" : ""}`,
       role: "button",
       tabindex: 0,
-      "aria-label": `${item.label}, ${HEALTH_LABELS[item.status]}`,
+      "aria-label": `${item.label}, ${item.englishLabel}, ${HEALTH_LABELS[item.status]}`,
       "aria-pressed": String(selected === item.id),
       "data-node": item.id,
     });
@@ -402,13 +402,18 @@ function renderGraph(view) {
       svgElement("text", { x: 39, y: 25, class: "node-label" }, item.label),
       svgElement(
         "text",
-        { x: 13, y: 46, class: "node-subtitle" },
-        item.subtitle,
+        { x: 13, y: 41, class: "node-english", lang: "en" },
+        item.englishLabel,
       ),
-      svgElement("circle", { cx: 17, cy: 68, r: 3, class: "node-dot" }),
       svgElement(
         "text",
-        { x: 27, y: 72, class: "node-state" },
+        { x: 13, y: 58, class: "node-subtitle" },
+        item.subtitle,
+      ),
+      svgElement("circle", { cx: 17, cy: 74, r: 3, class: "node-dot" }),
+      svgElement(
+        "text",
+        { x: 27, y: 78, class: "node-state" },
         HEALTH_LABELS[item.status],
       ),
     );
@@ -450,8 +455,19 @@ function renderGraph(view) {
       svgElement("rect", { width: 156, height: 46, rx: 10 }),
       svgElement(
         "text",
-        { x: 78, y: 28, "text-anchor": "middle" },
+        { x: 78, y: 20, "text-anchor": "middle" },
         transfer.label,
+      ),
+      svgElement(
+        "text",
+        {
+          x: 78,
+          y: 36,
+          "text-anchor": "middle",
+          class: "transfer-english",
+          lang: "en",
+        },
+        transfer.englishLabel,
       ),
     );
     svg.append(chip);
@@ -470,6 +486,7 @@ function renderInspector(view) {
   root.replaceChildren(
     element("p", "COMPONENT INSPECTOR", "eyebrow"),
     element("h3", item.label),
+    element("p", item.englishLabel, "inspector-english"),
     element(
       "span",
       HEALTH_LABELS[item.status],
@@ -560,6 +577,7 @@ function render() {
     view = snapshot(session);
   renderScenarios();
   $("scenario-title").textContent = spec.title;
+  $("scenario-english").textContent = spec.englishTitle;
   $("scenario-group").textContent = spec.group;
   $("scenario-description").textContent = spec.summary;
   $("stat-phase").textContent = PHASE_LABELS[session.phase];
