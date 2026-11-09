@@ -1941,3 +1941,19 @@
 .response-preview[data-studio-view="focused"] #playback-status {
   font-size: 10px;
 }
+
+#phase-track[data-mode="recovery"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.injection-tools button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+#injection-state[data-phase="recovered"] {
+  color: #99d3ba;
+  background: #29463e;
+}
+#injection-state[data-phase="recovery_held"] {
+  color: #e2bba4;
+  background: #543c3d;
+}

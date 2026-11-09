@@ -1,5 +1,5 @@
 // Fixed browser commands, not a shell or an execution adapter.
-import { definition } from "./model.mjs";
+import { definition, isTerminal, recoveryAvailable } from "./model.mjs";
 
 const SIGNALS = {
   isolate: "access-violation",
@@ -17,11 +17,55 @@ export function injectionCommand(id) {
   return `inject ${SIGNALS[id]} --target ${spec.targets.join(",")}`;
 }
 export function parseCommand(raw, session) {
-  if (typeof raw !== "string" || raw.length > 256)
+  if (typeof raw !== "string" || raw.length > 256 || /[\r\n\u0000]/.test(raw))
     return { kind: "error", message: "명령은 256자 이내로 입력해 주세요." };
   const tokens = raw.trim().split(/\s+/);
   if (tokens.length === 1 && ["help", "status", "clear"].includes(tokens[0]))
     return { kind: tokens[0] };
+  const name = tokens.join(" ");
+  const readOnly = {
+    "workload status": "workload_status",
+    "incident inspect": "incident_inspect",
+    "response watch": "watch",
+  };
+  if (Object.hasOwn(readOnly, name)) return { kind: readOnly[name] };
+  if (name === "response approve") {
+    return session.phase === "awaiting_approval" &&
+      !session.approved &&
+      !session.recovery
+      ? { kind: "approve" }
+      : {
+          kind: "error",
+          message: "현재 선택한 대응이 승인 대기일 때만 승인할 수 있습니다.",
+        };
+  }
+  if (["response pause", "response resume"].includes(name)) {
+    if (isTerminal(session) || session.phase === "normal")
+      return {
+        kind: "error",
+        message:
+          "진행 중인 대응이 없습니다. 상태를 조회하거나 이상을 먼저 주입해 주세요.",
+      };
+    if (
+      name === "response resume" &&
+      session.phase === "awaiting_approval" &&
+      !session.preapproved
+    )
+      return {
+        kind: "error",
+        message:
+          "승인이 필요합니다. response approve로 선택한 범위를 확인해 주세요.",
+      };
+    return { kind: name.endsWith("pause") ? "pause" : "resume" };
+  }
+  if (name === "recovery start")
+    return recoveryAvailable(session)
+      ? { kind: "recover" }
+      : {
+          kind: "error",
+          message:
+            "격리 대응이 끝난 뒤 원본 재검증·복귀를 요청할 수 있습니다. DB·이미지·자격증명 복구는 별도 절차가 필요하며, 중복 복귀는 허용하지 않습니다.",
+        };
   const spec = definition(session.scenario);
   if (
     tokens.length !== 4 ||
@@ -33,7 +77,7 @@ export function parseCommand(raw, session) {
     return {
       kind: "error",
       message:
-        "지원하는 명령은 inject, help, status, clear입니다. 현재 유형의 주입 명령을 확인해 주세요.",
+        "지원하지 않는 명령 또는 인자입니다. help로 조회·주입·대응·복귀 명령을 확인해 주세요.",
     };
   }
   const targets = tokens[3].split(",");

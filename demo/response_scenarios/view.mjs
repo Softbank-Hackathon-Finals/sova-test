@@ -7,6 +7,10 @@ import {
   createSession,
   advance,
   snapshot,
+  currentPhase,
+  isTerminal,
+  requestRecovery,
+  recoveryAvailable,
 } from "./model.mjs";
 import { createMotionClock, motionPlan } from "./motion.mjs";
 import { mountSidebar, mountStudioView } from "./layout.mjs";
@@ -59,6 +63,7 @@ function reset(id = session.scenario) {
   motion.clear();
   runVersion++;
   motionPaused = false;
+  $("recovery-outcome").value = "pass";
   if (!reducedMotion.matches) $("workload-map").unpauseAnimations();
   const changingScenario = id !== session.scenario;
   session = createSession(id, {
@@ -72,11 +77,26 @@ function forward(approve = false) {
   const next = advance(session, { approve });
   session = next;
   if (
-    ["complete", "held"].includes(session.phase) ||
-    (session.phase === "awaiting_approval" && !session.preapproved)
+    isTerminal(session) ||
+    (!session.recovery &&
+      session.phase === "awaiting_approval" &&
+      !session.preapproved)
   )
     stop();
   render();
+}
+function approveAndContinue() {
+  if (
+    session.phase !== "awaiting_approval" ||
+    session.approved ||
+    session.recovery
+  )
+    return;
+  stop();
+  playing = true;
+  setMotionPaused(false);
+  forward(true);
+  schedule();
 }
 function schedule() {
   clearTimeout(timer);
@@ -476,7 +496,7 @@ function renderGraph(view) {
   }
   $("motion-caption").textContent = currentMotionPlan.caption;
   motion.transition(currentMotionPlan.positions, {
-    identity: `${runVersion}:${session.scenario}:${session.phase}`,
+    identity: `${runVersion}:${session.scenario}:${currentPhase(session)}`,
     duration: Math.max(800, Math.min(2600, Number($("speed").value) * 0.85)),
     immediate: reducedMotion.matches,
   });
@@ -571,7 +591,7 @@ function renderApproval() {
   const button = element("button", "승인 후 계속", "button primary");
   button.type = "button";
   button.id = "approve";
-  button.onclick = () => forward(true);
+  button.onclick = approveAndContinue;
   root.append(button);
 }
 function render() {
@@ -582,31 +602,39 @@ function render() {
   $("scenario-english").textContent = spec.englishTitle;
   $("scenario-group").textContent = spec.group;
   $("scenario-description").textContent = spec.summary;
-  $("stat-phase").textContent = PHASE_LABELS[session.phase];
+  $("stat-phase").textContent = PHASE_LABELS[currentPhase(session)];
   $("stat-scenario").textContent = spec.title;
   $("stat-availability").textContent = view.availability;
   $("stat-isolation").textContent =
     `${view.counters.isolated}개 / ${view.counters.cut}개`;
   $("stat-route").textContent = view.route;
   $("stat-writer").textContent = `writer: ${view.writer}`;
+  $("phase-track").dataset.mode = session.recovery ? "recovery" : "response";
+  const phases = session.recovery
+    ? ["recovery_checking", "recovery_restoring", "recovered"]
+    : PHASES;
   $("phase-track").replaceChildren(
-    ...PHASES.map((phase, i) => {
+    ...phases.map((phase, i) => {
       const reached = session.history.some((event) => event.phase === phase);
       const item = element(
         "span",
         undefined,
-        `phase-item ${reached ? "reached" : ""} ${phase === session.phase ? "current" : ""}`,
+        `phase-item ${reached ? "reached" : ""} ${phase === currentPhase(session) ? "current" : ""}`,
       );
       item.append(
         element("b", String(i + 1)),
         element("span", PHASE_LABELS[phase]),
       );
-      if (phase === session.phase) item.setAttribute("aria-current", "step");
+      if (phase === currentPhase(session))
+        item.setAttribute("aria-current", "step");
       return item;
     }),
   );
-  const terminal = ["held", "complete"].includes(session.phase),
-    approval = session.phase === "awaiting_approval" && !session.preapproved;
+  const terminal = isTerminal(session),
+    approval =
+      !session.recovery &&
+      session.phase === "awaiting_approval" &&
+      !session.preapproved;
   $("next").textContent =
     session.phase === "normal"
       ? "이상 상황 주입"
@@ -619,6 +647,7 @@ function render() {
   $("autoplay").textContent = playing ? "재생 일시정지" : "자동 재생";
   $("autoplay").disabled = terminal || approval;
   $("outcome").disabled = session.phase !== "normal";
+  $("recovery-outcome").disabled = !recoveryAvailable(session);
   $("preapproved").disabled = !spec.policy || session.phase !== "normal";
   $("preapproved").checked = session.preapproved;
   $("policy-description").textContent = spec.policy
@@ -632,7 +661,10 @@ function render() {
         .map((id) => view.nodes.find((node) => node.id === id).label)
         .join(" · "),
     ],
-    ["결과 확인", spec.verify],
+    [
+      "결과 확인",
+      session.recovery ? "원본 응답·접근 정책·업무 연결 재검증" : spec.verify,
+    ],
     ["사고 보류", view.hold ? "유지 · 일반 승인으로 해제하지 않음" : "미발생"],
     ["기록 범위", "현재 선택한 대응 흐름"],
   ];
@@ -745,6 +777,30 @@ const injectionConsole = mountInjectionConsole({
     setMotionPaused(false);
     playing = true;
     forward();
+    schedule();
+  },
+  onApprove: approveAndContinue,
+  onPause: () => {
+    stop();
+    setMotionPaused(true);
+    render();
+  },
+  onResume: () => {
+    playing = true;
+    setMotionPaused(false);
+    render();
+    schedule();
+  },
+  onRecover: () => {
+    const next = requestRecovery(session, {
+      outcome: $("recovery-outcome").value,
+    });
+    if (next === session) return;
+    stop();
+    session = next;
+    playing = true;
+    setMotionPaused(false);
+    render();
     schedule();
   },
 });

@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { SCENARIOS, createSession, advance } from "./model.mjs";
+import {
+  SCENARIOS,
+  createSession,
+  advance,
+  requestRecovery,
+} from "./model.mjs";
 import { injectionCommand, parseCommand } from "./commands.mjs";
 
 test("each preset command is bound to the selected scenario and complete target set", () => {
@@ -57,4 +62,67 @@ test("console inspection commands do not confer approval or execution", () => {
   for (const value of ["approve", "skip", "resume --force"])
     assert.equal(parseCommand(value, session).kind, "error");
   assert.equal(session.phase, "normal");
+});
+
+test("inspection is available in every phase without changing session or approval", () => {
+  let s = createSession("segment");
+  for (let i = 0; i < 9; i++) {
+    const before = structuredClone(s);
+    for (const [raw, kind] of [
+      ["workload status", "workload_status"],
+      ["incident inspect", "incident_inspect"],
+      ["response watch", "watch"],
+    ])
+      assert.deepEqual(parseCommand(raw, s), { kind });
+    assert.deepEqual(s, before);
+    s = advance(s, { approve: true });
+  }
+});
+test("approval and resume cannot skip planning, an approval boundary or a completed run", () => {
+  let s = createSession("migrate");
+  for (let i = 0; i < 7; i++) {
+    assert.equal(
+      parseCommand("response approve", s).kind,
+      s.phase === "awaiting_approval" ? "approve" : "error",
+    );
+    if (["normal", "awaiting_approval", "complete"].includes(s.phase))
+      assert.equal(parseCommand("response resume", s).kind, "error");
+    s = advance(s, { approve: true });
+  }
+});
+test("recovery commands are restricted by type, lifecycle and duplicate requests", () => {
+  for (const id of ["segment", "migrate", "patch", "credentials"]) {
+    let s = createSession(id);
+    assert.equal(parseCommand("recovery start", s).kind, "error");
+    for (let i = 0; i < 7; i++) s = advance(s, { approve: true });
+    assert.equal(
+      parseCommand("recovery start", s).kind,
+      id === "segment" ? "recover" : "error",
+    );
+    if (id === "segment") {
+      s = requestRecovery(s);
+      assert.equal(parseCommand("recovery start", s).kind, "error");
+      assert.equal(parseCommand("response approve", s).kind, "error");
+      assert.equal(parseCommand("response pause", s).kind, "pause");
+      assert.equal(parseCommand("response resume", s).kind, "resume");
+    }
+  }
+});
+test("operator commands reject extra scope, chaining, prototypes and approval bypass flags", () => {
+  let s = createSession("segment");
+  for (let i = 0; i < 3; i++) s = advance(s);
+  for (const raw of [
+    "response approve --force",
+    "response approve --target db",
+    "response approve; recovery start",
+    "response\napprove",
+    "recovery start --skip-checks",
+    "recovery start --target db",
+    "response watch --approve",
+    "constructor",
+    "__proto__",
+    "toString",
+    "response approve && id",
+  ])
+    assert.equal(parseCommand(raw, s).kind, "error", raw);
 });

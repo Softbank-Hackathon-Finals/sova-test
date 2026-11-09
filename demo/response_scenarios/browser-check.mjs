@@ -70,12 +70,22 @@ async function check(name, run) {
 }
 async function choose(id, outcome = "pass") {
   await evaluate(
-    `document.querySelector('[data-scenario="${id}"]').click(); document.getElementById('reset').click(); document.getElementById('outcome').value=${JSON.stringify(outcome)}; document.getElementById('outcome').dispatchEvent(new Event('change'));`,
+    `document.querySelector('[data-scenario="${id}"]').click(); document.getElementById('reset').click(); document.getElementById('outcome').value=${JSON.stringify(outcome)}; document.getElementById('outcome').dispatchEvent(new Event('change')); document.getElementById('speed').value='3000';`,
   );
 }
 async function finish() {
   return evaluate(
     `(() => { for(let i=0;i<10;i++){const approve=document.getElementById('approve'); if(approve){approve.click();continue;}const b=document.getElementById('next');if(b.disabled)break;b.click();}return {phase:document.getElementById('stat-phase').textContent,route:document.getElementById('stat-route').textContent,writer:document.getElementById('stat-writer').textContent}; })()`,
+  );
+}
+async function command(value) {
+  await evaluate(
+    `document.getElementById('injection-command').value=${JSON.stringify(value)};document.getElementById('injection-form').requestSubmit()`,
+  );
+}
+async function phaseIs(value, timeout = 3600) {
+  return evaluate(
+    `new Promise((resolve,reject)=>{const end=Date.now()+${timeout};const tick=()=>{const phase=document.getElementById('stat-phase').textContent;if(phase===${JSON.stringify(value)})resolve(phase);else if(Date.now()>end)reject(new Error('Expected phase '+${JSON.stringify(value)}+', got '+phase));else setTimeout(tick,40)};tick()})`,
   );
 }
 try {
@@ -727,6 +737,275 @@ try {
         ),
         "settled",
       );
+    },
+  );
+  await check(
+    "operator inspection and watch do not grant approval or start a response",
+    async () => {
+      await choose("segment");
+      for (const raw of [
+        "workload status",
+        "incident inspect",
+        "response watch",
+        "response approve",
+        "recovery start",
+        "constructor",
+        "response approve --force",
+      ])
+        await command(raw);
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "정상 흐름",
+      );
+      assert.match(
+        await evaluate(
+          "document.getElementById('injection-output').textContent",
+        ),
+        /worker.*작업자/,
+      );
+      await evaluate(
+        "document.getElementById('reset').click();document.getElementById('speed').value='900'",
+      );
+      await command("inject lateral-movement --target api,worker");
+      await command("response pause");
+      await evaluate("new Promise(resolve=>setTimeout(resolve,1100))");
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "이상 주입",
+      );
+      await command("response resume");
+      await phaseIs("승인 대기");
+      await command("incident inspect");
+      await command("response watch");
+      await command("response resume");
+      assert.equal(
+        await evaluate(
+          "document.getElementById('injection-command').getAttribute('aria-invalid')",
+        ),
+        "true",
+      );
+      await evaluate("new Promise(resolve=>setTimeout(resolve,1100))");
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "승인 대기",
+      );
+    },
+  );
+  await check(
+    "terminal approval runs containment and verification automatically with the same map state",
+    async () => {
+      await command("response approve");
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "대응 진행",
+      );
+      await command("response approve");
+      assert.equal(
+        await evaluate(
+          "document.getElementById('injection-command').getAttribute('aria-invalid')",
+        ),
+        "true",
+      );
+      await phaseIs("대응 완료");
+      assert.deepEqual(
+        await evaluate(
+          "Array.from(document.querySelectorAll('.map-node.isolated')).map(n=>n.dataset.node)",
+        ),
+        ["api", "worker"],
+      );
+      await command("workload status");
+      assert.match(
+        await evaluate(
+          "document.getElementById('injection-output').textContent",
+        ),
+        /격리 2/,
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-console-command=\"recovery start\"]').disabled",
+        ),
+        false,
+      );
+    },
+  );
+  await check(
+    "terminal recovery revalidates before reconnecting and preserves the incident history",
+    async () => {
+      await command("recovery start");
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "원본 재검증 · 격리 유지",
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-edge=ingress]').dataset.state",
+        ),
+        "cut",
+      );
+      await command("recovery start");
+      assert.equal(
+        await evaluate(
+          "document.getElementById('injection-command').getAttribute('aria-invalid')",
+        ),
+        "true",
+      );
+      await phaseIs("원본 복귀 진행");
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-edge=ingress]').dataset.state",
+        ),
+        "cut",
+      );
+      await phaseIs("원본 복귀 확인");
+      await evaluate("new Promise(resolve=>setTimeout(resolve,1400))");
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-edge=ingress]').dataset.state",
+        ),
+        "flow",
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-node=api]').transform.baseVal.consolidate().matrix.f",
+        ),
+        300,
+      );
+      assert.match(
+        await evaluate(
+          "document.getElementById('stat-availability').textContent",
+        ),
+        /사고 보류 유지/,
+      );
+      const log = await evaluate(
+        "document.getElementById('injection-output').textContent",
+      );
+      assert.match(log, /이벤트 접수/);
+      assert.match(log, /원본 복귀 확인/);
+      await writeFile(
+        join(output, "operator-recovery.png"),
+        Buffer.from(
+          (
+            await call("Page.captureScreenshot", {
+              format: "png",
+              captureBeyondViewport: true,
+            })
+          ).data,
+          "base64",
+        ),
+      );
+    },
+  );
+  await check(
+    "recovery failure or uncertainty keeps isolation and cannot be retried by approval or result edits",
+    async () => {
+      for (const result of ["fail", "unknown"]) {
+        await choose("segment");
+        await finish();
+        await evaluate(
+          `document.getElementById('speed').value='900';document.getElementById('recovery-outcome').value=${JSON.stringify(result)}`,
+        );
+        await command("recovery start");
+        await phaseIs("복구 보류 · 격리 유지");
+        assert.equal(
+          await evaluate(
+            "document.querySelector('[data-edge=ingress]').dataset.state",
+          ),
+          "cut",
+        );
+        assert.equal(
+          await evaluate(
+            "document.querySelector('[data-node=api]').classList.contains('isolated')",
+          ),
+          true,
+        );
+        await evaluate(
+          "document.getElementById('recovery-outcome').value='pass'",
+        );
+        await command("response approve");
+        await command("recovery start");
+        await evaluate("new Promise(resolve=>setTimeout(resolve,1100))");
+        assert.equal(
+          await evaluate("document.getElementById('stat-phase').textContent"),
+          "복구 보류 · 격리 유지",
+        );
+      }
+    },
+  );
+  await check(
+    "approval button auto-progresses to a failed verification and reset cancels stale recovery",
+    async () => {
+      await choose("patch", "fail");
+      await evaluate(
+        "document.getElementById('speed').value='900';for(let i=0;i<3;i++)document.getElementById('next').click();document.getElementById('approve').click()",
+      );
+      await phaseIs("보류 · 전환 중지");
+      assert.equal(
+        await evaluate("document.getElementById('stat-route').textContent"),
+        "AWS 업무 API",
+      );
+      await choose("segment");
+      await finish();
+      await evaluate("document.getElementById('speed').value='900'");
+      await command("recovery start");
+      await choose("migrate");
+      await command("recovery start");
+      await evaluate("new Promise(resolve=>setTimeout(resolve,1100))");
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "정상 흐름",
+      );
+      assert.equal(
+        await evaluate("document.getElementById('phase-track').dataset.mode"),
+        "response",
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-node=target-db]').classList.contains('standby')",
+        ),
+        true,
+      );
+    },
+  );
+  await check(
+    "return motion can be paused and resumed without reconnecting early",
+    async () => {
+      await choose("segment");
+      await finish();
+      await call("Emulation.setEmulatedMedia", { features: [] });
+      await evaluate("document.getElementById('speed').value='1800'");
+      await command("recovery start");
+      await phaseIs("원본 복귀 진행");
+      await evaluate("new Promise(resolve=>setTimeout(resolve,350))");
+      const beforePause = await evaluate(
+        "document.querySelector('[data-node=api]').transform.baseVal.consolidate().matrix.f",
+      );
+      assert(beforePause > 300 && beforePause < 860, String(beforePause));
+      await command("response pause");
+      const paused = await evaluate(
+        "document.querySelector('[data-node=api]').getAttribute('transform')",
+      );
+      await evaluate("new Promise(resolve=>setTimeout(resolve,500))");
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-node=api]').getAttribute('transform')",
+        ),
+        paused,
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-edge=ingress]').dataset.state",
+        ),
+        "cut",
+      );
+      await command("response resume");
+      await phaseIs("원본 복귀 확인");
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-edge=ingress]').dataset.state",
+        ),
+        "flow",
+      );
+      await choose("segment");
     },
   );
   await check(
