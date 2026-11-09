@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createSession, advance, snapshot } from "./model.mjs";
+import { createSession, advance, snapshot, requestRecovery } from "./model.mjs";
 import { createMotionClock, motionPlan } from "./motion.mjs";
 
 function sessionAt(id, phase, outcome = "pass") {
@@ -131,4 +131,21 @@ test("reset cancels an old animation and immediate mode skips movement", () => {
   );
   assert.equal(clock.read().positions.a.x, 10);
   assert.equal(clock.read().state, "settled");
+});
+
+test("recovery moves only verified isolation targets back and does not animate a failed return", () => {
+  const complete = sessionAt("segment", "complete");
+  const checking = requestRecovery(complete);
+  assert.equal(motionPlan(checking, snapshot(checking)).positions.api.y, 860);
+  const restoring = advance(checking);
+  const plan = motionPlan(restoring, snapshot(restoring));
+  for (const id of ["api", "worker", "db", "vault", "objects"]) {
+    const original = snapshot(createSession()).nodes.find((n) => n.id === id);
+    assert.deepEqual(plan.positions[id], { x: original.x, y: original.y });
+  }
+  const blocked = advance(
+    requestRecovery(sessionAt("segment", "held", "unknown")),
+  );
+  assert.equal(motionPlan(blocked, snapshot(blocked)).positions.api.y, 860);
+  assert.match(motionPlan(blocked, snapshot(blocked)).caption, /확인하지 못/);
 });

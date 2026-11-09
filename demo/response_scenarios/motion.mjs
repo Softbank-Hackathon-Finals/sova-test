@@ -81,6 +81,18 @@ export function motionPlan(session, view) {
   if (session.phase === "held")
     caption =
       "결과 확인이 필요합니다. 이동·배치 표시는 성공 판정을 대신하지 않습니다.";
+  if (session.recovery) {
+    caption = {
+      recovery_checking:
+        "원본을 재검증합니다. 아직 격리나 연결 차단을 해제하지 않습니다.",
+      recovery_restoring:
+        "재검증한 구성 요소만 원래 위치로 돌려보내고 연결을 확인합니다.",
+      recovered:
+        "원본 업무 연결을 복구했습니다. 사고 보류와 대응 이력은 유지합니다.",
+      recovery_held:
+        "복귀 조건을 확인하지 못했습니다. 격리와 기존 경로를 유지합니다.",
+    }[session.recovery.phase];
+  }
   return {
     positions,
     transfers,

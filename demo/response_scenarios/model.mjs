@@ -17,6 +17,10 @@ export const PHASE_LABELS = {
   verifying: "결과 확인",
   complete: "대응 완료",
   held: "보류 · 전환 중지",
+  recovery_checking: "원본 재검증 · 격리 유지",
+  recovery_restoring: "원본 복귀 진행",
+  recovered: "원본 복귀 확인",
+  recovery_held: "복구 보류 · 격리 유지",
 };
 export const HEALTH_LABELS = {
   healthy: "정상",
@@ -342,9 +346,60 @@ export function createSession(
     approved: false,
     history: [event("normal", "앱 정상 상태로 초기화")],
     source: "mock",
+    recovery: null,
   };
 }
+export function recoveryAvailable(session) {
+  return (
+    ["isolate", "segment"].includes(session.scenario) &&
+    ["complete", "held"].includes(session.phase) &&
+    !session.recovery
+  );
+}
+export function requestRecovery(session) {
+  if (!recoveryAvailable(session)) return session;
+  return {
+    ...session,
+    recovery: { phase: "recovery_checking" },
+    history: [
+      ...session.history,
+      event(
+        "recovery_checking",
+        "원본 복귀 요청 접수 · 선택 대상의 응답·접근 정책 재검증. 통과 전에는 격리를 유지합니다.",
+      ),
+    ],
+  };
+}
+export function currentPhase(session) {
+  return session.recovery?.phase || session.phase;
+}
+export function isTerminal(session) {
+  return session.recovery
+    ? ["recovered", "recovery_held"].includes(session.recovery.phase)
+    : ["complete", "held"].includes(session.phase);
+}
 export function advance(session, { approve = false } = {}) {
+  if (session.recovery) {
+    const phase = session.recovery.phase;
+    if (isTerminal(session)) return session;
+    const next =
+      phase === "recovery_checking"
+        ? session.outcome === "pass"
+          ? "recovery_restoring"
+          : "recovery_held"
+        : "recovered";
+    const message =
+      next === "recovery_restoring"
+        ? "원본 재검증 통과 · 선택 구성 요소만 원래 위치로 복귀. 연결 확인 전에는 기존 차단을 유지합니다."
+        : next === "recovered"
+          ? "원본 응답·업무 연결 복귀 확인 · 사고 보류와 대응 이력은 유지합니다."
+          : "원본 재검증 실패 또는 결과 불명확 · 격리·기존 경로 유지. 자동 재시도하지 않습니다.";
+    return {
+      ...session,
+      recovery: { phase: next },
+      history: [...session.history, event(next, message)],
+    };
+  }
   const spec = definition(session.scenario);
   if (session.phase === "held" || session.phase === "complete") return session;
   if (
@@ -390,6 +445,15 @@ export function advance(session, { approve = false } = {}) {
 }
 
 export function snapshot(session) {
+  if (session.recovery?.phase === "recovered") {
+    const restored = snapshot({ ...session, phase: "normal", recovery: null });
+    return {
+      ...restored,
+      detected: true,
+      hold: true,
+      availability: "원본 업무 복귀 확인 · 사고 보류 유지",
+    };
+  }
   const spec = definition(session.scenario);
   const detected = session.phase !== "normal";
   const operating = ["executing", "verifying", "complete", "held"].includes(
@@ -546,6 +610,14 @@ export function snapshot(session) {
   }
   if (done && !["isolate", "segment", "egress", "migrate"].includes(spec.id))
     availability = "대응 후 업무 확인";
+  const returning = session.recovery?.phase === "recovery_restoring";
+  if (returning) {
+    for (const id of spec.targets)
+      node(id, { status: "preparing", subtitle: "원본 복귀 · 연결 확인 대기" });
+    availability = "원본 재검증 통과 · 재연결 중";
+  }
+  if (session.recovery?.phase === "recovery_held")
+    availability = "복구 결과 미확인 · 격리 유지";
   return {
     source: "mock",
     nodes,
@@ -555,7 +627,7 @@ export function snapshot(session) {
     availability,
     hold,
     detected,
-    operating,
+    operating: returning ? false : operating,
     counters: {
       active: nodes.filter(
         (item) => !["standby", "isolated", "replaced"].includes(item.status),

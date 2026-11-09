@@ -1,6 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { SCENARIOS, createSession, advance, snapshot } from "./model.mjs";
+import {
+  SCENARIOS,
+  createSession,
+  advance,
+  snapshot,
+  requestRecovery,
+  recoveryAvailable,
+  currentPhase,
+  isTerminal,
+} from "./model.mjs";
 
 function toPhase(id, phase, options = {}) {
   let session = createSession(id, options);
@@ -152,3 +161,56 @@ test("unknown scenario and result cannot silently create a normal success", () =
   assert.throws(() => createSession("arbitrary-command"));
   assert.throws(() => createSession("patch", { outcome: "skip-checks" }));
 });
+
+test("recovery is scoped to finished isolation and never rewinds migrations, images or credentials", () => {
+  for (const spec of SCENARIOS) {
+    const normal = createSession(spec.id);
+    assert.equal(requestRecovery(normal), normal);
+    const completed = toPhase(spec.id, "complete");
+    const supported = ["isolate", "segment"].includes(spec.id);
+    assert.equal(recoveryAvailable(completed), supported);
+    if (!supported) assert.equal(requestRecovery(completed), completed);
+  }
+});
+test("recovery preserves containment until revalidation and only then restores the exact target", () => {
+  for (const id of ["isolate", "segment"]) {
+    const completed = toPhase(id, "complete");
+    const checking = requestRecovery(completed);
+    assert.equal(isTerminal(checking), false);
+    assert.equal(currentPhase(checking), "recovery_checking");
+    assert.deepEqual(snapshot(checking), snapshot(completed));
+    assert.equal(requestRecovery(checking), checking);
+    const restoring = advance(checking);
+    assert.equal(currentPhase(restoring), "recovery_restoring");
+    assert.equal(
+      snapshot(restoring).counters.cut,
+      snapshot(completed).counters.cut,
+    );
+    const restored = advance(restoring);
+    assert.equal(currentPhase(restored), "recovered");
+    assert.equal(isTerminal(restored), true);
+    const view = snapshot(restored);
+    assert.equal(view.counters.cut, 0);
+    assert.equal(view.counters.isolated, 0);
+    assert.equal(view.route, "AWS 업무 API");
+    assert.equal(view.writer, "출발지 DB");
+    assert.equal(view.hold, true);
+    assert.equal(view.incidentReleased, false);
+    assert.equal(view.executionAuthority, false);
+    assert.equal(restored.history.length, completed.history.length + 3);
+    assert.equal(advance(restored), restored);
+    assert(restored.history.every((event) => event.provenance === "mock"));
+  }
+});
+for (const outcome of ["fail", "unknown"])
+  test(`recovery ${outcome} never releases containment or changes a writer`, () => {
+    const held = toPhase("segment", "held", { outcome });
+    const checking = requestRecovery(held);
+    const blocked = advance(checking);
+    assert.equal(currentPhase(blocked), "recovery_held");
+    assert.deepEqual(snapshot(blocked).edges, snapshot(held).edges);
+    assert.deepEqual(snapshot(blocked).nodes, snapshot(held).nodes);
+    assert.equal(snapshot(blocked).writer, snapshot(held).writer);
+    assert.equal(advance(blocked), blocked);
+    assert.equal(requestRecovery(blocked), blocked);
+  });
