@@ -368,6 +368,20 @@
   padding: 21px 22px;
   align-items: start;
 }
+.flow-console-grid .flow-playback {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid #e8eef8;
+  border-radius: 9px;
+  background: #f8faff;
+}
+.flow-playback .playback-row {
+  padding: 0 0 10px;
+}
+.flow-playback #playback-status {
+  margin: 0;
+}
 .response-flow {
   min-width: 0;
 }

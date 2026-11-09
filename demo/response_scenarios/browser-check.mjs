@@ -206,6 +206,22 @@ try {
         ),
         true,
       );
+      assert.equal(
+        await evaluate(
+          "['next','autoplay','reset','speed','outcome'].every(id=>Boolean(document.getElementById(id).closest('.flow-console-grid')))",
+        ),
+        true,
+      );
+      assert.equal(
+        await evaluate("document.querySelectorAll('#next').length"),
+        1,
+      );
+      assert.equal(
+        await evaluate(
+          "document.getElementById('response-controls').getBoundingClientRect().bottom <= document.getElementById('map-viewport').getBoundingClientRect().top",
+        ),
+        true,
+      );
       await evaluate(
         "document.getElementById('injection-command').value='help';document.getElementById('injection-form').requestSubmit();document.getElementById('injection-command').value='status';document.getElementById('injection-form').requestSubmit()",
       );

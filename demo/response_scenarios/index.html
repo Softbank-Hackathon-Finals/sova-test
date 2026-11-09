@@ -200,6 +200,36 @@
                     role="status"
                   ></p>
                 </section>
+                <section
+                  class="playback-card flow-playback"
+                  id="response-controls"
+                  aria-label="대응 진행 제어"
+                >
+                  <div class="playback-row">
+                    <div class="playback-actions">
+                      <button id="next" class="button primary"></button
+                      ><button id="autoplay" class="button secondary">
+                        자동 재생</button
+                      ><button id="reset" class="button secondary">
+                        초기화
+                      </button>
+                    </div>
+                    <label
+                      >재생 간격<select id="speed">
+                        <option value="1800">1.8초</option>
+                        <option value="900">0.9초</option>
+                        <option value="3000">3초</option>
+                      </select></label
+                    ><label
+                      >검증 결과<select id="outcome">
+                        <option value="pass">통과</option>
+                        <option value="fail">실패</option>
+                        <option value="unknown">결과 불명확</option>
+                      </select></label
+                    >
+                  </div>
+                  <p id="playback-status" role="status" aria-live="polite"></p>
+                </section>
               </div>
               <div class="map-toolbar map-view-toolbar">
                 <p class="eyebrow">WORKLOAD FLOW</p>
@@ -243,30 +273,6 @@
                   >노드를 선택해 대응 범위와 연결 상태를 확인하세요.</small
                 >
               </div>
-            </section>
-            <section class="playback-card" aria-label="시나리오 재생">
-              <div class="playback-row">
-                <div class="playback-actions">
-                  <button id="next" class="button primary"></button
-                  ><button id="autoplay" class="button secondary">
-                    자동 재생</button
-                  ><button id="reset" class="button secondary">초기화</button>
-                </div>
-                <label
-                  >재생 간격<select id="speed">
-                    <option value="1800">1.8초</option>
-                    <option value="900">0.9초</option>
-                    <option value="3000">3초</option>
-                  </select></label
-                ><label
-                  >검증 결과<select id="outcome">
-                    <option value="pass">통과</option>
-                    <option value="fail">실패</option>
-                    <option value="unknown">결과 불명확</option>
-                  </select></label
-                >
-              </div>
-              <p id="playback-status" role="status" aria-live="polite"></p>
             </section>
           </div>
         </div>
