@@ -1,168 +1,186 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { SCENARIOS, createSession, currentPhase, snapshot } from "./model.mjs";
 import {
-  SCENARIOS,
-  createSession,
-  advance,
-  requestRecovery,
-} from "./model.mjs";
-import { injectionCommand, parseCommand, nextCommand } from "./commands.mjs";
+  injectionCommand,
+  nextCommand,
+  parseCommand,
+  executeCommand,
+} from "./commands.mjs";
 
-test("each preset command is bound to the selected scenario and complete target set", () => {
+const response = [
+  "response plan",
+  "response submit",
+  "response approve",
+  "response verify",
+  "response finalize",
+];
+function completed(id = "segment", outcome = "pass") {
+  let session = createSession(id, { outcome });
+  for (const raw of [injectionCommand(id), ...response])
+    session = executeCommand(session, raw).session;
+  return session;
+}
+test("each scoped injection changes one phase and wrong scenario or expanded scope is rejected", () => {
   for (const spec of SCENARIOS) {
-    const parsed = parseCommand(
-      injectionCommand(spec.id),
-      createSession(spec.id),
-    );
-    assert.equal(parsed.kind, "inject");
-    assert.deepEqual(parsed.targets, spec.targets);
-    const other = SCENARIOS.find((item) => item.id !== spec.id);
+    const normal = createSession(spec.id);
+    const result = executeCommand(normal, injectionCommand(spec.id));
+    assert.equal(result.session.phase, "detected");
+    assert.equal(result.session.history.length, normal.history.length + 1);
+    assert.deepEqual(result.command.targets, spec.targets);
+    const other = createSession(SCENARIOS.find((s) => s.id !== spec.id).id);
     assert.equal(
-      parseCommand(injectionCommand(spec.id), createSession(other.id)).kind,
-      "error",
+      executeCommand(other, injectionCommand(spec.id)).session,
+      other,
     );
   }
-});
-test("missing, duplicate and expanded target scopes are rejected", () => {
-  for (const command of [
+  for (const raw of [
     "inject lateral-movement --target api",
     "inject lateral-movement --target api,api",
     "inject lateral-movement --target api,worker,db",
-    "inject lateral-movement --target api,other",
   ])
-    assert.equal(parseCommand(command, createSession("segment")).kind, "error");
+    assert.equal(parseCommand(raw, createSession()).kind, "error");
 });
-test("shell commands, substitutions, markup and unsupported arguments never execute", () => {
-  for (const command of [
-    "kubectl delete pod api",
-    "inject access-violation --target worker;whoami",
-    "inject access-violation --target $(id)",
-    "<script>alert(1)</script>",
-    "inject access-violation --target worker --force",
-    "inject access-violation --target worker\nrm -rf /",
-    "",
-    "x".repeat(257),
-  ])
-    assert.equal(parseCommand(command, createSession("isolate")).kind, "error");
+test("each stage needs its exact command, including an explicit approval for preapproved scope", () => {
+  for (const spec of SCENARIOS)
+    for (const outcome of ["pass", "fail", "unknown"])
+      for (const preapproved of [false, true]) {
+        let session = createSession(spec.id, { outcome, preapproved });
+        const phases = [
+          "detected",
+          "planned",
+          "awaiting_approval",
+          "executing",
+          "verifying",
+          outcome === "pass" ? "complete" : "held",
+        ];
+        for (const [i, raw] of [
+          injectionCommand(spec.id),
+          ...response,
+        ].entries()) {
+          assert.equal(nextCommand(session), raw);
+          const before = session;
+          session = executeCommand(session, raw).session;
+          assert.equal(session.phase, phases[i]);
+          assert.equal(session.history.length, before.history.length + 1);
+          if (i < 3) assert.equal(session.approved, false);
+        }
+        assert.equal(snapshot(session).executionAuthority, false);
+      }
 });
-test("a repeated injection cannot reset or bypass an in-progress approval", () => {
-  let session = createSession("segment");
-  for (let i = 0; i < 3; i++) session = advance(session);
-  assert.equal(session.phase, "awaiting_approval");
-  assert.equal(
-    parseCommand(injectionCommand("segment"), session).kind,
-    "error",
-  );
-  assert.equal(session.approved, false);
-});
-test("console inspection commands do not confer approval or execution", () => {
-  const session = createSession("migrate");
-  for (const value of ["help", "status", "clear"])
-    assert.deepEqual(parseCommand(value, session), { kind: value });
-  for (const value of ["approve", "skip", "resume --force"])
-    assert.equal(parseCommand(value, session).kind, "error");
-  assert.equal(session.phase, "normal");
-});
-
-test("inspection is available in every phase without changing session or approval", () => {
-  let s = createSession("segment");
-  for (let i = 0; i < 9; i++) {
-    const before = structuredClone(s);
-    for (const [raw, kind] of [
-      ["workload status", "workload_status"],
-      ["incident inspect", "incident_inspect"],
-      ["response watch", "watch"],
-    ])
-      assert.deepEqual(parseCommand(raw, s), { kind });
-    assert.deepEqual(s, before);
-    s = advance(s, { approve: true });
-  }
-});
-test("approval and resume cannot skip planning, an approval boundary or a completed run", () => {
-  let s = createSession("migrate");
-  for (let i = 0; i < 7; i++) {
-    assert.equal(
-      parseCommand("response approve", s).kind,
-      s.phase === "awaiting_approval" ? "approve" : "error",
-    );
-    if (["normal", "awaiting_approval", "complete"].includes(s.phase))
-      assert.equal(parseCommand("response resume", s).kind, "error");
-    s = advance(s, { approve: true });
-  }
-});
-test("recovery commands are restricted by type, lifecycle and duplicate requests", () => {
-  for (const id of ["segment", "migrate", "patch", "credentials"]) {
-    let s = createSession(id);
-    assert.equal(parseCommand("recovery start", s).kind, "error");
-    for (let i = 0; i < 7; i++) s = advance(s, { approve: true });
-    assert.equal(
-      parseCommand("recovery start", s).kind,
-      id === "segment" ? "recover" : "error",
-    );
-    if (id === "segment") {
-      s = requestRecovery(s);
-      assert.equal(parseCommand("recovery start", s).kind, "error");
-      assert.equal(parseCommand("response approve", s).kind, "error");
-      assert.equal(parseCommand("response pause", s).kind, "pause");
-      assert.equal(parseCommand("response resume", s).kind, "resume");
+test("wrong-phase and repeated mutation commands never skip or repeat a step", () => {
+  let session = createSession();
+  const commands = [injectionCommand("segment"), ...response];
+  for (const expected of commands) {
+    for (const raw of commands.filter((raw) => raw !== expected)) {
+      const result = executeCommand(session, raw);
+      assert.equal(result.command.kind, "error", raw);
+      assert.equal(result.session, session);
     }
+    session = executeCommand(session, expected).session;
+  }
+  for (const raw of commands)
+    assert.equal(executeCommand(session, raw).session, session);
+});
+test("observation commands never advance, approve, verify or release containment", () => {
+  let session = createSession();
+  for (const step of [injectionCommand("segment"), ...response]) {
+    const before = structuredClone(session);
+    for (const raw of [
+      "help",
+      "status",
+      "workload status",
+      "incident inspect",
+      "response watch",
+      "clear",
+    ]) {
+      assert.notEqual(parseCommand(raw, session).kind, "error");
+      assert.equal(executeCommand(session, raw).session, session);
+    }
+    assert.deepEqual(session, before);
+    session = executeCommand(session, step).session;
   }
 });
-test("operator commands reject extra scope, chaining, prototypes and approval bypass flags", () => {
-  let s = createSession("segment");
-  for (let i = 0; i < 3; i++) s = advance(s);
+test("recovery requires three explicit commands, fixes its outcome and blocks early reconnection", () => {
+  for (const outcome of ["pass", "fail", "unknown"]) {
+    let session = completed();
+    assert.equal(nextCommand(session), "recovery start");
+    session = executeCommand(session, "recovery start", {
+      recoveryOutcome: outcome,
+    }).session;
+    assert.equal(currentPhase(session), "recovery_checking");
+    assert.equal(snapshot(session).counters.isolated, 2);
+    assert.equal(executeCommand(session, "recovery finalize").session, session);
+    assert.equal(executeCommand(session, "recovery start").session, session);
+    assert.equal(nextCommand(session), "recovery verify");
+    session = executeCommand(session, "recovery verify", {
+      recoveryOutcome: "pass",
+    }).session;
+    assert.equal(
+      currentPhase(session),
+      outcome === "pass" ? "recovery_restoring" : "recovery_held",
+    );
+    assert(snapshot(session).counters.cut > 0);
+    if (outcome === "pass") {
+      assert.equal(nextCommand(session), "recovery finalize");
+      session = executeCommand(session, "recovery finalize").session;
+      assert.equal(currentPhase(session), "recovered");
+      assert.equal(snapshot(session).counters.cut, 0);
+      assert.equal(snapshot(session).hold, true);
+    } else
+      assert.equal(
+        executeCommand(session, "recovery finalize").session,
+        session,
+      );
+    assert.equal(snapshot(session).incidentReleased, false);
+    assert.equal(executeCommand(session, "recovery start").session, session);
+  }
+});
+test("unsupported recoveries and failed responses do not gain a return path", () => {
+  for (const spec of SCENARIOS)
+    for (const outcome of ["pass", "fail", "unknown"]) {
+      const session = completed(spec.id, outcome);
+      const supported =
+        ["isolate", "segment"].includes(spec.id) && outcome === "pass";
+      assert.equal(
+        parseCommand("recovery start", session).kind,
+        supported ? "recover" : "error",
+      );
+    }
+});
+test("shell payloads, extra scope, forced completion and old playback commands are refused", () => {
+  const session = createSession();
   for (const raw of [
+    "kubectl delete pod api",
+    "inject lateral-movement --target $(id)",
     "response approve --force",
-    "response approve --target db",
-    "response approve; recovery start",
+    "response verify; response finalize",
     "response\napprove",
-    "recovery start --skip-checks",
+    "response finalize --skip-checks",
     "recovery start --target db",
-    "response watch --approve",
     "constructor",
     "__proto__",
     "toString",
-    "response approve && id",
-  ])
-    assert.equal(parseCommand(raw, s).kind, "error", raw);
+    "<script>alert(1)</script>",
+    "response resume",
+    "response pause",
+    "next",
+    "autoplay",
+    "",
+    "x".repeat(257),
+  ]) {
+    const result = executeCommand(session, raw);
+    assert.equal(result.command.kind, "error", raw);
+    assert.equal(result.session, session);
+  }
 });
-
-test("next suggestions follow each lifecycle without advancing or granting approval", () => {
-  for (const spec of SCENARIOS)
-    for (const outcome of ["pass", "fail", "unknown"]) {
-      let session = createSession(spec.id, { outcome });
-      assert.equal(nextCommand(session), injectionCommand(spec.id));
-      for (let i = 0; i < 8; i++) {
-        const before = structuredClone(session);
-        for (const playing of [true, false])
-          assert.notEqual(
-            parseCommand(nextCommand(session, { playing }), session).kind,
-            "error",
-          );
-        assert.deepEqual(session, before);
-        if (session.phase === "awaiting_approval" && !session.preapproved)
-          assert.equal(nextCommand(session), "response approve");
-        session = advance(session, { approve: true });
-      }
-      if (outcome !== "pass")
-        assert.equal(nextCommand(session), "incident inspect");
-      else if (["isolate", "segment"].includes(spec.id)) {
-        assert.equal(nextCommand(session), "recovery start");
-        session = requestRecovery(session);
-        assert.equal(nextCommand(session), "response watch");
-        assert.equal(
-          nextCommand(session, { playing: false }),
-          "response resume",
-        );
-        session = advance(advance(session));
-        assert.equal(nextCommand(session), "workload status");
-      } else assert.equal(nextCommand(session), "workload status");
-    }
-});
-test("preapproved waiting suggests observation or resume instead of another approval", () => {
-  let session = createSession("segment", { preapproved: true });
-  for (let i = 0; i < 3; i++) session = advance(session);
-  assert.equal(nextCommand(session), "response watch");
-  assert.equal(nextCommand(session, { playing: false }), "response resume");
-  assert.equal(session.approved, false);
+test("terminal reset starts an unapproved run with the same scenario and no real authority", () => {
+  const original = completed();
+  const reset = executeCommand(original, "response reset").session;
+  assert.equal(reset.scenario, original.scenario);
+  assert.equal(reset.phase, "normal");
+  assert.equal(reset.approved, false);
+  assert.equal(reset.recovery, null);
+  assert.equal(reset.history.length, 1);
+  assert.equal(reset.source, "mock");
 });

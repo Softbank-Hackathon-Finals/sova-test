@@ -1,9 +1,11 @@
 // Fixed browser commands, not a shell or an execution adapter.
 import {
   definition,
-  isTerminal,
   recoveryAvailable,
   currentPhase,
+  advance,
+  requestRecovery,
+  createSession,
 } from "./model.mjs";
 
 const SIGNALS = {
@@ -21,18 +23,68 @@ export function injectionCommand(id) {
   const spec = definition(id);
   return `inject ${SIGNALS[id]} --target ${spec.targets.join(",")}`;
 }
-// Suggestions only: the caller must still submit and pass parseCommand.
-export function nextCommand(session, { playing = true } = {}) {
+// Each suggestion must be explicitly submitted; there is no playback scheduler.
+export function nextCommand(session) {
   const phase = currentPhase(session);
   if (phase === "normal") return injectionCommand(session.scenario);
-  if (phase === "awaiting_approval" && !session.preapproved)
-    return "response approve";
   if (recoveryAvailable(session)) return "recovery start";
-  if (["held", "recovery_held"].includes(phase)) return "incident inspect";
-  if (isTerminal(session)) return "workload status";
-  if (!playing) return "response resume";
-  if (["detected", "planned"].includes(phase)) return "incident inspect";
-  return "response watch";
+  return (
+    {
+      detected: "response plan",
+      planned: "response submit",
+      awaiting_approval: "response approve",
+      executing: "response verify",
+      verifying: "response finalize",
+      recovery_checking: "recovery verify",
+      recovery_restoring: "recovery finalize",
+      held: "incident inspect",
+      recovery_held: "incident inspect",
+    }[phase] || "workload status"
+  );
+}
+const ACTIONS = {
+  "response plan": ["plan", "detected"],
+  "response submit": ["submit", "planned"],
+  "response verify": ["verify", "executing"],
+  "response finalize": ["finalize", "verifying"],
+  "recovery verify": ["recovery_verify", "recovery_checking"],
+  "recovery finalize": ["recovery_finalize", "recovery_restoring"],
+};
+export function executeCommand(session, raw, options = {}) {
+  const command = parseCommand(raw, session);
+  if (command.kind === "error") return { command, session };
+  if (command.kind === "recover")
+    return {
+      command,
+      session: requestRecovery(session, {
+        outcome: options.recoveryOutcome ?? "pass",
+      }),
+    };
+  if (command.kind === "reset")
+    return {
+      command,
+      session: createSession(session.scenario, {
+        outcome: options.outcome ?? session.outcome,
+        preapproved: session.preapproved,
+      }),
+    };
+  if (
+    [
+      "inject",
+      "plan",
+      "submit",
+      "approve",
+      "verify",
+      "finalize",
+      "recovery_verify",
+      "recovery_finalize",
+    ].includes(command.kind)
+  )
+    return {
+      command,
+      session: advance(session, { approve: command.kind === "approve" }),
+    };
+  return { command, session };
 }
 export function parseCommand(raw, session) {
   if (typeof raw !== "string" || raw.length > 256 || /[\r\n\u0000]/.test(raw))
@@ -57,25 +109,16 @@ export function parseCommand(raw, session) {
           message: "현재 선택한 대응이 승인 대기일 때만 승인할 수 있습니다.",
         };
   }
-  if (["response pause", "response resume"].includes(name)) {
-    if (isTerminal(session) || session.phase === "normal")
-      return {
-        kind: "error",
-        message:
-          "진행 중인 대응이 없습니다. 상태를 조회하거나 이상을 먼저 주입해 주세요.",
-      };
-    if (
-      name === "response resume" &&
-      session.phase === "awaiting_approval" &&
-      !session.preapproved
-    )
-      return {
-        kind: "error",
-        message:
-          "승인이 필요합니다. response approve로 선택한 범위를 확인해 주세요.",
-      };
-    return { kind: name.endsWith("pause") ? "pause" : "resume" };
+  if (Object.hasOwn(ACTIONS, name)) {
+    const [kind, phase] = ACTIONS[name];
+    return currentPhase(session) === phase
+      ? { kind }
+      : {
+          kind: "error",
+          message: `현재 단계에서는 실행할 수 없습니다. 다음 명령: ${nextCommand(session)}`,
+        };
   }
+  if (name === "response reset") return { kind: "reset" };
   if (name === "recovery start")
     return recoveryAvailable(session)
       ? { kind: "recover" }

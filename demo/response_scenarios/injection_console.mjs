@@ -8,14 +8,7 @@ import {
 } from "./model.mjs";
 import { injectionCommand, parseCommand, nextCommand } from "./commands.mjs";
 
-export function mountInjectionConsole({
-  getSession,
-  onInject,
-  onApprove,
-  onPause,
-  onResume,
-  onRecover,
-}) {
+export function mountInjectionConsole({ getSession, onCommand }) {
   const input = document.getElementById("injection-command");
   const output = document.getElementById("injection-output");
   const feedback = document.getElementById("injection-feedback");
@@ -23,8 +16,7 @@ export function mountInjectionConsole({
   let run = null,
     seen = 0,
     context = null,
-    draft = false,
-    playing = false;
+    draft = false;
   input.addEventListener("input", () => {
     draft = true;
   });
@@ -67,15 +59,19 @@ export function mountInjectionConsole({
       );
       line(
         "info",
-        "response approve: 승인 후 자동 진행 / response watch: 현재 흐름 관찰",
+        "response plan → response submit → response approve: 계획·승인 요청·승인 (각 한 단계)",
       );
       line(
         "info",
-        "response pause / response resume: 진행 일시정지·재개 (승인 생략 불가)",
+        "response verify → response finalize: 검증·판정 확정 / response watch: 조회만 수행",
       );
       line(
         "info",
-        "recovery start: 격리 완료 후 원본 재검증·복귀 요청 / clear: 콘솔 기록 지우기",
+        "recovery start → recovery verify → recovery finalize: 복귀 요청·재검증·복귀 확정",
+      );
+      line(
+        "info",
+        "response reset: 현재 유형 새 실행 / clear: 콘솔 표시만 지우기. 다음 단계는 명령 실행으로만 진행합니다.",
       );
       return;
     }
@@ -120,51 +116,41 @@ export function mountInjectionConsole({
       );
       return;
     }
-    if (command.kind === "approve") {
-      line(
-        "accepted",
-        "선택 대상·대응 범위 승인 접수 · 실행과 검증을 자동 진행합니다.",
-      );
-      onApprove();
+    if (
+      [
+        "inject",
+        "plan",
+        "submit",
+        "approve",
+        "verify",
+        "finalize",
+        "recover",
+        "recovery_verify",
+        "recovery_finalize",
+        "reset",
+      ].includes(command.kind)
+    ) {
+      if (command.kind === "inject")
+        line(
+          "accepted",
+          `이벤트 접수: ${command.event} · 대상 ${command.targets.join(", ")}`,
+        );
+      else
+        line(
+          "accepted",
+          "명령 접수 · 현재 단계만 처리합니다. 다음 명령 실행 전까지 대기합니다.",
+        );
+      onCommand(raw);
       return;
     }
-    if (command.kind === "pause") {
-      onPause();
-      line(
-        "info",
-        "진행을 일시정지했습니다. 승인·격리·연결 상태는 유지합니다.",
-      );
-      return;
-    }
-    if (command.kind === "resume") {
-      onResume();
-      line("info", "현재 단계에서 진행을 재개합니다.");
-      return;
-    }
-    if (command.kind === "recover") {
-      line(
-        "accepted",
-        "선택 대상의 원본 재검증·복귀 요청 접수 · 검증 전에는 격리를 유지합니다.",
-      );
-      onRecover();
-      return;
-    }
-    if (command.kind !== "inject") {
-      line("error", "처리할 수 없는 명령입니다.");
-      return;
-    }
-    line(
-      "accepted",
-      `이벤트 접수: ${command.event} · 대상 ${command.targets.join(", ")}`,
-    );
-    onInject(command);
+    line("error", "처리할 수 없는 명령입니다.");
   }
   document.getElementById("injection-form").onsubmit = (event) => {
     event.preventDefault();
     execute(input.value);
   };
   example.onclick = () => {
-    input.value = nextCommand(getSession(), { playing });
+    input.value = nextCommand(getSession());
     draft = false;
     input.focus();
     input.removeAttribute("aria-invalid");
@@ -175,11 +161,13 @@ export function mountInjectionConsole({
   for (const button of document.querySelectorAll("[data-console-command]"))
     button.onclick = () => {
       input.value = button.dataset.consoleCommand;
-      execute(input.value);
+      draft = false;
+      input.focus();
+      input.removeAttribute("aria-invalid");
+      feedback.textContent = "";
     };
   return {
-    update(session, version, runtime = {}) {
-      playing = runtime.playing ?? false;
+    update(session, version) {
       if (run !== version) {
         run = version;
         seen = 0;
@@ -189,8 +177,8 @@ export function mountInjectionConsole({
         draft = false;
         input.removeAttribute("aria-invalid");
       }
-      const next = nextCommand(session, { playing });
-      const nextContext = `${version}:${currentPhase(session)}:${playing}`;
+      const next = nextCommand(session);
+      const nextContext = `${version}:${currentPhase(session)}`;
       if (context !== nextContext) {
         context = nextContext;
         if (!draft || !input.value.trim()) {

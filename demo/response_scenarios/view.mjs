@@ -5,16 +5,14 @@ import {
   HEALTH_LABELS,
   definition,
   createSession,
-  advance,
   snapshot,
   currentPhase,
-  isTerminal,
-  requestRecovery,
   recoveryAvailable,
 } from "./model.mjs";
 import { createMotionClock, motionPlan } from "./motion.mjs";
 import { mountSidebar, mountStudioView } from "./layout.mjs";
 import { mountInjectionConsole } from "./injection_console.mjs";
+import { executeCommand } from "./commands.mjs";
 
 const $ = (id) => document.getElementById(id);
 const element = (tag, text, className) => {
@@ -33,8 +31,6 @@ const svgElement = (tag, attrs = {}, text) => {
 let session = createSession(),
   selected = "api",
   zoom = 1,
-  timer = null,
-  playing = false,
   runVersion = 0,
   motionPaused = false,
   currentGraph = null,
@@ -53,13 +49,7 @@ const glyphs = {
   database: "▥",
 };
 
-function stop() {
-  playing = false;
-  clearTimeout(timer);
-  timer = null;
-}
 function reset(id = session.scenario) {
-  stop();
   motion.clear();
   runVersion++;
   motionPaused = false;
@@ -72,42 +62,6 @@ function reset(id = session.scenario) {
   });
   selected = definition(id).targets[0];
   render();
-}
-function forward(approve = false) {
-  const next = advance(session, { approve });
-  session = next;
-  if (
-    isTerminal(session) ||
-    (!session.recovery &&
-      session.phase === "awaiting_approval" &&
-      !session.preapproved)
-  )
-    stop();
-  render();
-}
-function approveAndContinue() {
-  if (
-    session.phase !== "awaiting_approval" ||
-    session.approved ||
-    session.recovery
-  )
-    return;
-  stop();
-  playing = true;
-  setMotionPaused(false);
-  forward(true);
-  schedule();
-}
-function schedule() {
-  clearTimeout(timer);
-  if (!playing) return;
-  timer = setTimeout(
-    () => {
-      forward();
-      schedule();
-    },
-    Number($("speed").value),
-  );
 }
 function renderScenarios() {
   const root = $("scenario-list");
@@ -497,7 +451,7 @@ function renderGraph(view) {
   $("motion-caption").textContent = currentMotionPlan.caption;
   motion.transition(currentMotionPlan.positions, {
     identity: `${runVersion}:${session.scenario}:${currentPhase(session)}`,
-    duration: Math.max(800, Math.min(2600, Number($("speed").value) * 0.85)),
+    duration: 1400,
     immediate: reducedMotion.matches,
   });
   setMotionPaused(motionPaused);
@@ -588,10 +542,15 @@ function renderApproval() {
       "대상과 동작을 확인한 뒤 승인하세요. 시간이 지나도 자동으로 승인되지 않습니다.",
     ),
   );
-  const button = element("button", "승인 후 계속", "button primary");
+  const button = element("button", "승인 명령 채우기", "button primary");
   button.type = "button";
   button.id = "approve";
-  button.onclick = approveAndContinue;
+  button.onclick = () => {
+    const input = $("injection-command");
+    input.value = "response approve";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.focus();
+  };
   root.append(button);
 }
 function render() {
@@ -630,22 +589,6 @@ function render() {
       return item;
     }),
   );
-  const terminal = isTerminal(session),
-    approval =
-      !session.recovery &&
-      session.phase === "awaiting_approval" &&
-      !session.preapproved;
-  $("next").textContent =
-    session.phase === "normal"
-      ? "이상 상황 주입"
-      : terminal
-        ? "실행 종료"
-        : approval
-          ? "승인 필요"
-          : "다음 단계";
-  $("next").disabled = terminal || approval;
-  $("autoplay").textContent = playing ? "재생 일시정지" : "자동 재생";
-  $("autoplay").disabled = terminal || approval;
   $("outcome").disabled = session.phase !== "normal";
   $("recovery-outcome").disabled = !recoveryAvailable(session);
   $("preapproved").disabled = !spec.policy || session.phase !== "normal";
@@ -674,9 +617,6 @@ function render() {
       element("dd", value),
     ]),
   );
-  $("playback-status").textContent = session.history.at(-1).message;
-  $("playback-status").className =
-    session.phase === "held" ? "held-message" : "";
   $("event-list").replaceChildren(
     ...session.history.map((event, i) => {
       const row = element("li");
@@ -693,27 +633,13 @@ function render() {
     }),
   );
   renderApproval();
-  injectionConsole.update(session, runVersion, { playing });
+  injectionConsole.update(session, runVersion);
   renderGraph(view);
   renderInspector(view);
 }
-$("next").onclick = () => forward();
-$("reset").onclick = () => reset();
 $("outcome").onchange = () => reset();
 $("preapproved").onchange = () => reset();
-$("autoplay").onclick = () => {
-  if (playing) {
-    stop();
-    setMotionPaused(true);
-  } else {
-    playing = true;
-    setMotionPaused(false);
-  }
-  render();
-  schedule();
-};
 $("motion-toggle").onclick = () => setMotionPaused(!motionPaused);
-$("speed").onchange = schedule;
 $("zoom-in").onclick = () => {
   zoom = Math.min(2, zoom + 0.2);
   renderGraph(snapshot(session));
@@ -761,7 +687,6 @@ for (const button of document.querySelectorAll("[data-section]"))
   };
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
-    stop();
     setMotionPaused(true);
     render();
   }
@@ -772,42 +697,25 @@ reducedMotion.addEventListener("change", () => {
 });
 const injectionConsole = mountInjectionConsole({
   getSession: () => session,
-  onInject: () => {
-    stop();
-    setMotionPaused(false);
-    playing = true;
-    forward();
-    schedule();
-  },
-  onApprove: approveAndContinue,
-  onPause: () => {
-    stop();
-    setMotionPaused(true);
-    render();
-  },
-  onResume: () => {
-    playing = true;
-    setMotionPaused(false);
-    render();
-    schedule();
-  },
-  onRecover: () => {
-    const next = requestRecovery(session, {
-      outcome: $("recovery-outcome").value,
+  onCommand: (raw) => {
+    const result = executeCommand(session, raw, {
+      recoveryOutcome: $("recovery-outcome").value,
+      outcome: $("outcome").value,
     });
-    if (next === session) return;
-    stop();
-    session = next;
-    playing = true;
+    if (result.command.kind === "error") return;
+    if (result.command.kind === "reset") {
+      reset();
+      return;
+    }
+    if (result.session === session) return;
+    session = result.session;
     setMotionPaused(false);
     render();
-    schedule();
   },
 });
 mountSidebar();
 mountStudioView();
 window.addEventListener("pagehide", () => {
-  stop();
   motion.clear();
 });
 render();
