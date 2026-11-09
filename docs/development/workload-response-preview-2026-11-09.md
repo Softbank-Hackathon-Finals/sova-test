@@ -74,9 +74,9 @@ python3 -m demo.response_scenarios --port 18132
 
 | 범위 | 결과 |
 |---|---|
-| Node 기본 시험기 | 모델 13개 + 이동·정지·재생 8개, 총 21개 통과 |
+| Node 기본 시험기 | 모델 13개 + 이동·정지·재생 8개 + 주입 명령 5개, 총 26개 통과 |
 | Python unittest·실제 loopback HTTP | 서버 3개 통과 |
-| 분리된 Chrome·CDP | 애니메이션·반응형 사이드바 포함 브라우저 17항목 통과 |
+| 분리된 Chrome·CDP | 주입 콘솔·애니메이션·반응형 사이드바 포함 브라우저 21항목 통과 |
 | 화면 | 데스크톱 1600px, 모바일 390px 확인 |
 | 접근성 | 키보드 노드 선택, 승인 상태 안내, reduced-motion 확인 |
 | 네트워크 | 정적 GET만 발생. 외부·제품 API·변경 요청·브라우저 오류 0건 |
@@ -84,6 +84,7 @@ python3 -m demo.response_scenarios --port 18132
 ```sh
 node --test demo/response_scenarios/model.test.mjs
 node --test demo/response_scenarios/motion.test.mjs
+node --test demo/response_scenarios/commands.test.mjs
 python3 -m unittest demo.response_scenarios.test_server -v
 node --check demo/response_scenarios/view.mjs
 ```
@@ -160,3 +161,31 @@ reduced-motion에서는 슬라이드 전환을 생략한다.
 1200px 화면에서 메뉴 상태에 따라 지도 상세 패널이 재배치되는지 확인했다.
 새로고침 후 선택 유지, 모바일 배경·키보드·닫기 경로, 가로 넘침과 기존 이동 흐름을 포함해
 17항목을 검증했다. 외부·제품 API·변경 요청은 0건이다.
+
+## 대응 흐름과 주입 콘솔 통합
+
+사용자가 지정한 지도 상단 영역을 `대응 흐름 · 주입 콘솔`로 변경했다.
+기존 단계 표시와 승인 패널을 같은 영역으로 옮기고, 지도·움직임·확대 도구는 그 아래에 유지한다.
+선택 유형에 맞는 주입 명령을 입력하거나 예시를 채워 실행할 수 있다.
+
+```text
+inject lateral-movement --target api,worker
+```
+
+명령은 서버 셸이나 kubectl로 전달하지 않는다. 브라우저의 고정 문법만 해석해 현재
+시나리오 이벤트·대상 집합과 대조한다. 접수 시 기존 상태 모델의 이상 주입으로 한 번 진행하고
+자동 재생을 시작한다. 승인이 필요한 단계에서는 기존과 같이 멈춘다.
+현재 단계와 대상 범위를 벗어난 요청, 재주입, 추가 인자, 셸 치환·체이닝은 거부한다.
+일반 상태 조회나 도움말이 실행·승인을 만들지 않는다.
+
+`help`, `status`, `clear`와 로그 지우기를 제공한다. 기록은 textContent로만 표시하고
+최대 80행·행당 500자, 명령은 최대 256자로 제한한다. 화면의 기록은 운영 감사 로그가 아니다.
+유형 변경·초기화 시 입력·로그·이전 자동 재생을 함께 초기화한다.
+
+- `commands.mjs`: 9가지 고정 주입 이벤트와 대상 범위, 명령 형식 검사.
+- `injection_console.mjs`: 입력·피드백·모델 단계 기록과 UI 이벤트 연결.
+- 명령 시험 5개 통과: 전체 유형, 누락·중복·범위 초과, 셸·HTML·추가 인자, 반복 주입, 승인 우회 거부.
+- 실제 Chrome 21항목 통과: 주입 → 흐름 진행 → 승인 대기, 9개 유형의 주입, 입력 거부와 DOM 비실행,
+  도움말·조회·로그 지우기, 기존 반응형·애니메이션·접근성 확인.
+
+외부·제품 API·변경 HTTP 요청과 브라우저 오류는 0건이다. 기존의 실환경 미연결 경계를 유지했다.

@@ -36,6 +36,8 @@ def compose(console, manager, *, authorize, terminal_command, host_factory):
         ("model.mjs", "text/javascript"),
         ("motion.mjs", "text/javascript"),
         ("layout.mjs", "text/javascript"),
+        ("commands.mjs", "text/javascript"),
+        ("injection_console.mjs", "text/javascript"),
         ("view.mjs", "text/javascript"),
         ("styles.css", "text/css"),
     ):

@@ -134,11 +134,75 @@
               class="response-map-card"
               aria-label="워크로드 지도"
             >
-              <div class="map-toolbar">
+              <div class="flow-console-heading">
                 <div>
-                  <p class="eyebrow">WORKLOAD MAP</p>
-                  <h2>연결·격리·교체를 한눈에</h2>
+                  <p class="eyebrow">RESPONSE FLOW & INJECTION CONSOLE</p>
+                  <h2>대응 흐름 · 주입 콘솔</h2>
                 </div>
+              </div>
+              <div class="flow-console-grid">
+                <section class="response-flow" aria-label="대응 흐름">
+                  <h3>대응 흐름</h3>
+                  <p class="flow-english" lang="en">Response Flow</p>
+                  <div id="phase-track" class="phase-track"></div>
+                  <div id="approval-panel" class="approval-panel" hidden></div>
+                </section>
+                <section
+                  class="injection-console"
+                  aria-labelledby="injection-title"
+                >
+                  <header class="injection-heading">
+                    <div>
+                      <span class="terminal-lights" aria-hidden="true"
+                        ><i></i><i></i><i></i
+                      ></span>
+                      <h3 id="injection-title">주입 콘솔</h3>
+                      <span class="terminal-english" lang="en"
+                        >Injection Console</span
+                      >
+                    </div>
+                    <span id="injection-state"></span>
+                  </header>
+                  <div class="injection-scope">
+                    대상 <span id="injection-targets"></span>
+                  </div>
+                  <div
+                    id="injection-output"
+                    class="injection-output"
+                    role="log"
+                    aria-label="주입과 대응 기록"
+                    aria-live="polite"
+                  ></div>
+                  <form id="injection-form" autocomplete="off">
+                    <label for="injection-command" class="console-prompt"
+                      >sova &gt;</label
+                    ><input
+                      id="injection-command"
+                      type="text"
+                      aria-label="주입 명령"
+                      maxlength="256"
+                      spellcheck="false"
+                      autocomplete="off"
+                    /><button type="submit" class="injection-submit">
+                      실행 ↵
+                    </button>
+                  </form>
+                  <div class="injection-tools">
+                    <button id="injection-example" type="button">
+                      주입 명령 채우기</button
+                    ><button id="injection-clear" type="button">
+                      로그 지우기</button
+                    ><span>help · status · clear</span>
+                  </div>
+                  <p
+                    id="injection-feedback"
+                    class="injection-feedback"
+                    role="status"
+                  ></p>
+                </section>
+              </div>
+              <div class="map-toolbar map-view-toolbar">
+                <p class="eyebrow">WORKLOAD FLOW</p>
                 <div class="map-tools">
                   <button id="motion-toggle" type="button" aria-pressed="false">
                     움직임 정지
@@ -181,7 +245,6 @@
               </div>
             </section>
             <section class="playback-card" aria-label="시나리오 재생">
-              <div id="phase-track" class="phase-track"></div>
               <div class="playback-row">
                 <div class="playback-actions">
                   <button id="next" class="button primary"></button
@@ -203,7 +266,6 @@
                   </select></label
                 >
               </div>
-              <div id="approval-panel" class="approval-panel" hidden></div>
               <p id="playback-status" role="status" aria-live="polite"></p>
             </section>
           </div>

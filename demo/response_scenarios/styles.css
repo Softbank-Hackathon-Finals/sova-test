@@ -354,6 +354,360 @@
   padding: 22px 22px 12px;
   gap: 12px;
 }
+.flow-console-heading {
+  padding: 23px 22px 18px;
+  border-bottom: 1px solid #edf1f7;
+}
+.flow-console-heading h2 {
+  font-size: 19px;
+}
+.flow-console-grid {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 22px;
+  padding: 21px 22px;
+  align-items: start;
+}
+.response-flow {
+  min-width: 0;
+}
+.response-flow h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #526b91;
+}
+.flow-english {
+  font-size: 10px;
+  color: #97a6ba;
+  margin: 5px 0 17px;
+}
+.response-flow .phase-track {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  border: 0;
+  padding: 0;
+}
+.response-flow .phase-item {
+  position: relative;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  font-size: 11px;
+}
+.response-flow .phase-item::after {
+  content: "";
+  position: absolute;
+  top: 25px;
+  bottom: -7px;
+  left: 10px;
+  width: 1px;
+  background: #e8edf7;
+}
+.response-flow .phase-item:last-child::after {
+  display: none;
+}
+.response-flow .phase-item.reached::after {
+  background: #cbdcfa;
+}
+.response-flow .approval-panel {
+  margin: 17px 0 0;
+  padding: 13px;
+}
+.response-flow .approval-panel strong {
+  font-size: 11px;
+}
+.response-flow .approval-panel p {
+  font-size: 10px;
+}
+.response-flow .approval-panel small {
+  font-size: 9px;
+}
+.response-flow .approval-panel .button {
+  width: 100%;
+}
+.injection-console {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #263a59;
+  border-radius: 11px;
+  background: #17243a;
+  box-shadow: 0 5px 15px #18334f0a;
+}
+.injection-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 16px;
+  background: #1c2b43;
+  border-bottom: 1px solid #2b3c57;
+}
+.injection-heading > div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.injection-heading h3 {
+  color: #d9e5f8;
+  font-size: 12px;
+  margin: 0;
+  font-weight: 600;
+}
+.terminal-english {
+  color: #8194b3;
+  font-size: 10px;
+}
+.terminal-lights {
+  display: flex;
+  gap: 4px;
+}
+.terminal-lights i {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #677a98;
+}
+.terminal-lights i:first-child {
+  background: #d18e9d;
+}
+.terminal-lights i:nth-child(2) {
+  background: #d1b986;
+}
+.terminal-lights i:nth-child(3) {
+  background: #7aafa2;
+}
+#injection-state {
+  color: #9bb6e4;
+  background: #263b5b;
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+#injection-state[data-phase="held"] {
+  color: #e2bba4;
+  background: #543c3d;
+}
+#injection-state[data-phase="complete"] {
+  color: #99d3ba;
+  background: #29463e;
+}
+.injection-scope {
+  padding: 11px 16px 7px;
+  color: #7f95b5;
+  font-size: 10px;
+}
+.injection-scope span {
+  margin-left: 8px;
+  color: #a1b8dc;
+  font-family: ui-monospace, monospace;
+}
+.injection-output {
+  height: 170px;
+  overflow: auto;
+  padding: 5px 16px 12px;
+  scrollbar-color: #425978 transparent;
+}
+.console-line {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 7px;
+  margin: 7px 0;
+  color: #a1b3d0;
+  font:
+    10px/1.8 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.console-prefix {
+  color: #6986b0;
+}
+.console-line.command {
+  color: #d3e2f7;
+}
+.console-line.command .console-prefix {
+  color: #7eaaf2;
+}
+.console-line.error {
+  color: #e3b09e;
+}
+.console-line.error .console-prefix {
+  color: #c78d81;
+}
+.console-line.accepted {
+  color: #91c6b5;
+}
+#injection-form {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 14px;
+  border-top: 1px solid #2b3b55;
+  background: #142136;
+}
+.console-prompt {
+  white-space: nowrap;
+  color: #7faff7;
+  font:
+    11px ui-monospace,
+    monospace;
+}
+#injection-command {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  color: #dfebff;
+  border: 0;
+  padding: 8px 3px;
+  font:
+    11px ui-monospace,
+    SFMono-Regular,
+    monospace;
+  border-radius: 3px;
+}
+#injection-command:focus-visible {
+  outline: 1px solid #587cac;
+  outline-offset: 3px;
+}
+#injection-command[aria-invalid="true"] {
+  color: #e9bcaa;
+}
+.injection-submit {
+  background: #3d6bd7;
+  color: white;
+  border-radius: 6px;
+  padding: 9px 11px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.injection-submit:hover {
+  background: #4a7be9;
+}
+.injection-tools {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex-wrap: wrap;
+  padding: 8px 15px 12px;
+  color: #7285a5;
+  font-size: 9px;
+}
+.injection-tools button {
+  padding: 0;
+  color: #91a8ce;
+  background: transparent;
+  font-size: 9px;
+}
+.injection-tools button:hover {
+  color: #c1d4f4;
+}
+.injection-tools > span {
+  margin-left: auto;
+  font-family: ui-monospace, monospace;
+}
+.injection-feedback {
+  color: #e1ad98;
+  font-size: 10px;
+  line-height: 1.7;
+  padding: 0 15px 12px;
+  margin: 0;
+}
+.injection-feedback:empty {
+  display: none;
+}
+.map-view-toolbar {
+  padding-top: 16px;
+  border-top: 1px solid #edf1f7;
+}
+.map-view-toolbar > .eyebrow {
+  margin: 0;
+  font-size: 10px;
+}
+@container workspace (max-width: 1000px) {
+  .flow-console-grid {
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 15px;
+    padding: 18px;
+  }
+  .terminal-english {
+    display: none;
+  }
+}
+@container workspace (max-width: 780px) {
+  .flow-console-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .response-flow .phase-track {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px 8px;
+  }
+  .response-flow .phase-item {
+    min-width: 0;
+    font-size: 9px;
+    gap: 5px;
+  }
+  .response-flow .phase-item::after {
+    display: none;
+  }
+  .response-flow .approval-panel {
+    margin-top: 13px;
+  }
+  .terminal-english {
+    display: inline;
+  }
+}
+@media (max-width: 520px) {
+  .flow-console-heading {
+    padding: 18px 14px;
+  }
+  .flow-console-heading .eyebrow {
+    font-size: 8px;
+  }
+  .flow-console-heading h2 {
+    font-size: 17px;
+  }
+  .flow-console-grid {
+    padding: 15px 12px;
+  }
+  .injection-heading {
+    padding: 13px 12px;
+  }
+  .injection-heading > div {
+    gap: 7px;
+  }
+  .terminal-english {
+    display: none;
+  }
+  #injection-form {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px;
+  }
+  .console-prompt {
+    font-size: 10px;
+  }
+  #injection-command {
+    font-size: 10px;
+  }
+  .injection-submit {
+    padding: 9px;
+  }
+  .injection-output {
+    height: 185px;
+    padding-inline: 12px;
+  }
+  .console-line {
+    grid-template-columns: 38px minmax(0, 1fr);
+    font-size: 9px;
+  }
+}
 .map-toolbar h2 {
   font-size: 17px;
 }

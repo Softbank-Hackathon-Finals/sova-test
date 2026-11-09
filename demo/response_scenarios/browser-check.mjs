@@ -196,6 +196,149 @@ try {
       );
     },
   );
+  await check(
+    "flow and injection console share the map card and inspection commands do not advance",
+    async () => {
+      await choose("segment");
+      assert.equal(
+        await evaluate(
+          "document.getElementById('map').contains(document.getElementById('injection-form')) && document.getElementById('map').contains(document.getElementById('phase-track'))",
+        ),
+        true,
+      );
+      await evaluate(
+        "document.getElementById('injection-command').value='help';document.getElementById('injection-form').requestSubmit();document.getElementById('injection-command').value='status';document.getElementById('injection-form').requestSubmit()",
+      );
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "정상 흐름",
+      );
+      assert.match(
+        await evaluate(
+          "document.getElementById('injection-output').textContent",
+        ),
+        /현재 대응 상태/,
+      );
+      await evaluate("document.getElementById('injection-clear').click()");
+      assert.equal(
+        await evaluate(
+          "document.getElementById('injection-output').childElementCount",
+        ),
+        0,
+      );
+    },
+  );
+  await check(
+    "unsupported commands and expanded targets are refused without executable markup",
+    async () => {
+      await choose("segment");
+      for (const value of [
+        '<img src=x onerror="throw 1">',
+        "inject lateral-movement --target api,worker,db",
+        "approve",
+      ]) {
+        await evaluate(
+          `document.getElementById('injection-command').value=${JSON.stringify(value)};document.getElementById('injection-form').requestSubmit()`,
+        );
+        assert.equal(
+          await evaluate(
+            "document.getElementById('injection-command').getAttribute('aria-invalid')",
+          ),
+          "true",
+        );
+        assert.equal(
+          await evaluate("document.getElementById('stat-phase').textContent"),
+          "정상 흐름",
+        );
+      }
+      assert.equal(
+        await evaluate(
+          "document.querySelector('#injection-output img, #injection-output script')",
+        ),
+        null,
+      );
+    },
+  );
+  await check(
+    "a console injection advances the flow and stops at human approval; duplicate injection is refused",
+    async () => {
+      await choose("segment");
+      await evaluate(
+        "document.getElementById('speed').value='900';document.getElementById('injection-form').requestSubmit()",
+      );
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "이상 주입",
+      );
+      await evaluate("new Promise(resolve=>setTimeout(resolve,2200))");
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "승인 대기",
+      );
+      assert.equal(
+        await evaluate("document.getElementById('autoplay').textContent"),
+        "자동 재생",
+      );
+      await evaluate(
+        "document.getElementById('injection-form').requestSubmit()",
+      );
+      assert.match(
+        await evaluate(
+          "document.getElementById('injection-feedback').textContent",
+        ),
+        /이미 시작/,
+      );
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "승인 대기",
+      );
+      const consoleImage = await call("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: true,
+      });
+      await writeFile(
+        join(output, "injection-console.png"),
+        Buffer.from(consoleImage.data, "base64"),
+      );
+    },
+  );
+  await check(
+    "each console preset injects its own scenario and reset cancels the old flow",
+    async () => {
+      for (const id of [
+        "isolate",
+        "segment",
+        "egress",
+        "credentials",
+        "patch",
+        "restart",
+        "scale",
+        "migrate",
+        "rollback",
+      ]) {
+        await choose(id);
+        await evaluate(
+          "document.getElementById('injection-form').requestSubmit()",
+        );
+        assert.equal(
+          await evaluate("document.getElementById('stat-phase').textContent"),
+          "이상 주입",
+        );
+        assert.match(
+          await evaluate(
+            "document.getElementById('injection-output').textContent",
+          ),
+          /이벤트 접수/,
+        );
+      }
+      await choose("segment");
+      await evaluate("new Promise(resolve=>setTimeout(resolve,1100))");
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "정상 흐름",
+      );
+    },
+  );
   await check("all nine response types reach a mock completion", async () => {
     for (const id of [
       "isolate",

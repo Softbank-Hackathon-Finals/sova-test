@@ -10,6 +10,7 @@ import {
 } from "./model.mjs";
 import { createMotionClock, motionPlan } from "./motion.mjs";
 import { mountSidebar } from "./layout.mjs";
+import { mountInjectionConsole } from "./injection_console.mjs";
 
 const $ = (id) => document.getElementById(id);
 const element = (tag, text, className) => {
@@ -660,6 +661,7 @@ function render() {
     }),
   );
   renderApproval();
+  injectionConsole.update(session, runVersion);
   renderGraph(view);
   renderInspector(view);
 }
@@ -735,6 +737,16 @@ document.addEventListener("visibilitychange", () => {
 reducedMotion.addEventListener("change", () => {
   if (reducedMotion.matches) motion.finish();
   setMotionPaused(motionPaused);
+});
+const injectionConsole = mountInjectionConsole({
+  getSession: () => session,
+  onInject: () => {
+    stop();
+    setMotionPaused(false);
+    playing = true;
+    forward();
+    schedule();
+  },
 });
 mountSidebar();
 window.addEventListener("pagehide", () => {
