@@ -693,7 +693,7 @@ function render() {
     }),
   );
   renderApproval();
-  injectionConsole.update(session, runVersion);
+  injectionConsole.update(session, runVersion, { playing });
   renderGraph(view);
   renderInspector(view);
 }

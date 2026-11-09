@@ -1,5 +1,10 @@
 // Fixed browser commands, not a shell or an execution adapter.
-import { definition, isTerminal, recoveryAvailable } from "./model.mjs";
+import {
+  definition,
+  isTerminal,
+  recoveryAvailable,
+  currentPhase,
+} from "./model.mjs";
 
 const SIGNALS = {
   isolate: "access-violation",
@@ -15,6 +20,19 @@ const SIGNALS = {
 export function injectionCommand(id) {
   const spec = definition(id);
   return `inject ${SIGNALS[id]} --target ${spec.targets.join(",")}`;
+}
+// Suggestions only: the caller must still submit and pass parseCommand.
+export function nextCommand(session, { playing = true } = {}) {
+  const phase = currentPhase(session);
+  if (phase === "normal") return injectionCommand(session.scenario);
+  if (phase === "awaiting_approval" && !session.preapproved)
+    return "response approve";
+  if (recoveryAvailable(session)) return "recovery start";
+  if (["held", "recovery_held"].includes(phase)) return "incident inspect";
+  if (isTerminal(session)) return "workload status";
+  if (!playing) return "response resume";
+  if (["detected", "planned"].includes(phase)) return "incident inspect";
+  return "response watch";
 }
 export function parseCommand(raw, session) {
   if (typeof raw !== "string" || raw.length > 256 || /[\r\n\u0000]/.test(raw))

@@ -6,7 +6,7 @@ import {
   currentPhase,
   recoveryAvailable,
 } from "./model.mjs";
-import { injectionCommand, parseCommand } from "./commands.mjs";
+import { injectionCommand, parseCommand, nextCommand } from "./commands.mjs";
 
 export function mountInjectionConsole({
   getSession,
@@ -21,7 +21,13 @@ export function mountInjectionConsole({
   const feedback = document.getElementById("injection-feedback");
   const example = document.getElementById("injection-example");
   let run = null,
-    seen = 0;
+    seen = 0,
+    context = null,
+    draft = false,
+    playing = false;
+  input.addEventListener("input", () => {
+    draft = true;
+  });
   function line(kind, message) {
     const row = document.createElement("div");
     row.className = `console-line ${kind}`;
@@ -48,6 +54,7 @@ export function mountInjectionConsole({
       input.setAttribute("aria-invalid", "true");
       return;
     }
+    draft = false;
     if (command.kind === "clear") {
       output.replaceChildren();
       return;
@@ -157,7 +164,8 @@ export function mountInjectionConsole({
     execute(input.value);
   };
   example.onclick = () => {
-    input.value = injectionCommand(getSession().scenario);
+    input.value = nextCommand(getSession(), { playing });
+    draft = false;
     input.focus();
     input.removeAttribute("aria-invalid");
     feedback.textContent = "";
@@ -170,15 +178,31 @@ export function mountInjectionConsole({
       execute(input.value);
     };
   return {
-    update(session, version) {
+    update(session, version, runtime = {}) {
+      playing = runtime.playing ?? false;
       if (run !== version) {
         run = version;
         seen = 0;
         output.replaceChildren();
         feedback.textContent = "";
-        input.value = injectionCommand(session.scenario);
+        context = null;
+        draft = false;
         input.removeAttribute("aria-invalid");
       }
+      const next = nextCommand(session, { playing });
+      const nextContext = `${version}:${currentPhase(session)}:${playing}`;
+      if (context !== nextContext) {
+        context = nextContext;
+        if (!draft || !input.value.trim()) {
+          input.value = next;
+          input.removeAttribute("aria-invalid");
+          feedback.textContent = "";
+          draft = false;
+        }
+      }
+      input.placeholder = next;
+      example.textContent = "다음 명령 채우기";
+      example.title = next;
       for (const event of session.history.slice(seen)) {
         line(
           ["held", "recovery_held"].includes(event.phase)
@@ -202,7 +226,7 @@ export function mountInjectionConsole({
       document.querySelector(
         '[data-console-command="recovery start"]',
       ).disabled = !recoveryAvailable(session);
-      example.disabled = session.phase !== "normal";
+      example.disabled = false;
       document.getElementById("injection-targets").textContent = definition(
         session.scenario,
       ).targets.join(" · ");

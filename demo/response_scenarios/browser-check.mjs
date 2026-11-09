@@ -305,9 +305,7 @@ try {
         await evaluate("document.getElementById('autoplay').textContent"),
         "자동 재생",
       );
-      await evaluate(
-        "document.getElementById('injection-form').requestSubmit()",
-      );
+      await command("inject lateral-movement --target api,worker");
       assert.match(
         await evaluate(
           "document.getElementById('injection-feedback').textContent",
@@ -1006,6 +1004,90 @@ try {
         "flow",
       );
       await choose("segment");
+    },
+  );
+  await check(
+    "CLI follows phase changes, preserves a typed draft and never submits suggestions automatically",
+    async () => {
+      await choose("segment");
+      assert.equal(
+        await evaluate("document.getElementById('injection-command').value"),
+        "inject lateral-movement --target api,worker",
+      );
+      await evaluate(
+        "document.getElementById('speed').value='900';document.getElementById('injection-form').requestSubmit()",
+      );
+      assert.equal(
+        await evaluate("document.getElementById('injection-command').value"),
+        "incident inspect",
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelectorAll('#injection-output .console-line.command').length",
+        ),
+        1,
+      );
+      await evaluate(
+        "document.getElementById('injection-command').value='workload sta';document.getElementById('injection-command').dispatchEvent(new Event('input',{bubbles:true}))",
+      );
+      await phaseIs("영향·계획 확인");
+      assert.equal(
+        await evaluate("document.getElementById('injection-command').value"),
+        "workload sta",
+      );
+      await evaluate("document.getElementById('injection-example').click()");
+      assert.equal(
+        await evaluate("document.getElementById('injection-command').value"),
+        "incident inspect",
+      );
+      await phaseIs("승인 대기");
+      assert.equal(
+        await evaluate("document.getElementById('injection-command').value"),
+        "response approve",
+      );
+      await evaluate("new Promise(resolve=>setTimeout(resolve,1100))");
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        "승인 대기",
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelectorAll('.map-node.isolated').length",
+        ),
+        0,
+      );
+      await evaluate(
+        "document.getElementById('injection-form').requestSubmit()",
+      );
+      assert.equal(
+        await evaluate("document.getElementById('injection-command').value"),
+        "response watch",
+      );
+      await phaseIs("대응 완료");
+      assert.equal(
+        await evaluate("document.getElementById('injection-command').value"),
+        "recovery start",
+      );
+      await evaluate(
+        "document.getElementById('injection-form').requestSubmit()",
+      );
+      assert.equal(
+        await evaluate("document.getElementById('injection-command').value"),
+        "response watch",
+      );
+      await phaseIs("원본 복귀 확인");
+      assert.equal(
+        await evaluate("document.getElementById('injection-command').value"),
+        "workload status",
+      );
+      await evaluate(
+        "document.getElementById('injection-command').value='unfinished';document.getElementById('injection-command').dispatchEvent(new Event('input',{bubbles:true}))",
+      );
+      await choose("migrate");
+      assert.equal(
+        await evaluate("document.getElementById('injection-command').value"),
+        "inject placement-change --target api,worker,db",
+      );
     },
   );
   await check(

@@ -6,7 +6,7 @@ import {
   advance,
   requestRecovery,
 } from "./model.mjs";
-import { injectionCommand, parseCommand } from "./commands.mjs";
+import { injectionCommand, parseCommand, nextCommand } from "./commands.mjs";
 
 test("each preset command is bound to the selected scenario and complete target set", () => {
   for (const spec of SCENARIOS) {
@@ -125,4 +125,44 @@ test("operator commands reject extra scope, chaining, prototypes and approval by
     "response approve && id",
   ])
     assert.equal(parseCommand(raw, s).kind, "error", raw);
+});
+
+test("next suggestions follow each lifecycle without advancing or granting approval", () => {
+  for (const spec of SCENARIOS)
+    for (const outcome of ["pass", "fail", "unknown"]) {
+      let session = createSession(spec.id, { outcome });
+      assert.equal(nextCommand(session), injectionCommand(spec.id));
+      for (let i = 0; i < 8; i++) {
+        const before = structuredClone(session);
+        for (const playing of [true, false])
+          assert.notEqual(
+            parseCommand(nextCommand(session, { playing }), session).kind,
+            "error",
+          );
+        assert.deepEqual(session, before);
+        if (session.phase === "awaiting_approval" && !session.preapproved)
+          assert.equal(nextCommand(session), "response approve");
+        session = advance(session, { approve: true });
+      }
+      if (outcome !== "pass")
+        assert.equal(nextCommand(session), "incident inspect");
+      else if (["isolate", "segment"].includes(spec.id)) {
+        assert.equal(nextCommand(session), "recovery start");
+        session = requestRecovery(session);
+        assert.equal(nextCommand(session), "response watch");
+        assert.equal(
+          nextCommand(session, { playing: false }),
+          "response resume",
+        );
+        session = advance(advance(session));
+        assert.equal(nextCommand(session), "workload status");
+      } else assert.equal(nextCommand(session), "workload status");
+    }
+});
+test("preapproved waiting suggests observation or resume instead of another approval", () => {
+  let session = createSession("segment", { preapproved: true });
+  for (let i = 0; i < 3; i++) session = advance(session);
+  assert.equal(nextCommand(session), "response watch");
+  assert.equal(nextCommand(session, { playing: false }), "response resume");
+  assert.equal(session.approved, false);
 });
