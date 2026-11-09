@@ -24,7 +24,12 @@ class MockServerTests(unittest.TestCase):
         cls.thread.join()
 
     def test_only_mock_assets_and_original_design_css_are_served(self):
-        for path in ("/console/", "/__mock/response/model.mjs", "/__mock/response/base.css"):
+        for path in (
+            "/console/",
+            "/__mock/response/model.mjs",
+            "/__mock/response/motion.mjs",
+            "/__mock/response/base.css",
+        ):
             with urlopen(self.origin + path, timeout=2) as response:
                 self.assertEqual(response.status, 200)
                 self.assertIn("connect-src 'none'", response.headers["Content-Security-Policy"])

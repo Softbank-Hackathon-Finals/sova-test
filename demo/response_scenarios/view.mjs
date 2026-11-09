@@ -8,6 +8,7 @@ import {
   advance,
   snapshot,
 } from "./model.mjs";
+import { createMotionClock, motionPlan } from "./motion.mjs";
 
 const $ = (id) => document.getElementById(id);
 const element = (tag, text, className) => {
@@ -27,7 +28,13 @@ let session = createSession(),
   selected = "api",
   zoom = 1,
   timer = null,
-  playing = false;
+  playing = false,
+  runVersion = 0,
+  motionPaused = false,
+  currentGraph = null,
+  currentMotionPlan = null;
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const motion = createMotionClock(applyMotionFrame);
 const glyphs = {
   entry: "↗",
   external: "↗",
@@ -47,6 +54,10 @@ function stop() {
 }
 function reset(id = session.scenario) {
   stop();
+  motion.clear();
+  runVersion++;
+  motionPaused = false;
+  if (!reducedMotion.matches) $("workload-map").unpauseAnimations();
   const changingScenario = id !== session.scenario;
   session = createSession(id, {
     outcome: $("outcome").value,
@@ -118,8 +129,80 @@ function edgePath(source, target, id) {
     return `M ${source.x} ${sy} C ${source.x - 65} ${sy}, ${target.x + 245} ${ty}, ${target.x + 180} ${ty}`;
   return `M ${sx} ${sy} C ${sx + Math.max(35, (tx - sx) * 0.5)} ${sy}, ${tx - 50} ${ty}, ${tx} ${ty}`;
 }
+function applyMotionFrame(frame) {
+  if (!currentGraph || !currentMotionPlan) return;
+  const svg = $("workload-map");
+  svg.dataset.motionState = frame.state;
+  svg.dataset.motionProgress = frame.progress.toFixed(3);
+  const nodes = currentGraph.nodes.map((node) => ({
+    ...node,
+    ...(frame.positions[node.id] || currentMotionPlan.positions[node.id]),
+  }));
+  const indexed = new Map(nodes.map((node) => [node.id, node]));
+  for (const node of nodes) {
+    const group = svg.querySelector(`[data-node="${node.id}"]`);
+    if (!group) continue;
+    const entering = currentMotionPlan.entering.includes(node.id);
+    const lift = entering ? -18 * (1 - frame.progress) : 0;
+    group.setAttribute("transform", `translate(${node.x} ${node.y + lift})`);
+    group.style.opacity =
+      entering && frame.progress < 1 ? String(0.3 + 0.7 * frame.progress) : "";
+  }
+  for (const edge of currentGraph.edges) {
+    const group = svg.querySelector(`[data-edge="${edge.id}"]`);
+    if (!group) continue;
+    const from = indexed.get(edge.source),
+      to = indexed.get(edge.target);
+    const path = edgePath(from, to, edge.id);
+    group.querySelector(".edge-line").setAttribute("d", path);
+    const stream = group.querySelector("animateMotion");
+    if (stream && stream.getAttribute("path") !== path)
+      stream.setAttribute("path", path);
+    const badge = group.querySelector(".cut-badge"),
+      mark = group.querySelector(".cut-mark");
+    if (badge && mark) {
+      const x = (from.x + to.x + 180) / 2,
+        y = (from.y + to.y) / 2 + 43;
+      badge.setAttribute("cx", x);
+      badge.setAttribute("cy", y);
+      mark.setAttribute("x", x);
+      mark.setAttribute("y", y + 4);
+    }
+  }
+  for (const path of svg.querySelectorAll(".transfer-path")) {
+    const chip = svg.querySelector(
+      `[data-transfer="${path.dataset.transferPath}"]`,
+    );
+    if (!chip) continue;
+    const p = path.getPointAtLength(path.getTotalLength() * frame.progress);
+    chip.setAttribute("transform", `translate(${p.x - 78} ${p.y - 23})`);
+    chip.style.opacity =
+      frame.progress >= 1 || reducedMotion.matches
+        ? "0"
+        : String(Math.min(1, frame.progress * 7, (1 - frame.progress) * 7));
+  }
+}
+function setMotionPaused(paused) {
+  motionPaused = paused;
+  const svg = $("workload-map");
+  svg.classList.toggle("motion-paused", paused);
+  if (paused || reducedMotion.matches) svg.pauseAnimations();
+  else svg.unpauseAnimations();
+  if (paused) motion.pause();
+  else motion.resume();
+  $("motion-toggle").textContent = paused ? "움직임 재생" : "움직임 정지";
+  $("motion-toggle").setAttribute("aria-pressed", String(paused));
+}
 function renderGraph(view) {
   const svg = $("workload-map");
+  currentGraph = view;
+  currentMotionPlan = motionPlan(session, view);
+  const previous = motion.read().positions;
+  const displayed = view.nodes.map((node) => ({
+    ...node,
+    ...(previous[node.id] || currentMotionPlan.positions[node.id]),
+  }));
+  svg.setAttribute("viewBox", `0 0 1400 ${currentMotionPlan.height}`);
   svg.style.width = `${zoom * 100}%`;
   svg.replaceChildren();
   const defs = svgElement("defs");
@@ -153,7 +236,7 @@ function renderGraph(view) {
       x: 245,
       y: 84,
       width: 760,
-      height: 680,
+      height: currentMotionPlan.quarantine ? 940 : 680,
       rx: 22,
       class: "environment-zone",
     }),
@@ -180,25 +263,52 @@ function renderGraph(view) {
     ),
   );
   svg.append(aws, onprem);
-  if (view.operating && ["segment", "isolate"].includes(session.scenario)) {
-    const segment = session.scenario === "segment";
+  if (currentMotionPlan.quarantine) {
     svg.append(
       svgElement("rect", {
-        x: 502,
-        y: segment ? 282 : 457,
-        width: 216,
-        height: segment ? 300 : 125,
+        x: 480,
+        y: 810,
+        width: 510,
+        height: 190,
         rx: 18,
-        class: `isolation-zone ${session.phase === "held" ? "uncertain" : ""}`,
+        class: `isolation-zone quarantine-bay ${view.operating ? "active" : ""} ${session.phase === "held" ? "uncertain" : ""}`,
       }),
       svgElement(
         "text",
-        { x: 513, y: segment ? 274 : 449, class: "isolation-label" },
-        session.phase === "held" ? "격리 확인 보류" : "선택 구간 격리",
+        { x: 500, y: 837, class: "isolation-label" },
+        session.phase === "held"
+          ? "논리적 격리 영역 · 상태 확인 필요"
+          : view.operating
+            ? "논리적 격리 영역 · AWS 내부"
+            : "논리적 격리 영역 · 대기",
       ),
     );
+    if (currentMotionPlan.moving)
+      for (const id of currentMotionPlan.isolated) {
+        const original = view.nodes.find((node) => node.id === id);
+        svg.append(
+          svgElement("rect", {
+            x: original.x,
+            y: original.y,
+            width: 180,
+            height: 88,
+            rx: 12,
+            class: "origin-outline",
+          }),
+          svgElement(
+            "text",
+            {
+              x: original.x + 90,
+              y: original.y + 48,
+              "text-anchor": "middle",
+              class: "origin-caption",
+            },
+            "격리 이전 위치",
+          ),
+        );
+      }
   }
-  const byId = new Map(view.nodes.map((node) => [node.id, node]));
+  const byId = new Map(displayed.map((node) => [node.id, node]));
   for (const item of view.edges) {
     const path = edgePath(
       byId.get(item.source),
@@ -259,7 +369,7 @@ function renderGraph(view) {
       );
     svg.append(group);
   }
-  for (const item of view.nodes) {
+  for (const item of displayed) {
     const group = svgElement("g", {
       transform: `translate(${item.x} ${item.y})`,
       class: `map-node ${item.status} ${item.affected ? "affected" : ""} ${selected === item.id ? "selected" : ""}`,
@@ -316,6 +426,43 @@ function renderGraph(view) {
     };
     svg.append(group);
   }
+  for (const transfer of currentMotionPlan.transfers) {
+    const from = byId.get(transfer.from),
+      to = byId.get(transfer.to);
+    const sx = from.x + 90,
+      sy = from.y + 44,
+      tx = to.x + 90,
+      ty = to.y + 44;
+    const path = `M ${sx} ${sy} C ${sx + (tx - sx) * 0.35} ${sy - 100}, ${tx - (tx - sx) * 0.35} ${ty - 100}, ${tx} ${ty}`;
+    svg.append(
+      svgElement("path", {
+        d: path,
+        class: `transfer-path ${transfer.tone}`,
+        "data-transfer-path": transfer.id,
+      }),
+    );
+    const chip = svgElement("g", {
+      class: `transfer-chip ${transfer.tone}`,
+      "data-transfer": transfer.id,
+      "pointer-events": "none",
+    });
+    chip.append(
+      svgElement("rect", { width: 156, height: 46, rx: 10 }),
+      svgElement(
+        "text",
+        { x: 78, y: 28, "text-anchor": "middle" },
+        transfer.label,
+      ),
+    );
+    svg.append(chip);
+  }
+  $("motion-caption").textContent = currentMotionPlan.caption;
+  motion.transition(currentMotionPlan.positions, {
+    identity: `${runVersion}:${session.scenario}:${session.phase}`,
+    duration: Math.max(800, Math.min(2600, Number($("speed").value) * 0.85)),
+    immediate: reducedMotion.matches,
+  });
+  setMotionPaused(motionPaused);
 }
 function renderInspector(view) {
   const root = $("node-inspector"),
@@ -502,11 +649,17 @@ $("reset").onclick = () => reset();
 $("outcome").onchange = () => reset();
 $("preapproved").onchange = () => reset();
 $("autoplay").onclick = () => {
-  if (playing) stop();
-  else playing = true;
+  if (playing) {
+    stop();
+    setMotionPaused(true);
+  } else {
+    playing = true;
+    setMotionPaused(false);
+  }
   render();
   schedule();
 };
+$("motion-toggle").onclick = () => setMotionPaused(!motionPaused);
 $("speed").onchange = schedule;
 $("zoom-in").onclick = () => {
   zoom = Math.min(2, zoom + 0.2);
@@ -556,8 +709,16 @@ for (const button of document.querySelectorAll("[data-section]"))
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     stop();
+    setMotionPaused(true);
     render();
   }
 });
-window.addEventListener("pagehide", stop);
+reducedMotion.addEventListener("change", () => {
+  if (reducedMotion.matches) motion.finish();
+  setMotionPaused(motionPaused);
+});
+window.addEventListener("pagehide", () => {
+  stop();
+  motion.clear();
+});
 render();

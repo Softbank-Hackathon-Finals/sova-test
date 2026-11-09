@@ -204,6 +204,54 @@ try {
       );
     },
   );
+  await check(
+    "isolation visibly moves, pauses, resumes and settles inside the same environment",
+    async () => {
+      await choose("segment");
+      await evaluate(
+        "document.getElementById('speed').value='3000';for(let i=0;i<3;i++)document.getElementById('next').click();document.getElementById('approve').click()",
+      );
+      await evaluate("new Promise(resolve=>setTimeout(resolve,600))");
+      const midway = await evaluate(
+        "document.querySelector('[data-node=api]').transform.baseVal.consolidate().matrix.f",
+      );
+      assert(
+        midway > 300 && midway < 860,
+        `Expected an intermediate position, got ${midway}`,
+      );
+      await evaluate("document.getElementById('motion-toggle').click()");
+      const paused = await evaluate(
+        "document.querySelector('[data-node=api]').getAttribute('transform')",
+      );
+      await evaluate("new Promise(resolve=>setTimeout(resolve,400))");
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-node=api]').getAttribute('transform')",
+        ),
+        paused,
+      );
+      assert.equal(
+        await evaluate(
+          "document.getElementById('workload-map').dataset.motionState",
+        ),
+        "paused",
+      );
+      await evaluate("document.getElementById('motion-toggle').click()");
+      await evaluate("new Promise(resolve=>setTimeout(resolve,2600))");
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-node=api]').transform.baseVal.consolidate().matrix.f",
+        ),
+        860,
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-node=db]').transform.baseVal.consolidate().matrix.f",
+        ),
+        655,
+      );
+    },
+  );
   const desktop = await call("Page.captureScreenshot", {
     format: "png",
     captureBeyondViewport: true,
@@ -233,6 +281,79 @@ try {
     join(output, "mobile.png"),
     Buffer.from(mobile.data, "base64"),
   );
+  await check(
+    "migration animates three transfers while retaining the source and inactive destination route",
+    async () => {
+      await call("Emulation.setDeviceMetricsOverride", {
+        width: 1600,
+        height: 1100,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      await choose("migrate");
+      await evaluate(
+        "for(let i=0;i<3;i++)document.getElementById('next').click();document.getElementById('approve').click()",
+      );
+      await evaluate("new Promise(resolve=>setTimeout(resolve,500))");
+      assert.equal(
+        await evaluate("document.querySelectorAll('[data-transfer]').length"),
+        3,
+      );
+      const before = await evaluate(
+        "document.querySelector('[data-transfer=api]').getAttribute('transform')",
+      );
+      await evaluate("new Promise(resolve=>setTimeout(resolve,200))");
+      assert.notEqual(
+        await evaluate(
+          "document.querySelector('[data-transfer=api]').getAttribute('transform')",
+        ),
+        before,
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-node=api]').transform.baseVal.consolidate().matrix.e",
+        ),
+        520,
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-edge=target-route]').dataset.state",
+        ),
+        "idle",
+      );
+      const transfer = await call("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: true,
+      });
+      await writeFile(
+        join(output, "migration-motion.png"),
+        Buffer.from(transfer.data, "base64"),
+      );
+    },
+  );
+  await check(
+    "switching scenario cancels transfers and leaves no stale movement",
+    async () => {
+      await choose("egress");
+      await evaluate("new Promise(resolve=>setTimeout(resolve,500))");
+      assert.equal(
+        await evaluate("document.querySelectorAll('[data-transfer]').length"),
+        0,
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-node=worker]').transform.baseVal.consolidate().matrix.f",
+        ),
+        475,
+      );
+      assert.equal(
+        await evaluate(
+          "document.getElementById('workload-map').dataset.motionState",
+        ),
+        "settled",
+      );
+    },
+  );
   await check("reduced-motion hides animated particles", async () => {
     await choose("egress");
     await call("Emulation.setEmulatedMedia", {
@@ -245,6 +366,27 @@ try {
       "none",
     );
   });
+  await check(
+    "reduced-motion places nodes immediately without movement",
+    async () => {
+      await choose("segment");
+      await evaluate(
+        "for(let i=0;i<3;i++)document.getElementById('next').click();document.getElementById('approve').click()",
+      );
+      assert.equal(
+        await evaluate(
+          "document.querySelector('[data-node=api]').transform.baseVal.consolidate().matrix.f",
+        ),
+        860,
+      );
+      assert.equal(
+        await evaluate(
+          "document.getElementById('workload-map').dataset.motionState",
+        ),
+        "settled",
+      );
+    },
+  );
   await check(
     "no product API, external request, mutation or browser error",
     async () => {

@@ -107,12 +107,20 @@
                   <h2>연결·격리·교체를 한눈에</h2>
                 </div>
                 <div class="map-tools">
+                  <button id="motion-toggle" type="button" aria-pressed="false">
+                    움직임 정지
+                  </button>
                   <button id="zoom-out" aria-label="지도 축소">−</button
                   ><button id="zoom-fit" aria-label="지도 크기 맞추기">
                     맞춤</button
                   ><button id="zoom-in" aria-label="지도 확대">+</button>
                 </div>
               </div>
+              <p
+                id="motion-caption"
+                class="motion-caption"
+                aria-live="polite"
+              ></p>
               <div class="map-layout">
                 <div class="map-viewport" id="map-viewport">
                   <svg

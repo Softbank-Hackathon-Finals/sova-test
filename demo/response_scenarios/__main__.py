@@ -20,6 +20,7 @@ def assets():
     entries = {
         "index.html": (ROOT / "index.html", "text/html; charset=utf-8"),
         "model.mjs": (ROOT / "model.mjs", "text/javascript; charset=utf-8"),
+        "motion.mjs": (ROOT / "motion.mjs", "text/javascript; charset=utf-8"),
         "view.mjs": (ROOT / "view.mjs", "text/javascript; charset=utf-8"),
         "styles.css": (ROOT / "styles.css", "text/css; charset=utf-8"),
         "base.css": (

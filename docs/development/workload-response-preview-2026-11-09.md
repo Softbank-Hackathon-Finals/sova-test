@@ -74,15 +74,16 @@ python3 -m demo.response_scenarios --port 18132
 
 | 범위 | 결과 |
 |---|---|
-| Node 기본 시험기 | 모델 13개 통과 |
+| Node 기본 시험기 | 모델 13개 + 이동·정지·재생 8개, 총 21개 통과 |
 | Python unittest·실제 loopback HTTP | 서버 3개 통과 |
-| 분리된 Chrome·CDP | 브라우저 9항목 통과 |
+| 분리된 Chrome·CDP | 애니메이션 포함 브라우저 13항목 통과 |
 | 화면 | 데스크톱 1600px, 모바일 390px 확인 |
 | 접근성 | 키보드 노드 선택, 승인 상태 안내, reduced-motion 확인 |
 | 네트워크 | 정적 GET만 발생. 외부·제품 API·변경 요청·브라우저 오류 0건 |
 
 ```sh
 node --test demo/response_scenarios/model.test.mjs
+node --test demo/response_scenarios/motion.test.mjs
 python3 -m unittest demo.response_scenarios.test_server -v
 node --check demo/response_scenarios/view.mjs
 ```
@@ -100,9 +101,32 @@ node --check demo/response_scenarios/view.mjs
 
 - `demo/response_scenarios/model.mjs`: 순수 시나리오·승인·상태·토폴로지 모델.
 - `demo/response_scenarios/view.mjs`: SVG 지도와 브라우저 재생 UI.
+- `demo/response_scenarios/motion.mjs`: 논리적 배치와 취소 가능한 프레임 보간.
 - `demo/response_scenarios/__main__.py`: 명시적 정적 파일 목록의 loopback 서버.
 - `demo/onprem_response/incident_host.py`: 기존 호스트의 별도 목업 정적 경로.
 - `demo/onprem_response/workspace_navigation.js`: 새 탭으로 여는 목업 메뉴.
 
 운영 연결은 별도 작업이다. 향후 실제 관측·승인·효과 원장과 연결하더라도
 이 목업 기록을 운영 PASS 근거로 승격하지 않는다.
+
+## 이동 애니메이션 추가
+
+사용자가 요청한 이전 워크로드 지도와 같은 이동 표현을 추가했다.
+
+- 부분 격리: 선택한 API·작업자 카드만 같은 AWS 영역 내부의 논리적 격리 구역으로 이동한다.
+  주변 자원은 움직이지 않고, 원래 위치는 윤곽선으로 남긴다. 실제 Pod의 물리 이동을 뜻하지 않는다.
+- 환경 이전: 원본 노드를 남겨 두고 앱 실행본·작업자 배치와 데이터 동기화 카드를 목적지로 이동시킨다.
+  승인 전이나 보류 상태에서는 배치 성공 이동 카드를 생성하지 않는다.
+- 패치·롤백·확장: 이미지 또는 복제본 배치 카드를 대체 위치로 이동시킨다.
+- 자격 회전: 자격 연결 표시를 이동시키며 실제 비밀값을 생성하거나 표시하지 않는다.
+- 재기동: 같은 위치에서 새 실행본이 등장한다. 발신 차단은 노드 이동 없이 연결 상태만 바뀐다.
+
+`requestAnimationFrame`으로 좌표를 보간하며 연결선과 차단 표시도 현재 좌표를 따라간다.
+일시정지 때 현재 좌표와 진행률을 보존하고 재생 시 남은 시간부터 이어 간다.
+노드 선택은 진행 중 애니메이션을 다시 시작하지 않는다. 시나리오 초기화·탭 숨김·페이지 종료 시
+이전 타이머를 취소하거나 정지한다. reduced-motion에서는 바로 최종 표시 위치로 바뀐다.
+
+브라우저에서 중간 좌표가 시작점·도착점 사이인지, 정지 중 불변인지, 재생 뒤 목적 위치에
+도달하는지 확인했다. 이전 장면에서 이동 카드 3개와 원본 보존·목적지 요청 경로 대기를
+확인했으며, 네트워크 검증에서도 외부·제품 API·변경 요청 0건을 유지했다.
+출처·실행 권한·실환경 연결은 변경하지 않았다.

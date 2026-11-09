@@ -231,6 +231,119 @@
 .map-tools button:hover {
   background: #eef3ff;
 }
+.motion-caption {
+  margin: 0;
+  padding: 0 22px 15px;
+  color: #8496b0;
+  font-size: 11px;
+  line-height: 1.8;
+  min-height: 33px;
+}
+.map-node .node-surface,
+.map-node .node-dot,
+.map-node .node-halo {
+  transition:
+    fill 0.45s ease,
+    stroke 0.45s ease;
+}
+.quarantine-bay {
+  opacity: 0.48;
+  fill: #fcf5f9;
+  stroke: #d5a9bd;
+}
+.quarantine-bay.active {
+  opacity: 1;
+  fill: #f9e9f0;
+  stroke: #c17e9b;
+  animation: quarantine-boundary 3.5s linear infinite;
+}
+.origin-outline {
+  fill: #f6f8fc;
+  stroke: #c9d3e6;
+  stroke-dasharray: 4 6;
+  opacity: 0.75;
+}
+.origin-caption {
+  fill: #a1aec4;
+  font-size: 11px;
+}
+.transfer-path {
+  fill: none;
+  stroke: #94afe8;
+  stroke-width: 2;
+  stroke-dasharray: 4 7;
+  opacity: 0.6;
+}
+.transfer-path.green {
+  stroke: #6cbca4;
+}
+.transfer-path.purple {
+  stroke: #b19bd2;
+}
+.transfer-chip rect {
+  fill: #f2f6ff;
+  stroke: #7096e4;
+  stroke-width: 1.5;
+}
+.transfer-chip text {
+  fill: #5476b5;
+  font-size: 12px;
+  font-weight: 650;
+}
+.transfer-chip.green rect {
+  fill: #f0faf6;
+  stroke: #6bb99f;
+}
+.transfer-chip.green text {
+  fill: #368d73;
+}
+.transfer-chip.purple rect {
+  fill: #f8f3ff;
+  stroke: #aa8cce;
+}
+.transfer-chip.purple text {
+  fill: #8968ad;
+}
+.map-node.compromised .node-halo {
+  animation: risk-pulse 2.2s ease-in-out infinite;
+}
+.motion-paused * {
+  animation-play-state: paused !important;
+}
+@keyframes quarantine-boundary {
+  to {
+    stroke-dashoffset: -66;
+  }
+}
+@keyframes risk-pulse {
+  50% {
+    fill: #f1bdcb9c;
+  }
+}
+@media (max-width: 520px) {
+  .response-preview .map-toolbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .motion-caption {
+    padding: 0 13px 13px;
+    font-size: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .transfer-chip {
+    display: none;
+  }
+  .quarantine-bay.active,
+  .map-node.compromised .node-halo {
+    animation: none;
+  }
+  .map-node .node-surface,
+  .map-node .node-dot,
+  .map-node .node-halo {
+    transition: none;
+  }
+}
 .map-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 220px;
