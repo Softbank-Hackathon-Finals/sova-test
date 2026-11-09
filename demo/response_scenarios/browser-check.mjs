@@ -228,9 +228,9 @@ try {
       );
       assert.equal(
         await evaluate(
-          "document.getElementById('response-controls').getBoundingClientRect().bottom <= document.getElementById('map-viewport').getBoundingClientRect().top",
+          "getComputedStyle(document.getElementById('response-controls')).display",
         ),
-        true,
+        "none",
       );
       await evaluate(
         "document.getElementById('injection-command').value='help';document.getElementById('injection-form').requestSubmit();document.getElementById('injection-command').value='status';document.getElementById('injection-form').requestSubmit()",
@@ -1091,7 +1091,7 @@ try {
     },
   );
   await check(
-    "focused studio keeps flow, injection, approval, map and controls in one viewport",
+    "focused studio keeps flow, injection, approval and map in one viewport without the playback bar",
     async () => {
       for (const [width, height] of [
         [1440, 900],
@@ -1121,7 +1121,7 @@ try {
                 "for(let i=0;i<3;i++)document.getElementById('next').click()",
               );
             const positions = await evaluate(`(() => {
-            const ids = ['phase-track','injection-form','response-controls','map-viewport','next',${approval ? "'approve'" : "'injection-command'"}];
+            const ids = ['phase-track','injection-form','map-viewport',${approval ? "'approve'" : "'injection-command'"}];
             return ids.map(id=>{const n=document.getElementById(id),r=n.getBoundingClientRect();return {id,left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height};});
           })()`);
             assert(
