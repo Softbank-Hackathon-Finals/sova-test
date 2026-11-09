@@ -119,6 +119,83 @@ try {
       );
     },
   );
+  await check(
+    "desktop sidebar slides closed and the main area expands without resetting the session",
+    async () => {
+      await evaluate(
+        "if(document.getElementById('sidebar-toggle').getAttribute('aria-expanded')==='false')document.getElementById('sidebar-toggle').click()",
+      );
+      await evaluate("new Promise(resolve=>setTimeout(resolve,350))");
+      const before = await evaluate(
+        "({width:document.querySelector('.main-shell').getBoundingClientRect().width, margin:parseFloat(getComputedStyle(document.querySelector('.main-shell')).marginLeft),phase:document.getElementById('stat-phase').textContent})",
+      );
+      await evaluate("document.getElementById('sidebar-toggle').click()");
+      await evaluate("new Promise(resolve=>setTimeout(resolve,70))");
+      const middle = await evaluate(
+        "parseFloat(getComputedStyle(document.querySelector('.main-shell')).marginLeft)",
+      );
+      assert(
+        middle > 0 && middle < before.margin,
+        `Expected sliding margin, got ${middle}`,
+      );
+      await evaluate("new Promise(resolve=>setTimeout(resolve,350))");
+      const after = await evaluate(
+        "({width:document.querySelector('.main-shell').getBoundingClientRect().width,inert:document.getElementById('workspace-sidebar').inert,phase:document.getElementById('stat-phase').textContent})",
+      );
+      assert(after.width > before.width + 190);
+      assert.equal(after.inert, true);
+      assert.equal(after.phase, before.phase);
+    },
+  );
+  await check("desktop layout preference survives refresh", async () => {
+    await call("Page.reload");
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    assert.equal(
+      await evaluate(
+        "document.getElementById('sidebar-toggle').getAttribute('aria-expanded')",
+      ),
+      "false",
+    );
+    await evaluate("document.getElementById('sidebar-toggle').click()");
+    await evaluate("new Promise(resolve=>setTimeout(resolve,350))");
+  });
+  await check(
+    "main layout responds to available space, not only window width",
+    async () => {
+      await call("Emulation.setDeviceMetricsOverride", {
+        width: 1200,
+        height: 1100,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      await evaluate("new Promise(resolve=>setTimeout(resolve,350))");
+      const narrow = await evaluate(
+        "getComputedStyle(document.querySelector('.map-layout')).gridTemplateColumns.split(' ').length",
+      );
+      await evaluate("document.getElementById('sidebar-toggle').click()");
+      await evaluate("new Promise(resolve=>setTimeout(resolve,350))");
+      const expanded = await evaluate(
+        "getComputedStyle(document.querySelector('.map-layout')).gridTemplateColumns.split(' ').length",
+      );
+      assert.equal(narrow, 1);
+      assert.equal(expanded, 2);
+      assert.equal(
+        await evaluate(
+          "document.documentElement.scrollWidth <= innerWidth + 1",
+        ),
+        true,
+      );
+      await call("Emulation.setDeviceMetricsOverride", {
+        width: 1600,
+        height: 1100,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      await evaluate(
+        "document.getElementById('sidebar-toggle').click();new Promise(resolve=>setTimeout(resolve,350))",
+      );
+    },
+  );
   await check("all nine response types reach a mock completion", async () => {
     for (const id of [
       "isolate",
@@ -287,6 +364,98 @@ try {
       true,
     );
   });
+  await check(
+    "mobile drawer has a backdrop, traps focus and closes with Escape or navigation",
+    async () => {
+      await evaluate("new Promise(resolve=>setTimeout(resolve,350))");
+      assert.equal(await evaluate("document.body.dataset.sidebar"), "closed");
+      await evaluate("document.getElementById('sidebar-toggle').click()");
+      assert.equal(
+        await evaluate(
+          "document.getElementById('workspace-sidebar').getAttribute('aria-modal')",
+        ),
+        "true",
+      );
+      assert.equal(
+        await evaluate("document.querySelector('.main-shell').inert"),
+        true,
+      );
+      assert.equal(
+        await evaluate("document.getElementById('sidebar-backdrop').hidden"),
+        false,
+      );
+      assert.equal(
+        await evaluate("document.activeElement.id"),
+        "sidebar-close",
+      );
+      await evaluate("new Promise(resolve=>setTimeout(resolve,350))");
+      const drawer = await call("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
+      await writeFile(
+        join(output, "mobile-menu.png"),
+        Buffer.from(drawer.data, "base64"),
+      );
+      await evaluate(
+        "document.querySelector('#workspace-sidebar .brand').focus();document.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true,cancelable:true}))",
+      );
+      assert.equal(
+        await evaluate("document.activeElement.dataset.section"),
+        "timeline",
+      );
+      await evaluate(
+        "document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}))",
+      );
+      assert.equal(
+        await evaluate("document.activeElement.id"),
+        "sidebar-toggle",
+      );
+      assert.equal(
+        await evaluate("document.querySelector('.main-shell').inert"),
+        false,
+      );
+      await evaluate(
+        "document.getElementById('sidebar-toggle').click();document.querySelector('#workspace-sidebar [data-section=map]').click()",
+      );
+      assert.equal(await evaluate("document.body.dataset.sidebar"), "closed");
+      await evaluate(
+        "document.getElementById('sidebar-toggle').click();document.getElementById('sidebar-backdrop').click()",
+      );
+      assert.equal(await evaluate("document.body.dataset.sidebar"), "closed");
+      await evaluate("document.getElementById('sidebar-toggle').click()");
+      await call("Emulation.setDeviceMetricsOverride", {
+        width: 1200,
+        height: 1100,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      await evaluate("new Promise(resolve=>setTimeout(resolve,100))");
+      assert.equal(
+        await evaluate("document.querySelector('.main-shell').inert"),
+        false,
+      );
+      assert.equal(
+        await evaluate(
+          "document.getElementById('workspace-sidebar').hasAttribute('aria-modal')",
+        ),
+        false,
+      );
+      assert.equal(
+        await evaluate("document.activeElement.id"),
+        "sidebar-toggle",
+      );
+      await call("Emulation.setDeviceMetricsOverride", {
+        width: 390,
+        height: 844,
+        deviceScaleFactor: 1,
+        mobile: true,
+      });
+      await evaluate(
+        "window.scrollTo(0,0);new Promise(resolve=>setTimeout(resolve,350))",
+      );
+    },
+  );
   const mobile = await call("Page.captureScreenshot", {
     format: "png",
     captureBeyondViewport: true,

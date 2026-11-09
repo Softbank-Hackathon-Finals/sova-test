@@ -28,6 +28,7 @@ class MockServerTests(unittest.TestCase):
             "/console/",
             "/__mock/response/model.mjs",
             "/__mock/response/motion.mjs",
+            "/__mock/response/layout.mjs",
             "/__mock/response/base.css",
         ):
             with urlopen(self.origin + path, timeout=2) as response:

@@ -9,6 +9,7 @@ import {
   snapshot,
 } from "./model.mjs";
 import { createMotionClock, motionPlan } from "./motion.mjs";
+import { mountSidebar } from "./layout.mjs";
 
 const $ = (id) => document.getElementById(id);
 const element = (tag, text, className) => {
@@ -735,6 +736,7 @@ reducedMotion.addEventListener("change", () => {
   if (reducedMotion.matches) motion.finish();
   setMotionPaused(motionPaused);
 });
+mountSidebar();
 window.addEventListener("pagehide", () => {
   stop();
   motion.clear();

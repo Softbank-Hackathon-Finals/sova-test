@@ -35,6 +35,7 @@ def compose(console, manager, *, authorize, terminal_command, host_factory):
         ("index.html", "text/html; charset=utf-8"),
         ("model.mjs", "text/javascript"),
         ("motion.mjs", "text/javascript"),
+        ("layout.mjs", "text/javascript"),
         ("view.mjs", "text/javascript"),
         ("styles.css", "text/css"),
     ):
