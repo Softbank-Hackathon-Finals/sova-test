@@ -352,15 +352,19 @@ export function createSession(
 export function recoveryAvailable(session) {
   return (
     ["isolate", "segment"].includes(session.scenario) &&
-    ["complete", "held"].includes(session.phase) &&
+    session.phase === "complete" &&
     !session.recovery
   );
 }
-export function requestRecovery(session) {
-  if (!recoveryAvailable(session)) return session;
+export function requestRecovery(session, { outcome = "pass" } = {}) {
+  if (
+    !recoveryAvailable(session) ||
+    !["pass", "fail", "unknown"].includes(outcome)
+  )
+    return session;
   return {
     ...session,
-    recovery: { phase: "recovery_checking" },
+    recovery: { phase: "recovery_checking", outcome },
     history: [
       ...session.history,
       event(
@@ -384,7 +388,7 @@ export function advance(session, { approve = false } = {}) {
     if (isTerminal(session)) return session;
     const next =
       phase === "recovery_checking"
-        ? session.outcome === "pass"
+        ? session.recovery.outcome === "pass"
           ? "recovery_restoring"
           : "recovery_held"
         : "recovered";
@@ -396,7 +400,7 @@ export function advance(session, { approve = false } = {}) {
           : "원본 재검증 실패 또는 결과 불명확 · 격리·기존 경로 유지. 자동 재시도하지 않습니다.";
     return {
       ...session,
-      recovery: { phase: next },
+      recovery: { ...session.recovery, phase: next },
       history: [...session.history, event(next, message)],
     };
   }

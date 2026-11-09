@@ -204,8 +204,8 @@ test("recovery preserves containment until revalidation and only then restores t
 });
 for (const outcome of ["fail", "unknown"])
   test(`recovery ${outcome} never releases containment or changes a writer`, () => {
-    const held = toPhase("segment", "held", { outcome });
-    const checking = requestRecovery(held);
+    const held = toPhase("segment", "complete");
+    const checking = requestRecovery(held, { outcome });
     const blocked = advance(checking);
     assert.equal(currentPhase(blocked), "recovery_held");
     assert.deepEqual(snapshot(blocked).edges, snapshot(held).edges);
@@ -214,3 +214,12 @@ for (const outcome of ["fail", "unknown"])
     assert.equal(advance(blocked), blocked);
     assert.equal(requestRecovery(blocked), blocked);
   });
+
+test("an unverified response and invalid recovery outcome cannot start a return", () => {
+  for (const outcome of ["fail", "unknown"]) {
+    const held = toPhase("segment", "held", { outcome });
+    assert.equal(requestRecovery(held), held);
+  }
+  const completed = toPhase("segment", "complete");
+  assert.equal(requestRecovery(completed, { outcome: "skip" }), completed);
+});

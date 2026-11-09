@@ -144,7 +144,7 @@ test("recovery moves only verified isolation targets back and does not animate a
     assert.deepEqual(plan.positions[id], { x: original.x, y: original.y });
   }
   const blocked = advance(
-    requestRecovery(sessionAt("segment", "held", "unknown")),
+    requestRecovery(sessionAt("segment", "complete"), { outcome: "unknown" }),
   );
   assert.equal(motionPlan(blocked, snapshot(blocked)).positions.api.y, 860);
   assert.match(motionPlan(blocked, snapshot(blocked)).caption, /확인하지 못/);
