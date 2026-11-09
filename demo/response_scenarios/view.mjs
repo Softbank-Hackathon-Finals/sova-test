@@ -9,7 +9,7 @@ import {
   snapshot,
 } from "./model.mjs";
 import { createMotionClock, motionPlan } from "./motion.mjs";
-import { mountSidebar } from "./layout.mjs";
+import { mountSidebar, mountStudioView } from "./layout.mjs";
 import { mountInjectionConsole } from "./injection_console.mjs";
 
 const $ = (id) => document.getElementById(id);
@@ -749,6 +749,7 @@ const injectionConsole = mountInjectionConsole({
   },
 });
 mountSidebar();
+mountStudioView();
 window.addEventListener("pagehide", () => {
   stop();
   motion.clear();

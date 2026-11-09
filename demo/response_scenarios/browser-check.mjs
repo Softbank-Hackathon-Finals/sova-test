@@ -730,6 +730,126 @@ try {
     },
   );
   await check(
+    "focused studio keeps flow, injection, approval, map and controls in one viewport",
+    async () => {
+      for (const [width, height] of [
+        [1440, 900],
+        [1366, 768],
+        [1280, 800],
+        [1180, 700],
+      ]) {
+        await call("Emulation.setDeviceMetricsOverride", {
+          width,
+          height,
+          deviceScaleFactor: 1,
+          mobile: false,
+        });
+        await choose("segment");
+        await evaluate(
+          "if(document.body.dataset.studioView!=='focused')document.getElementById('studio-view-toggle').click()",
+        );
+        await new Promise((resolve) => setTimeout(resolve, 350));
+        const scenarioIds = await evaluate(
+          "Array.from(document.querySelectorAll('[data-scenario]')).map(n=>n.dataset.scenario)",
+        );
+        for (const scenario of scenarioIds) {
+          await choose(scenario);
+          for (const approval of [false, true]) {
+            if (approval)
+              await evaluate(
+                "for(let i=0;i<3;i++)document.getElementById('next').click()",
+              );
+            const positions = await evaluate(`(() => {
+            const ids = ['phase-track','injection-form','response-controls','map-viewport','next',${approval ? "'approve'" : "'injection-command'"}];
+            return ids.map(id=>{const n=document.getElementById(id),r=n.getBoundingClientRect();return {id,left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height};});
+          })()`);
+            assert(
+              positions.every(
+                (r) =>
+                  r.left >= 0 &&
+                  r.top >= 0 &&
+                  r.right <= width + 1 &&
+                  r.bottom <= height + 1 &&
+                  r.height > 0,
+              ),
+              JSON.stringify({ width, height, approval, positions }),
+            );
+            assert(
+              positions.find((r) => r.id === "map-viewport").height >= 160,
+              JSON.stringify(positions),
+            );
+            assert.equal(
+              await evaluate(
+                "document.documentElement.scrollHeight <= innerHeight + 1 && document.documentElement.scrollWidth <= innerWidth + 1",
+              ),
+              true,
+            );
+          }
+        }
+      }
+      await evaluate("document.getElementById('inspector-toggle').click()");
+      assert.equal(
+        await evaluate("document.getElementById('node-inspector').inert"),
+        false,
+      );
+      await call("Input.dispatchKeyEvent", {
+        type: "keyDown",
+        key: "Escape",
+        code: "Escape",
+      });
+      assert.equal(
+        await evaluate("document.getElementById('node-inspector').inert"),
+        true,
+      );
+      assert.equal(
+        await evaluate("document.body.dataset.studioView"),
+        "focused",
+      );
+      await call("Emulation.setDeviceMetricsOverride", {
+        width: 1440,
+        height: 900,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      await writeFile(
+        join(output, "focused-studio.png"),
+        Buffer.from(
+          (await call("Page.captureScreenshot", { format: "png" })).data,
+          "base64",
+        ),
+      );
+      const phase = await evaluate(
+        "document.getElementById('stat-phase').textContent",
+      );
+      await evaluate("document.getElementById('studio-view-toggle').click()");
+      assert.equal(
+        await evaluate("document.getElementById('stat-phase').textContent"),
+        phase,
+      );
+      assert.equal(
+        await evaluate("document.getElementById('node-inspector').inert"),
+        false,
+      );
+      await evaluate("document.getElementById('studio-view-toggle').click()");
+      await call("Emulation.setDeviceMetricsOverride", {
+        width: 390,
+        height: 844,
+        deviceScaleFactor: 1,
+        mobile: true,
+      });
+      assert.equal(
+        await evaluate(
+          "new Promise(resolve=>setTimeout(()=>resolve(document.body.dataset.studioView),150))",
+        ),
+        "overview",
+      );
+      assert.equal(
+        await evaluate("document.getElementById('studio-view-toggle').hidden"),
+        true,
+      );
+    },
+  );
+  await check(
     "no product API, external request, mutation or browser error",
     async () => {
       assert.equal(exceptions.length, 0, JSON.stringify(exceptions));

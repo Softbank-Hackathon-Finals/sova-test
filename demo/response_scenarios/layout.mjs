@@ -1,4 +1,58 @@
 // Layout preferences only. Does not change the response session or motion clock.
+export function mountStudioView() {
+  const toggle = document.getElementById("studio-view-toggle");
+  const detail = document.getElementById("inspector-toggle");
+  const inspector = document.getElementById("node-inspector");
+  const supported = matchMedia("(min-width: 1180px) and (min-height: 700px)");
+  let active = false;
+  let detailsOpen = false;
+
+  function setDetails(open) {
+    detailsOpen = open;
+    document.body.dataset.inspector = open ? "open" : "closed";
+    detail.setAttribute("aria-expanded", String(open));
+    inspector.inert = active && !open;
+    if (active && !open) inspector.setAttribute("aria-hidden", "true");
+    else inspector.removeAttribute("aria-hidden");
+  }
+  function setActive(value) {
+    active = value && supported.matches;
+    document.body.dataset.studioView = active ? "focused" : "overview";
+    toggle.setAttribute("aria-pressed", String(active));
+    toggle.textContent = active ? "전체 내용 보기" : "한 화면 보기";
+    if (active && document.body.dataset.sidebar === "open")
+      document.getElementById("sidebar-toggle").click();
+    setDetails(false);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+  toggle.onclick = () => setActive(!active);
+  detail.onclick = () => setDetails(!detailsOpen);
+  const resize = () => {
+    toggle.hidden = !supported.matches;
+    if (!supported.matches && active) setActive(false);
+  };
+  supported.addEventListener("change", resize);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && active) {
+      if (detailsOpen) {
+        setDetails(false);
+        detail.focus();
+      } else {
+        setActive(false);
+        toggle.focus();
+      }
+    }
+  });
+  document
+    .getElementById("workspace-sidebar")
+    .addEventListener("click", (event) => {
+      if (active && event.target.closest("[data-section], .brand"))
+        setActive(false);
+    });
+  setDetails(false);
+  resize();
+}
+
 export function mountSidebar() {
   const sidebar = document.getElementById("workspace-sidebar");
   const main = document.querySelector(".main-shell");
