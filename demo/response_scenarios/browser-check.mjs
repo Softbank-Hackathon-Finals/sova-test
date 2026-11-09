@@ -821,9 +821,7 @@ try {
         /격리 2/,
       );
       assert.equal(
-        await evaluate(
-          "document.querySelector('[data-console-command=\"recovery start\"]').disabled",
-        ),
+        await evaluate("document.getElementById('outcome').disabled"),
         false,
       );
     },
@@ -902,7 +900,7 @@ try {
         await choose("segment");
         await finish();
         await evaluate(
-          `document.getElementById('speed').value='900';document.getElementById('recovery-outcome').value=${JSON.stringify(result)}`,
+          `document.getElementById('speed').value='900';document.getElementById('outcome').value=${JSON.stringify(result)};document.getElementById('outcome').dispatchEvent(new Event('change'))`,
         );
         await command("recovery start");
         await phaseIs("복구 보류 · 격리 유지");
@@ -919,7 +917,7 @@ try {
           true,
         );
         await evaluate(
-          "document.getElementById('recovery-outcome').value='pass'",
+          "document.getElementById('outcome').value='pass';document.getElementById('outcome').dispatchEvent(new Event('change'))",
         );
         await command("response approve");
         await command("recovery start");

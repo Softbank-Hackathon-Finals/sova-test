@@ -1945,10 +1945,6 @@
 #phase-track[data-mode="recovery"] {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.injection-tools button:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
 #injection-state[data-phase="recovered"] {
   color: #99d3ba;
   background: #29463e;

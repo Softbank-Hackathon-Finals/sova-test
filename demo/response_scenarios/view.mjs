@@ -35,6 +35,7 @@ let session = createSession(),
   zoom = 1,
   timer = null,
   playing = false,
+  recoveryOutcome = "pass",
   runVersion = 0,
   motionPaused = false,
   currentGraph = null,
@@ -59,15 +60,17 @@ function stop() {
   timer = null;
 }
 function reset(id = session.scenario) {
+  const outcome =
+    session.phase === "normal" ? $("outcome").value : session.outcome;
   stop();
   motion.clear();
   runVersion++;
   motionPaused = false;
-  $("recovery-outcome").value = "pass";
+  recoveryOutcome = "pass";
   if (!reducedMotion.matches) $("workload-map").unpauseAnimations();
   const changingScenario = id !== session.scenario;
   session = createSession(id, {
-    outcome: $("outcome").value,
+    outcome,
     preapproved: !changingScenario && $("preapproved").checked,
   });
   selected = definition(id).targets[0];
@@ -646,8 +649,13 @@ function render() {
   $("next").disabled = terminal || approval;
   $("autoplay").textContent = playing ? "재생 일시정지" : "자동 재생";
   $("autoplay").disabled = terminal || approval;
-  $("outcome").disabled = session.phase !== "normal";
-  $("recovery-outcome").disabled = !recoveryAvailable(session);
+  const choosingRecovery = recoveryAvailable(session);
+  $("outcome").disabled = session.phase !== "normal" && !choosingRecovery;
+  $("outcome").value = choosingRecovery
+    ? recoveryOutcome
+    : session.recovery?.outcome || session.outcome;
+  $("outcome-label").textContent =
+    choosingRecovery || session.recovery ? "복귀 검증" : "검증 결과";
   $("preapproved").disabled = !spec.policy || session.phase !== "normal";
   $("preapproved").checked = session.preapproved;
   $("policy-description").textContent = spec.policy
@@ -699,7 +707,10 @@ function render() {
 }
 $("next").onclick = () => forward();
 $("reset").onclick = () => reset();
-$("outcome").onchange = () => reset();
+$("outcome").onchange = () => {
+  if (recoveryAvailable(session)) recoveryOutcome = $("outcome").value;
+  else if (session.phase === "normal") reset();
+};
 $("preapproved").onchange = () => reset();
 $("autoplay").onclick = () => {
   if (playing) {
@@ -793,7 +804,7 @@ const injectionConsole = mountInjectionConsole({
   },
   onRecover: () => {
     const next = requestRecovery(session, {
-      outcome: $("recovery-outcome").value,
+      outcome: recoveryOutcome,
     });
     if (next === session) return;
     stop();

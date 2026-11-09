@@ -144,8 +144,8 @@
             >
               <div class="flow-console-heading">
                 <div>
-                  <p class="eyebrow">RESPONSE FLOW & OPERATIONS CONSOLE</p>
-                  <h2>대응 흐름 · 운영 콘솔</h2>
+                  <p class="eyebrow">RESPONSE FLOW & INJECTION CONSOLE</p>
+                  <h2>대응 흐름 · 주입 콘솔</h2>
                 </div>
               </div>
               <div class="flow-console-grid">
@@ -164,9 +164,9 @@
                       <span class="terminal-lights" aria-hidden="true"
                         ><i></i><i></i><i></i
                       ></span>
-                      <h3 id="injection-title">운영 콘솔</h3>
+                      <h3 id="injection-title">주입 콘솔</h3>
                       <span class="terminal-english" lang="en"
-                        >Operations Console</span
+                        >Injection Console</span
                       >
                     </div>
                     <span id="injection-state"></span>
@@ -187,7 +187,7 @@
                     ><input
                       id="injection-command"
                       type="text"
-                      aria-label="운영 명령"
+                      aria-label="주입 명령"
                       maxlength="256"
                       spellcheck="false"
                       autocomplete="off"
@@ -195,32 +195,6 @@
                       실행 ↵
                     </button>
                   </form>
-                  <div class="injection-tools">
-                    <button
-                      type="button"
-                      data-console-command="workload status"
-                    >
-                      상태
-                    </button>
-                    <button
-                      type="button"
-                      data-console-command="incident inspect"
-                    >
-                      사고
-                    </button>
-                    <button type="button" data-console-command="response watch">
-                      관찰
-                    </button>
-                    <button
-                      type="button"
-                      data-console-command="response approve"
-                    >
-                      승인
-                    </button>
-                    <button type="button" data-console-command="recovery start">
-                      복귀
-                    </button>
-                  </div>
                   <div class="injection-tools">
                     <button id="injection-example" type="button">
                       주입 명령 채우기</button
@@ -255,14 +229,8 @@
                         <option value="3000">3초</option>
                       </select></label
                     ><label
-                      >검증 결과<select id="outcome">
-                        <option value="pass">통과</option>
-                        <option value="fail">실패</option>
-                        <option value="unknown">결과 불명확</option>
-                      </select></label
-                    >
-                    <label
-                      >복귀 검증<select id="recovery-outcome" disabled>
+                      ><span id="outcome-label">검증 결과</span
+                      ><select id="outcome">
                         <option value="pass">통과</option>
                         <option value="fail">실패</option>
                         <option value="unknown">결과 불명확</option>

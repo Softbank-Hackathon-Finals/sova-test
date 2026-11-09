@@ -4,7 +4,6 @@ import {
   HEALTH_LABELS,
   snapshot,
   currentPhase,
-  recoveryAvailable,
 } from "./model.mjs";
 import { injectionCommand, parseCommand } from "./commands.mjs";
 
@@ -164,11 +163,6 @@ export function mountInjectionConsole({
   };
   document.getElementById("injection-clear").onclick = () =>
     output.replaceChildren();
-  for (const button of document.querySelectorAll("[data-console-command]"))
-    button.onclick = () => {
-      input.value = button.dataset.consoleCommand;
-      execute(input.value);
-    };
   return {
     update(session, version) {
       if (run !== version) {
@@ -193,15 +187,6 @@ export function mountInjectionConsole({
       const label = document.getElementById("injection-state");
       label.textContent = PHASE_LABELS[currentPhase(session)];
       label.dataset.phase = currentPhase(session);
-      document.querySelector(
-        '[data-console-command="response approve"]',
-      ).disabled =
-        session.phase !== "awaiting_approval" ||
-        session.approved ||
-        Boolean(session.recovery);
-      document.querySelector(
-        '[data-console-command="recovery start"]',
-      ).disabled = !recoveryAvailable(session);
       example.disabled = session.phase !== "normal";
       document.getElementById("injection-targets").textContent = definition(
         session.scenario,
