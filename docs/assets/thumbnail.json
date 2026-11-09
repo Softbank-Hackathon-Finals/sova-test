@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "repository": "Softbank-Hackathon-Finals/sova-test",
+  "created_on": "2026-11-09",
+  "asset": {
+    "path": "docs/assets/thumbnail.png",
+    "width": 1600,
+    "height": 900,
+    "sha256": "221fad1df6a870f21b421c73d33f4fa890f2ee9ced3c0c8f5dfdbd5056ccf48f"
+  },
+  "source": {
+    "kind": "local-browser-console-capture",
+    "commit": "474e5d22aaadc7b3efebbd7e708f2f769d45007e"
+  },
+  "production_execution_evidence": false,
+  "description": "개인 개발 브랜치의 워크로드 대응 콘솔 미리보기입니다. 로컬 브라우저 시나리오이며 실제 운영 이전·격리 검증 결과가 아닙니다."
+}
