@@ -58,6 +58,15 @@ const time = (value) =>
   value ? new Date(value).toLocaleString("ko-KR", { hour12: false }) : "미확인";
 
 export function mountWorkspace({ trialPanel }) {
+  if (!document.getElementById("mock-response-link")) {
+    const preview = node("button", "◇  대응 유형 · 목업");
+    preview.id = "mock-response-link";
+    preview.type = "button";
+    preview.title = "실제 관측 화면을 유지하고 별도 목업을 엽니다.";
+    preview.onclick = () =>
+      window.open("/__mock/response/", "_blank", "noopener,noreferrer");
+    document.querySelector("nav")?.append(preview);
+  }
   const main = document.querySelector("#workspace-main");
   const root = node("section", undefined, "sova-live-pages");
   root.id = "sova-live-pages";
