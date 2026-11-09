@@ -59,10 +59,10 @@ const time = (value) =>
 
 export function mountWorkspace({ trialPanel }) {
   if (!document.getElementById("mock-response-link")) {
-    const preview = node("button", "◇  대응 유형 · 목업");
+    const preview = node("button", "◇  대응 유형");
     preview.id = "mock-response-link";
     preview.type = "button";
-    preview.title = "실제 관측 화면을 유지하고 별도 목업을 엽니다.";
+    preview.title = "기존 화면을 유지하고 대응 유형을 별도 탭으로 엽니다.";
     preview.onclick = () =>
       window.open("/__mock/response/", "_blank", "noopener,noreferrer");
     document.querySelector("nav")?.append(preview);

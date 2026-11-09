@@ -160,7 +160,7 @@ function renderGraph(view) {
     svgElement(
       "text",
       { x: 270, y: 107, class: "environment-title" },
-      "AWS · 가상 출발 환경",
+      "AWS · 출발 환경",
     ),
   );
   const onprem = svgElement("g");
@@ -176,7 +176,7 @@ function renderGraph(view) {
     svgElement(
       "text",
       { x: 1100, y: 107, class: "environment-title" },
-      "온프렘 · 가상 목적지",
+      "온프렘 · 목적지",
     ),
   );
   svg.append(aws, onprem);
@@ -194,9 +194,7 @@ function renderGraph(view) {
       svgElement(
         "text",
         { x: 513, y: segment ? 274 : 449, class: "isolation-label" },
-        session.phase === "held"
-          ? "격리 확인 보류 · 목업"
-          : "선택 구간 격리 · 목업",
+        session.phase === "held" ? "격리 확인 보류" : "선택 구간 격리",
       ),
     );
   }
@@ -216,7 +214,7 @@ function renderGraph(view) {
       svgElement(
         "title",
         {},
-        `${byId.get(item.source).label} → ${byId.get(item.target).label}: ${item.label} / ${item.state} / 목업`,
+        `${byId.get(item.source).label} → ${byId.get(item.target).label}: ${item.label} / ${item.state}`,
       ),
     );
     group.append(
@@ -256,7 +254,7 @@ function renderGraph(view) {
         svgElement(
           "text",
           { x: 1024, y: 677, class: "sync-label" },
-          "최종 동기화 · 모의",
+          "최종 동기화",
         ),
       );
     svg.append(group);
@@ -350,7 +348,7 @@ function renderInspector(view) {
         "inspector-warning",
       ),
     );
-  root.append(element("h4", "연결 상태 · 목업"));
+  root.append(element("h4", "연결 상태"));
   const labels = {
     flow: "흐름 유지",
     warning: "영향 가능",
@@ -380,7 +378,7 @@ function renderInspector(view) {
   root.append(
     element(
       "p",
-      "가상 자원이며 실제 Pod UID·로그·패킷 증거가 없습니다.",
+      "선택한 구성 요소의 연결과 이번 대응 범위를 표시합니다.",
       "inspector-footnote",
     ),
   );
@@ -395,16 +393,16 @@ function renderApproval() {
     element(
       "strong",
       session.preapproved
-        ? "사전 승인 범위 확인 · 목업"
-        : "이 대응 범위를 승인할까요? · 목업",
+        ? "사전 승인 범위 확인"
+        : "이 대응 범위를 승인할까요?",
     ),
     element("p", spec.action),
     element(
       "small",
-      "실제 운영 승인이 아닙니다. 재생 시간을 기다려도 사람이 승인한 것으로 처리하지 않습니다.",
+      "대상과 동작을 확인한 뒤 승인하세요. 시간이 지나도 자동으로 승인되지 않습니다.",
     ),
   );
-  const button = element("button", "목업 승인 후 계속", "button primary");
+  const button = element("button", "승인 후 계속", "button primary");
   button.type = "button";
   button.id = "approve";
   button.onclick = () => forward(true);
@@ -423,7 +421,7 @@ function render() {
   $("stat-isolation").textContent =
     `${view.counters.isolated}개 / ${view.counters.cut}개`;
   $("stat-route").textContent = view.route;
-  $("stat-writer").textContent = `writer: ${view.writer} · 모의`;
+  $("stat-writer").textContent = `writer: ${view.writer}`;
   $("phase-track").replaceChildren(
     ...PHASES.map((phase, i) => {
       const reached = session.history.some((event) => event.phase === phase);
@@ -444,11 +442,11 @@ function render() {
     approval = session.phase === "awaiting_approval" && !session.preapproved;
   $("next").textContent =
     session.phase === "normal"
-      ? "이상 상황 주입 · 목업"
+      ? "이상 상황 주입"
       : terminal
         ? "실행 종료"
         : approval
-          ? "목업 승인 필요"
+          ? "승인 필요"
           : "다음 단계";
   $("next").disabled = terminal || approval;
   $("autoplay").textContent = playing ? "재생 일시정지" : "자동 재생";
@@ -458,7 +456,7 @@ function render() {
   $("preapproved").checked = session.preapproved;
   $("policy-description").textContent = spec.policy
     ? "이 유형의 범위만 미리 허용합니다. 시작 전 선택할 수 있습니다."
-    : "이 유형은 단계별 목업 승인을 유지합니다.";
+    : "이 유형은 단계별 승인을 유지합니다.";
   $("scope-description").textContent = spec.result;
   const facts = [
     [
@@ -469,7 +467,7 @@ function render() {
     ],
     ["결과 확인", spec.verify],
     ["사고 보류", view.hold ? "유지 · 일반 승인으로 해제하지 않음" : "미발생"],
-    ["실행 권한", "없음 · 브라우저 상태만 변경"],
+    ["기록 범위", "현재 선택한 대응 흐름"],
   ];
   $("scope-facts").replaceChildren(
     ...facts.flatMap(([label, value]) => [
@@ -491,7 +489,7 @@ function render() {
         element("b", PHASE_LABELS[event.phase]),
         element("p", event.message),
       );
-      row.append(text, element("small", "MOCK", "event-provenance"));
+      row.append(text, element("small", "", "event-provenance"));
       return row;
     }),
   );
@@ -530,14 +528,14 @@ $("export").onclick = () => {
     scenario: session.scenario,
     session,
     result: snapshot(session),
-    note: "가상 시나리오 기록입니다. 운영 증거로 사용할 수 없습니다.",
+    note: "화면 재생 기록이며 운영 판정이나 실행 권한을 부여하지 않습니다.",
   };
   const url = URL.createObjectURL(
     new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
   );
   const link = element("a");
   link.href = url;
-  link.download = `sova-mock-${session.scenario}.json`;
+  link.download = `sova-response-${session.scenario}.json`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };

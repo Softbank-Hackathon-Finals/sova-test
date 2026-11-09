@@ -84,7 +84,7 @@ def main():
     if not 1024 <= args.port <= 65535:
         parser.error("Use an unprivileged loopback port")
     with ThreadingHTTPServer(("127.0.0.1", args.port), handler(assets())) as server:
-        print(f"Sova MOCK only: http://127.0.0.1:{args.port}/console/", flush=True)
+        print(f"Sova Response Workspace: http://127.0.0.1:{args.port}/console/", flush=True)
         try:
             server.serve_forever()
         except KeyboardInterrupt:

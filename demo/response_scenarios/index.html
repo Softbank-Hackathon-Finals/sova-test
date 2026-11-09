@@ -8,7 +8,7 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
     />
-    <title>Sova · 워크로드 대응 시뮬레이터 · 목업</title>
+    <title>Sova · 워크로드 대응</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/__mock/response/base.css" />
     <link rel="stylesheet" href="/__mock/response/styles.css" />
@@ -23,7 +23,7 @@
         <div><b>Sova workspace</b><small>워크로드 대응 설계</small></div>
       </div>
       <span class="nav-caption">WORKSPACE</span>
-      <nav aria-label="시뮬레이터 메뉴">
+      <nav aria-label="워크스페이스 메뉴">
         <button data-section="overview">▦ <span>워크스페이스</span></button>
         <button data-section="map" class="active" aria-current="page">
           ◇ <span>워크로드 대응</span><i class="nav-dot"></i>
@@ -33,14 +33,11 @@
       </nav>
       <div class="sidebar-help">
         <span class="preview-symbol">◇</span><b>대응을 먼저 설계합니다</b>
-        <p>
-          모든 자원·이벤트·승인은 목업입니다. 실제 클러스터와 제품 API를
-          사용하지 않습니다.
-        </p>
+        <p>대상과 영향 범위를 선택하고 대응 순서와 결과를 확인합니다.</p>
       </div>
       <div class="sidebar-bottom">
-        <span class="tiny-dot"></span> 브라우저 로컬 시뮬레이션<small
-          >MOCK DATA · NO EXECUTION</small
+        <span class="tiny-dot"></span> Sova workspace<small
+          >WORKLOAD RESPONSE</small
         >
       </div>
     </aside>
@@ -50,19 +47,11 @@
           Workspace <span>/</span><b>워크로드 대응</b>
         </div>
         <div class="topbar-right">
-          <span class="preview-badge">목업 전용</span
-          ><span class="header-note">실환경 미연결</span
+          <span class="header-note">워크로드 대응</span
           ><span class="avatar">S</span>
         </div>
       </header>
       <main id="overview">
-        <div class="mock-banner" role="note">
-          <strong>시뮬레이션 모드</strong
-          ><span
-            >앱·네트워크·DB·승인·검증 결과는 모두 가상입니다. 실제 공격 탐지나
-            운영 변경을 수행하지 않습니다.</span
-          >
-        </div>
         <div class="page-heading">
           <div>
             <p class="eyebrow">WORKLOAD RESPONSE STUDIO</p>
@@ -72,25 +61,23 @@
               지도에서 확인합니다.
             </p>
           </div>
-          <span class="scope-chip">가상 업무 앱 · API / 작업자 / 데이터</span>
+          <span class="scope-chip">업무 앱 · API / 작업자 / 데이터</span>
         </div>
-        <section class="response-stats" aria-label="목업 상태 요약">
+        <section class="response-stats" aria-label="상태 요약">
           <article>
-            <small>대응 단계 · 목업</small><strong id="stat-phase"></strong
+            <small>대응 단계</small><strong id="stat-phase"></strong
             ><span id="stat-scenario"></span>
           </article>
           <article>
-            <small>서비스 영향 · 목업</small
-            ><strong id="stat-availability"></strong
-            ><span>실측 SLO가 아닌 시나리오 상태</span>
+            <small>서비스 영향</small><strong id="stat-availability"></strong
+            ><span>서비스 영향과 연결 상태</span>
           </article>
           <article>
-            <small>격리 / 차단 연결 · 목업</small
-            ><strong id="stat-isolation"></strong
+            <small>격리 / 차단 연결</small><strong id="stat-isolation"></strong
             ><span>선택한 구성 요소 범위에만 적용</span>
           </article>
           <article>
-            <small>현재 요청 경로 · 목업</small><strong id="stat-route"></strong
+            <small>현재 요청 경로</small><strong id="stat-route"></strong
             ><span id="stat-writer"></span>
           </article>
         </section>
@@ -108,16 +95,15 @@
                 <h2 id="scenario-title"></h2>
                 <p id="scenario-description"></p>
               </div>
-              <span class="preview-badge">모든 단계 가상</span>
             </section>
             <section
               id="map"
               class="response-map-card"
-              aria-label="목업 워크로드 지도"
+              aria-label="워크로드 지도"
             >
               <div class="map-toolbar">
                 <div>
-                  <p class="eyebrow">WORKLOAD MAP · SIMULATED</p>
+                  <p class="eyebrow">WORKLOAD MAP</p>
                   <h2>연결·격리·교체를 한눈에</h2>
                 </div>
                 <div class="map-tools">
@@ -133,7 +119,7 @@
                     id="workload-map"
                     viewBox="0 0 1400 800"
                     role="group"
-                    aria-label="가상 AWS와 온프렘 워크로드 관계"
+                    aria-label="AWS와 온프렘 워크로드 관계"
                   ></svg>
                 </div>
                 <aside
@@ -149,7 +135,7 @@
                 ><span><i class="sync"></i>동기화</span
                 ><span><i class="idle"></i>대기</span
                 ><small
-                  >선과 움직임은 가상 상태 표현이며 패킷 관측이 아닙니다.</small
+                  >노드를 선택해 대응 범위와 연결 상태를 확인하세요.</small
                 >
               </div>
             </section>
@@ -169,7 +155,7 @@
                     <option value="3000">3초</option>
                   </select></label
                 ><label
-                  >검증 결과 · 목업<select id="outcome">
+                  >검증 결과<select id="outcome">
                     <option value="pass">통과</option>
                     <option value="fail">실패</option>
                     <option value="unknown">결과 불명확</option>
@@ -189,7 +175,7 @@
             <dl id="scope-facts"></dl>
             <label class="policy-option"
               ><input id="preapproved" type="checkbox" /><span
-                ><b>범위가 고정된 사전 승인 정책 · 목업</b
+                ><b>범위가 고정된 사전 승인 정책</b
                 ><small id="policy-description"></small></span
             ></label>
             <p class="boundary-note">
@@ -200,19 +186,17 @@
           <section id="timeline" class="timeline-card">
             <div class="timeline-heading">
               <div>
-                <p class="eyebrow">SIMULATION JOURNAL</p>
+                <p class="eyebrow">RESPONSE JOURNAL</p>
                 <h2>대응 타임라인</h2>
               </div>
-              <button id="export" class="button secondary">
-                목업 기록 JSON
-              </button>
+              <button id="export" class="button secondary">기록 JSON</button>
             </div>
             <ol id="event-list"></ol>
           </section>
         </div>
         <footer class="preview-footer">
           <span>Sova · Workload Response Studio</span
-          ><span>가상 자원 / 가상 결과 / 운영 권한 없음</span>
+          ><span>API / 작업자 / 데이터</span>
         </footer>
       </main>
     </div>

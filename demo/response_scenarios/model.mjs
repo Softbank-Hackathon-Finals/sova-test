@@ -12,23 +12,23 @@ export const PHASE_LABELS = {
   normal: "정상 흐름",
   detected: "이상 주입",
   planned: "영향·계획 확인",
-  awaiting_approval: "목업 승인 대기",
-  executing: "대응 시뮬레이션",
+  awaiting_approval: "승인 대기",
+  executing: "대응 진행",
   verifying: "결과 확인",
-  complete: "시뮬레이션 완료",
+  complete: "대응 완료",
   held: "보류 · 전환 중지",
 };
 export const HEALTH_LABELS = {
-  healthy: "정상 · 모의",
+  healthy: "정상",
   warning: "영향 가능",
-  compromised: "문제 발생 · 모의",
-  isolated: "격리 · 모의",
-  draining: "연결 정리 · 모의",
+  compromised: "문제 발생",
+  isolated: "격리",
+  draining: "연결 정리",
   preparing: "준비 중",
   standby: "대기",
-  replaced: "교체됨 · 모의",
+  replaced: "교체됨",
   unknown: "결과 미확인",
-  patched: "수정본 · 모의",
+  patched: "수정본",
 };
 const scenario = (
   id,
@@ -99,7 +99,7 @@ export const SCENARIOS = [
     ["vault", "api"],
     "새 자격 준비 → 앱 재연결 → 이전 자격 폐기",
     "새 자격 허용 / 이전 자격 거부 / 업무 응답",
-    "새 자격 연결을 모의 확인합니다. 자격 교체만으로 침해 종료를 선언하지 않습니다.",
+    "새 자격 연결을 확인합니다. 자격 교체만으로 침해 종료를 선언하지 않습니다.",
   ),
   scenario(
     "patch",
@@ -110,7 +110,7 @@ export const SCENARIOS = [
     ["api"],
     "수정안 → 샌드박스 시험 → 이미지 검사 → 대체본 준비",
     "취약점 재시험 / 기능 회귀 / 실행 이미지 일치",
-    "검증을 통과한 대체 API로 모의 전환합니다. 기존 API와 사고 이력은 보존합니다.",
+    "검증을 통과한 대체 API로 전환합니다. 기존 API와 사고 이력은 보존합니다.",
   ),
   scenario(
     "restart",
@@ -131,8 +131,8 @@ export const SCENARIOS = [
     "큐 대기와 작업자 부하가 기준을 넘는 상황",
     ["worker", "queue"],
     "허용 복제본·예산 확인 → 작업자 추가 → 작업 분산",
-    "새 실행본 준비 / 모의 큐 대기 감소 / 오류율",
-    "추가 작업자로 부하를 분산합니다. 화면 수치는 설명용 가정값입니다.",
+    "새 실행본 준비 / 큐 대기 감소 / 오류율",
+    "추가 작업자로 부하를 분산합니다.",
     true,
   ),
   scenario(
@@ -144,7 +144,7 @@ export const SCENARIOS = [
     ["api", "worker", "db"],
     "목적지 준비·DB 동기화 → 출발지 writer 차단 → 최종 비교",
     "최종 데이터 비교 / 목적지 writer 활성화 / 경로 확인",
-    "검증 통과 뒤 온프렘 writer와 트래픽을 활성화하는 모의 흐름입니다. 실제 무중단·RPO 수치를 증명하지 않습니다.",
+    "검증 통과 뒤 온프렘 writer와 트래픽을 활성화합니다. 출발지 자원은 복구를 위해 보존합니다.",
   ),
   scenario(
     "rollback",
@@ -155,7 +155,7 @@ export const SCENARIOS = [
     ["api"],
     "신규 배포 보류 → 이전 이미지 재기동 → 호환성 검사",
     "이전 이미지·설정·현재 DB 스키마 호환 확인",
-    "호환성 확인 뒤 이전 이미지로 모의 복귀합니다. DB를 과거 시점으로 되돌리지 않습니다.",
+    "호환성 확인 뒤 이전 이미지로 복귀합니다. DB를 과거 시점으로 되돌리지 않습니다.",
   ),
 ];
 export const NODES = [
@@ -312,7 +312,7 @@ export function createSession(
     preapproved: Boolean(preapproved && spec.policy),
     outcome,
     approved: false,
-    history: [event("normal", "가상 앱 정상 상태로 초기화")],
+    history: [event("normal", "앱 정상 상태로 초기화")],
     source: "mock",
   };
 }
@@ -342,10 +342,10 @@ export function advance(session, { approve = false } = {}) {
         ? spec.action
         : phase === "awaiting_approval"
           ? session.preapproved
-            ? "정확한 시나리오 범위의 사전 승인 정책 적용 · 모의"
-            : "목업 승인을 기다립니다. 시간 경과로 승인되지 않습니다."
+            ? "정확한 시나리오 범위의 사전 승인 정책 적용"
+            : "승인을 기다립니다. 시간 경과로 승인되지 않습니다."
           : phase === "executing"
-            ? `목업 승인 소비 · ${spec.action}`
+            ? `승인 확인 · ${spec.action}`
             : phase === "verifying"
               ? spec.verify
               : phase === "held"
@@ -402,7 +402,7 @@ export function snapshot(session) {
   };
   let writer = "출발지 DB",
     route = "AWS 업무 API",
-    availability = "정상 · 가정",
+    availability = "정상",
     hold = false;
   if (detected) {
     hold = true;
@@ -420,7 +420,7 @@ export function snapshot(session) {
         const neighbor = nodes.find((item) => item.id === other);
         if (neighbor.status === "healthy") neighbor.affected = true;
       }
-    availability = "영향 확인 중 · 모의";
+    availability = "영향 확인 중";
     if (spec.id === "egress") {
       edge("egress", "warning");
       node("external", { affected: true });
@@ -437,28 +437,26 @@ export function snapshot(session) {
           link.state = "cut";
       availability =
         spec.id === "segment"
-          ? "API·작업 처리 중단 · 모의"
-          : "API 유지 / 작업 큐 대기 · 모의";
+          ? "API·작업 처리 중단"
+          : "API 유지 / 작업 큐 대기";
     } else if (spec.id === "egress") {
       edge("egress", "cut");
       node("worker", { status: "warning" });
       for (const id of ["queue-worker", "worker-db"]) edge(id, "flow");
-      availability = "내부 업무 유지 · 모의";
+      availability = "내부 업무 유지";
     } else if (spec.id === "credentials") {
       node("vault", {
         status: done ? "healthy" : "preparing",
-        subtitle: done ? "새 자격 v2 · 이전 자격 폐기" : "새 자격 발급 · 모의",
+        subtitle: done ? "새 자격 v2 · 이전 자격 폐기" : "새 자격 발급",
       });
       node("api", { status: done ? "healthy" : "draining" });
       edge("secret-api", done ? "flow" : "draining");
     } else if (["patch", "rollback"].includes(spec.id)) {
-      node("api", { status: "draining", subtitle: "기존 실행본 보존 · 모의" });
+      node("api", { status: "draining", subtitle: "기존 실행본 보존" });
       node("standby", {
         status: done ? "patched" : held ? "unknown" : "preparing",
         subtitle:
-          spec.id === "patch"
-            ? "수정 이미지 v2 · 모의"
-            : "이전 검증 이미지 v0 · 모의",
+          spec.id === "patch" ? "수정 이미지 v2" : "이전 검증 이미지 v0",
       });
       if (done) {
         edge("ingress", "cut");
@@ -469,7 +467,7 @@ export function snapshot(session) {
     } else if (spec.id === "restart") {
       node("worker", {
         status: done ? "healthy" : "draining",
-        subtitle: done ? "AWS · 새 실행본 2" : "기존 실행본 종료 · 모의",
+        subtitle: done ? "AWS · 새 실행본 2" : "기존 실행본 종료",
       });
       edge("queue-worker", done ? "flow" : "draining");
       edge("worker-db", done ? "flow" : "cut");
@@ -489,13 +487,13 @@ export function snapshot(session) {
         node(id, { status: done ? "healthy" : held ? "unknown" : "preparing" });
       node("db", {
         status: done ? "replaced" : "draining",
-        subtitle: "출발지 writer 차단 · 모의",
+        subtitle: "출발지 writer 차단",
       });
       edge("replication", done ? "idle" : "sync");
       writer = done ? "목적지 DB" : "없음 · 출발지 차단, 목적지 대기";
       if (done) {
         for (const id of ["api", "worker"])
-          node(id, { status: "replaced", subtitle: "출발지 보존 · 모의" });
+          node(id, { status: "replaced", subtitle: "출발지 보존" });
         for (const id of ["ingress", "api-db", "worker-db", "queue-worker"])
           edge(id, "cut");
         for (const id of [
@@ -505,12 +503,10 @@ export function snapshot(session) {
           "target-worker-db",
         ])
           edge(id, "flow");
-        node("target-db", { subtitle: "온프렘 · 단일 writer · 모의" });
+        node("target-db", { subtitle: "온프렘 · 단일 writer" });
         route = "온프렘 목적지 API";
       }
-      availability = done
-        ? "목적지 업무 재개 · 모의"
-        : "읽기 유지 / 쓰기 대기 · 모의";
+      availability = done ? "목적지 업무 재개" : "읽기 유지 / 쓰기 대기";
     }
   }
   if (held) {
@@ -521,7 +517,7 @@ export function snapshot(session) {
     if (spec.id === "migrate") writer = "미확인 · 양쪽 쓰기 보류";
   }
   if (done && !["isolate", "segment", "egress", "migrate"].includes(spec.id))
-    availability = "대응 후 업무 확인 · 모의";
+    availability = "대응 후 업무 확인";
   return {
     source: "mock",
     nodes,

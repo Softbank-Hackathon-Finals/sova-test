@@ -99,9 +99,15 @@ try {
         await evaluate("document.querySelectorAll('[data-node]').length"),
         14,
       );
-      assert.match(
-        await evaluate("document.querySelector('.mock-banner').textContent"),
-        /모두 가상/,
+      assert.equal(
+        await evaluate("document.querySelector('.mock-banner')"),
+        null,
+      );
+      assert.equal(
+        await evaluate(
+          "/목업|가상|모의|시뮬레|MOCK|SIMULAT/.test(document.body.innerText)",
+        ),
+        false,
       );
     },
   );
@@ -119,7 +125,7 @@ try {
     ]) {
       await choose(id);
       const result = await finish();
-      assert.equal(result.phase, "시뮬레이션 완료", id);
+      assert.equal(result.phase, "대응 완료", id);
     }
   });
   await check(
@@ -144,7 +150,7 @@ try {
       await evaluate("new Promise(resolve=>setTimeout(resolve,1200))");
       assert.equal(
         await evaluate("document.getElementById('stat-phase').textContent"),
-        "목업 승인 대기",
+        "승인 대기",
       );
       assert.equal(
         await evaluate("document.getElementById('autoplay').textContent"),
