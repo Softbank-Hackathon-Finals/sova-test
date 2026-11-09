@@ -1,0 +1,30 @@
+{
+  "kind": "historical-owned-workload-ui-verification.v1",
+  "verified_on": "2026-11-08",
+  "producer_revision": "3ab5dd3aa2aaf4bc2169526f67e9de3f1d4cf7ba",
+  "checks": {
+    "completed": true,
+    "qualification_only": true,
+    "plan_connected": false,
+    "authorizes_execution": false,
+    "actor_identity_verified": true,
+    "independent_audit_verified": true,
+    "actual_unauthorized_http_status": 403,
+    "response_verified": true,
+    "verified_effects": [
+      "apply_isolation",
+      "activate_replacement",
+      "verify_replacement",
+      "switch_route"
+    ],
+    "isolated_nodes": 1,
+    "recovery_stage_verified": true,
+    "neighbor_healthy": true,
+    "cleanup_verified": true,
+    "mobile_overflow": false,
+    "page_errors": [],
+    "session_revocation_withdraws_trial": true
+  },
+  "original_private_evidence_sha256": "1acfc32d06e46bb6c4d2c290076a9c89f72c5d1458d3c0d72a8f39e19461436a",
+  "production_workflow_qualified": false
+}
