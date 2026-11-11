@@ -143,6 +143,8 @@ def steps(scenario):
     ]
     if scenario in {"isolate", "segment"}:
         values += ["recovery start", "recovery verify", "recovery finalize"]
+    if scenario == "migrate":
+        values.append("exit drill")
     return values
 
 
