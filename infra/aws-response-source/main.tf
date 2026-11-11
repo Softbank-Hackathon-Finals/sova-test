@@ -34,6 +34,22 @@ variable "kubernetes_version" {
   type    = string
   default = "1.35"
 }
+# Pinned: the support record binds the CNI and policy engine images, so an
+# add-on upgrade is a deliberate change that needs requalification.
+variable "addon_versions" {
+  type = map(string)
+  default = {
+    "vpc-cni"                = "v1.22.4-eksbuild.14"
+    "kube-proxy"             = "v1.35.3-eksbuild.69"
+    "eks-pod-identity-agent" = "v1.4.1-eksbuild.3"
+    "coredns"                = "v1.13.2-eksbuild.75"
+    "aws-ebs-csi-driver"     = "v1.68.0-eksbuild.1"
+  }
+}
+variable "node_release_version" {
+  type    = string
+  default = "1.35.9-20261107"
+}
 
 locals {
   name = "sova-response-${var.run_id}"
@@ -131,17 +147,20 @@ resource "aws_eks_access_policy_association" "operator" {
 resource "aws_eks_addon" "vpc_cni" {
   cluster_name                = aws_eks_cluster.source.name
   addon_name                  = "vpc-cni"
+  addon_version               = var.addon_versions["vpc-cni"]
   resolve_conflicts_on_create = "OVERWRITE"
   configuration_values        = jsonencode({ enableNetworkPolicy = "true" })
 }
 resource "aws_eks_addon" "kube_proxy" {
   cluster_name                = aws_eks_cluster.source.name
   addon_name                  = "kube-proxy"
+  addon_version               = var.addon_versions["kube-proxy"]
   resolve_conflicts_on_create = "OVERWRITE"
 }
 resource "aws_eks_addon" "pod_identity" {
   cluster_name                = aws_eks_cluster.source.name
   addon_name                  = "eks-pod-identity-agent"
+  addon_version               = var.addon_versions["eks-pod-identity-agent"]
   resolve_conflicts_on_create = "OVERWRITE"
 }
 
@@ -186,6 +205,7 @@ resource "aws_eks_node_group" "source" {
   node_role_arn   = aws_iam_role.node.arn
   subnet_ids      = [aws_subnet.source["a"].id]
   ami_type        = "AL2023_ARM_64_STANDARD"
+  release_version = var.node_release_version
   instance_types  = ["t4g.medium"]
   capacity_type   = "ON_DEMAND"
   launch_template {
@@ -210,6 +230,7 @@ resource "aws_eks_node_group" "source" {
 resource "aws_eks_addon" "coredns" {
   cluster_name                = aws_eks_cluster.source.name
   addon_name                  = "coredns"
+  addon_version               = var.addon_versions["coredns"]
   resolve_conflicts_on_create = "OVERWRITE"
   depends_on                  = [aws_eks_node_group.source]
 }
@@ -228,6 +249,7 @@ resource "aws_iam_role_policy_attachment" "ebs_csi" {
 resource "aws_eks_addon" "ebs_csi" {
   cluster_name                = aws_eks_cluster.source.name
   addon_name                  = "aws-ebs-csi-driver"
+  addon_version               = var.addon_versions["aws-ebs-csi-driver"]
   resolve_conflicts_on_create = "OVERWRITE"
   pod_identity_association {
     role_arn        = aws_iam_role.ebs_csi.arn
