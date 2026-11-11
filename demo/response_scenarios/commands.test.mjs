@@ -186,23 +186,26 @@ test("terminal reset starts an unapproved run with the same scenario and no real
 });
 
 test("a security hold admits only an approved release, and only live", () => {
-  const held = {...createSession("isolate"), security: {active: true}};
+  const live = (scenario) => ({...createSession(scenario), source: "local-rke2"});
+  const held = {...live("isolate"), security: {active: true}};
   assert.equal(parseCommand("security release rel-0123abcd", held).kind, "security_release");
   for (const raw of ["response reset", "response approve", "response plan", "inject access-violation --target worker"])
     assert.equal(parseCommand(raw, held).kind, "error");
   assert.equal(parseCommand("workload status", held).kind, "workload_status");
-  const normal = createSession("isolate");
+  const normal = live("isolate");
   assert.equal(parseCommand("security hold suspected-compromise", normal).kind, "security_hold");
+  assert.equal(parseCommand("security hold suspected-compromise", createSession("isolate")).kind, "error");
   assert.equal(parseCommand("security hold Bad Reason", normal).kind, "error");
   assert.equal(parseCommand("security release rel-0123abcd", normal).kind, "error");
   assert.equal(nextCommand(held), "security release <승인ID>");
 });
 
 test("the exit drill runs once, only after a completed migration", () => {
-  const done = {...createSession("migrate"), phase: "complete", evidence: {}};
+  const done = {...createSession("migrate"), source: "local-rke2", phase: "complete", evidence: {}};
   assert.equal(parseCommand("exit drill", done).kind, "exit_drill");
   assert.equal(nextCommand(done), "exit drill");
   assert.equal(parseCommand("exit drill", {...done, evidence: {exit_drill: {}}}).kind, "error");
   assert.equal(parseCommand("exit drill", createSession("migrate")).kind, "error");
+  assert.equal(parseCommand("exit drill", {...done, source: undefined}).kind, "error");
   assert.equal(parseCommand("exit drill", {...createSession("isolate"), phase: "complete"}).kind, "error");
 });

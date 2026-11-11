@@ -128,9 +128,18 @@ export function mountInjectionConsole({ getSession, onCommand, getSnapshot = sna
         "recovery_verify",
         "recovery_finalize",
         "reset",
+        "security_hold",
+        "security_release",
+        "exit_drill",
       ].includes(command.kind)
     ) {
-      if (command.kind === "inject")
+      if (command.kind === "security_hold")
+        line("accepted", "보안 보류 요청 · 해제 전까지 초기화를 포함한 모든 변경을 거부합니다.");
+      else if (command.kind === "security_release")
+        line("accepted", "보류 해제 요청 · 서버가 별도 승인자의 서명과 현재 상태 결속을 확인합니다.");
+      else if (command.kind === "exit_drill")
+        line("accepted", "출발지 독립 시험 요청 · 출발지 경로를 끊고 목적지만으로 운영되는지 확인합니다.");
+      else if (command.kind === "inject")
         line(
           "accepted",
           `이벤트 접수: ${command.event} · 대상 ${command.targets.join(", ")}`,

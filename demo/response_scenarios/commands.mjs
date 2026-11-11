@@ -102,7 +102,10 @@ export function parseCommand(raw, session) {
     "response watch": "watch",
   };
   if (Object.hasOwn(readOnly, name)) return { kind: readOnly[name] };
-  // Security hold and its separately approved release (live runtime only).
+  // Security hold, its separately approved release and the exit drill exist
+  // only against a live runtime; the static demo has nothing to hold.
+  if ((tokens[0] === "security" || name === "exit drill") && session.source !== "local-rke2")
+    return { kind: "error", message: "실제 실행기 연결에서만 쓸 수 있는 명령입니다." };
   if (tokens[0] === "security") {
     if (tokens.length === 3 && tokens[1] === "hold" && /^[a-z0-9][a-z0-9-]{2,63}$/.test(tokens[2]))
       return { kind: "security_hold", reason: tokens[2] };

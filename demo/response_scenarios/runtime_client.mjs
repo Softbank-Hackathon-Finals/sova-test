@@ -39,6 +39,17 @@ export async function refreshRuntime() {
 }
 
 export async function runtimeCommand(command) {
+  // The server bumps the revision when it starts executing, which can be
+  // after the last poll; read the state again so a quick follow-up command
+  // is not refused as stale.
+  // One command at a time: wait briefly for the previous one (including its
+  // post-execution observation) to finish, then send this one exactly once.
+  const until = Date.now() + 15000;
+  if (current) await refreshRuntime();
+  while (current?.busy && Date.now() < until) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await refreshRuntime();
+  }
   if (!current || current.busy) throw new Error("실행 결과를 확인 중입니다. 잠시 기다려 주세요.");
   await request("/api/command", {
     request_id: crypto.randomUUID().replaceAll("-", ""),
