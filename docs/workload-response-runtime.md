@@ -80,6 +80,18 @@ python3 -m local_response.http_qualify --state $H/runtime --until <ISO 시각>
 - `bridge-status.json`: 터널별 노드·재시작 횟수·수신 여부
 - `latest-evidence.json`: 마지막 실행 직후의 상태와 관측
 
+## 자격 회수의 실효
+
+자격 회전은 새 로그인 거부만으로 회수 완료로 보지 않는다. PostgreSQL은 비밀번호를 바꿔도 이미 인증한 세션을 끊지 않는다. 회전 전에, 회전 때 재시작하지 않는 이웃 Pod(`objects`)에서 현재 자격으로 앱 세션을 열고 계속 쿼리하게 둔다. 회전은 비밀번호 변경과 함께 앱 계정의 기존 세션을 모두 종료한다.
+
+다음 세 가지를 따로 검사한다(명세 S.4).
+
+- 그 세션이 서버 쪽에서 실제로 끊겼는지(`pre_rotation_session_terminated`)
+- 이전 자격의 새 로그인이 거부되는지(`previous_credential_rejected`)
+- 새 자격이 동작하는지
+
+앱 수준 토큰이나 외부 API 세션의 회수는 이 시험 범위가 아니다.
+
 ## 비용과 정리
 
 하이브리드 출발지는 EKS 제어 평면, t4g.medium 2대, EBS, 로그 3일 보관으로 시간당 약 0.2달러다. NAT 게이트웨이는 쓰지 않는다. 노드는 공개 서브넷에 있지만, 들어오는 트래픽은 EKS가 관리하는 클러스터 보안 그룹만 허용한다. 모든 자원에 `component=sova-response-hybrid-source`, `RunId`, `ExpiresAt` 태그가 붙는다.

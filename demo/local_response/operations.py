@@ -241,7 +241,15 @@ class ResponseOperations:
             # Existing connections are ended by replacing only this worker Pod.
             self.restart("source", "worker")
         elif s == "credentials":
-            self.rotate()
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                holder = self.hold_old_session(pool)
+                self.rotate()
+                receipt = holder.result(timeout=120)
+            require(
+                receipt.get("opened") and receipt.get("terminated"),
+                "pre_rotation_session_not_terminated",
+            )
+            self.state["evidence"]["pre_rotation_session"] = receipt
         elif s == "patch":
             self.set_image("source", "api", "v2")
             require(
@@ -347,6 +355,45 @@ path.write_text(json.dumps(result));print(json.dumps(result))
                 return response
             time.sleep(2)
 
+    def hold_old_session(self, pool):
+        """Open an app session with the current (about to be old) credential
+        from a neighbour pod that rotation does not restart, and keep it busy.
+        Revocation must end it server-side; a login denial alone does not."""
+        code = r"""
+import json,sys,time,pathlib,psycopg
+v=json.load(sys.stdin);p=pathlib.Path('/tmp/sova-session-'+v['run']+'.json')
+r={'opened':False,'terminated':False}
+try:
+ with psycopg.connect(host=v['host'],dbname='workload',user='app',password=v['password'],connect_timeout=3,autocommit=True) as c:
+  c.execute('SELECT 1');r.update(opened=True,opened_at=time.time());p.write_text(json.dumps(r))
+  end=time.monotonic()+v['seconds']
+  while time.monotonic()<end:
+   time.sleep(0.5);c.execute('SELECT 1')
+  r['reason']='still_open_at_deadline'
+except psycopg.OperationalError:r.update(terminated=r['opened'],terminated_at=time.time(),reason='server_ended_session')
+except Exception:r['reason']='unconfirmed'
+p.write_text(json.dumps(r));print(json.dumps(r))
+"""
+        value = {
+            "run": self.state["run_id"],
+            "host": "db." + NAMESPACES["source"],
+            "password": self.settings["password"],
+            "seconds": 90,
+        }
+        reader = "import json,pathlib,sys;v=json.load(sys.stdin);p=pathlib.Path('/tmp/sova-session-'+v['run']+'.json');print(p.read_text() if p.exists() else '{}')"
+        future = pool.submit(
+            lambda: json.loads(self.kube.execute("source", "objects", code, value))
+        )
+        public = {"run": value["run"]}
+        until = time.monotonic() + 20
+        while time.monotonic() < until and not future.done():
+            if json.loads(self.kube.execute("source", "objects", reader, public)).get(
+                "opened"
+            ):
+                return future
+            time.sleep(0.3)
+        require(False, "pre_rotation_session_not_established")
+
     def admin_each_pod(self, side, role, path, body):
         """Send an admin call to every current pod by IP, bypassing the Service."""
         pods = [
@@ -410,20 +457,24 @@ path.write_text(json.dumps(result));print(json.dumps(result))
 import json,sys,psycopg,pathlib
 from psycopg import sql
 v=json.load(sys.stdin)
-with psycopg.connect(host=v['host'],dbname='workload',user='postgres',password=pathlib.Path('/credentials/dbadmin').read_text().strip(),connect_timeout=3) as c:c.execute(sql.SQL('ALTER ROLE app PASSWORD {}').format(sql.Literal(v['password'])))
-print(json.dumps({'rotated':True}))
+with psycopg.connect(host=v['host'],dbname='workload',user='postgres',password=pathlib.Path('/credentials/dbadmin').read_text().strip(),connect_timeout=3,autocommit=True) as c:
+ c.execute(sql.SQL('ALTER ROLE app PASSWORD {}').format(sql.Literal(v['password'])))
+ # A password change does not end sessions that already authenticated.
+ ended=c.execute("SELECT count(pg_terminate_backend(pid)) FROM pg_stat_activity WHERE usename='app'").fetchone()[0]
+print(json.dumps({'rotated':True,'sessions_terminated':ended}))
 """
+        ended = {}
         for side in ("source", "target"):
-            require(
-                json.loads(
-                    self.kube.probe(
-                        side,
-                        code,
-                        {"host": "db." + NAMESPACES[side], "password": new},
-                    )
-                )["rotated"],
-                "credential_rotation_unconfirmed",
+            result = json.loads(
+                self.kube.probe(
+                    side,
+                    code,
+                    {"host": "db." + NAMESPACES[side], "password": new},
+                )
             )
+            require(result.get("rotated"), "credential_rotation_unconfirmed")
+            ended[side] = result.get("sessions_terminated")
+        self.state["evidence"]["rotation_sessions_terminated"] = ended
         for side, ns in NAMESPACES.items():
             self.kube.apply(
                 {
@@ -607,6 +658,12 @@ print(json.dumps({'copied':True}))
                 != self.current_uids()["source"]["worker"],
             )
         elif s == "credentials":
+            session = self.state["evidence"].get("pre_rotation_session", {})
+            check(
+                "pre_rotation_session_terminated",
+                session.get("opened") is True and session.get("terminated") is True,
+                {k: session.get(k) for k in ("opened", "terminated", "reason")},
+            )
             check(
                 "previous_credential_rejected",
                 self.state["evidence"].get("credential_old_denied"),
