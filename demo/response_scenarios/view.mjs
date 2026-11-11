@@ -232,7 +232,7 @@ function renderGraph(view) {
     svgElement(
       "text",
       { x: 270, y: 107, class: "environment-title" },
-      liveMode ? "로컬 출발지 · 이 Mac RKE2" : "AWS · 출발 환경",
+      liveMode ? (hybridLive() ? "AWS EKS · 출발지 (실제)" : "로컬 출발지 · 이 Mac RKE2") : "AWS · 출발 환경",
     ),
   );
   const onprem = svgElement("g");
@@ -248,7 +248,7 @@ function renderGraph(view) {
     svgElement(
       "text",
       { x: 1100, y: 107, class: "environment-title" },
-      liveMode ? "로컬 목적지 · 같은 RKE2" : "온프렘 · 목적지",
+      liveMode ? (hybridLive() ? "이 Mac RKE2 · 온프렘 목적지" : "로컬 목적지 · 같은 RKE2") : "온프렘 · 목적지",
     ),
   );
   svg.append(aws, onprem);
@@ -268,7 +268,7 @@ function renderGraph(view) {
         session.phase === "held"
           ? "논리적 격리 영역 · 상태 확인 필요"
           : view.operating
-            ? liveMode ? "논리적 격리 영역 · 이 Mac RKE2" : "논리적 격리 영역 · AWS 내부"
+            ? liveMode ? (hybridLive() ? "논리적 격리 영역 · AWS EKS 안" : "논리적 격리 영역 · 이 Mac RKE2") : "논리적 격리 영역 · AWS 내부"
             : "논리적 격리 영역 · 대기",
       ),
     );
@@ -578,15 +578,27 @@ function renderApproval() {
   };
   root.append(button);
 }
+// Placement and the support declaration come from the served runtime only.
+function hybridLive() {
+  return liveMode && runtimeStatus()?.topology?.name === "hybrid-aws";
+}
+function supportText() {
+  const support = runtimeStatus()?.support;
+  const base = "실행 전용 EKS 출발지와 이 Mac RKE2 목적지의 시험 앱입니다. 팀 운영 승인·운영 데이터와 구분합니다.";
+  if (!support) return base + " 지원 선언: 자격 기록 없음.";
+  if (support.status === "SUPPORTED")
+    return `${base} 지원 선언: ${support.direction.from} → ${support.direction.to} 실환경 자격(${support.record_id}, ${support.expires_at.slice(0, 16)}까지). 역방향·failback은 자격 없음.`;
+  return `${base} 지원 선언: ${support.status === "UNSUPPORTED" ? "미지원" : "재검증 필요"} · ${(support.reasons || []).join(" / ")}`;
+}
 function render() {
   const spec = definition(session.scenario),
     view = readSnapshot();
   renderScenarios();
-  $("scenario-title").textContent = liveMode && spec.id === "migrate" ? "로컬 출발지 → 이 Mac 온프렘 이전" : spec.title;
-  $("scenario-english").textContent = liveMode && spec.id === "migrate" ? "Local Source to On-Premises Migration" : spec.englishTitle;
+  $("scenario-title").textContent = liveMode && spec.id === "migrate" ? (hybridLive() ? "AWS EKS → 이 Mac 온프렘 이전" : "로컬 출발지 → 이 Mac 온프렘 이전") : spec.title;
+  $("scenario-english").textContent = liveMode && spec.id === "migrate" ? (hybridLive() ? "AWS EKS to On-Premises Migration" : "Local Source to On-Premises Migration") : spec.englishTitle;
   $("scenario-group").textContent = spec.group;
-  $("scenario-description").textContent = liveMode ? "이 Mac의 전용 앱·PostgreSQL에 실제 명령을 적용합니다. 결과는 서버의 실행 기록과 관측으로 확인합니다." : spec.summary;
-  $("stat-phase").textContent = liveMode && !runtimeStatus() ? "실제 연결 확인 중" : PHASE_LABELS[currentPhase(session)];
+  $("scenario-description").textContent = liveMode ? (hybridLive() ? "개인 AWS 계정의 전용 EKS(출발지)와 이 Mac의 RKE2(목적지)에 실제 명령을 적용합니다. 두 환경 사이는 IAM 인증 SSM 터널만 씁니다. 결과는 서버의 실행 기록·서명 증거·관측으로 확인합니다." : "이 Mac의 전용 앱·PostgreSQL에 실제 명령을 적용합니다. 결과는 서버의 실행 기록과 관측으로 확인합니다.") : spec.summary;
+  $("stat-phase").textContent = liveMode && !runtimeStatus() ? "실제 연결 확인 중" : session.security?.active ? "보안 보류 · 별도 승인자 해제 필요" : PHASE_LABELS[currentPhase(session)];
   $("stat-scenario").textContent = spec.title;
   $("stat-availability").textContent = view.availability;
   $("stat-isolation").textContent =
@@ -621,7 +633,7 @@ function render() {
   $("policy-description").textContent = spec.policy
     ? "이 유형의 범위만 미리 허용합니다. 시작 전 선택할 수 있습니다."
     : "이 유형은 단계별 승인을 유지합니다.";
-  $("scope-description").textContent = liveMode ? "전용 로컬 RKE2 시험 앱입니다. 팀 운영 승인·실제 AWS 이전·자동 사이버공격 탐지와 구분합니다." : spec.result;
+  $("scope-description").textContent = liveMode ? (hybridLive() ? supportText() : "전용 로컬 RKE2 시험 앱입니다. 팀 운영 승인·실제 AWS 이전·자동 사이버공격 탐지와 구분합니다.") : spec.result;
   const facts = [
     [
       "대상",
