@@ -35,7 +35,7 @@
 | §1.2 PLANNED_SINGLE_AUTHORITY | 실환경 | 정지·복사(2,000행 상한) 후 단일 writer 인계 |
 | §1.2 PARTITIONED_HANDOFF, REVERSE_MIGRATION, FAILBACK | 없음 | 지원 선언이 역방향·failback을 `UNSUPPORTED`로 표시 |
 | §11 방향별 자격, §28.4 자격 기록 | 실환경 | `support-record-*.json`. 프로필, 방향, 코드, 유형별 서명 증거, 한계, 제외, 만료 |
-| §15 활성화 의도 | 구현 | `migration_authority`가 `source → target_pending → target`. `target_pending`이면 초기화가 원본을 자동으로 다시 열지 않음. 응답 유실 주입 시험(AT-20)은 없음 |
+| §15 활성화 의도 | 구현·단위 | `migration_authority`가 `source → target_pending → target`. `target_pending`이면 초기화가 원본을 자동으로 다시 열지 않음(AT-20 장애 주입 시험) |
 | §15.5 실효 fence | 실환경 | 출발지 앱 역할 `NOLOGIN`과 기존 앱 세션 종료. 데이터 전환과 자격 회전에서 확인 |
 | §15.6 재기동 격리 | 실환경 | 독립 시험에서 새 목적지 인스턴스가 쓰기를 닫은 채 시작하고, 단일 writer 확인 뒤에만 엶 |
 | §16 데이터 비교 | 실환경 | messages·jobs 전체 내용 지문 비교. CDC, 대용량, 객체 저장소는 없음 |
@@ -52,11 +52,13 @@
 | AT-02 역할 교환 | 단위 | 역방향 선언은 `UNSUPPORTED` |
 | AT-03 미지원 목적지 | 단위 | 기록 없음 또는 프로필 변경 시 `NEEDS_EVIDENCE`와 이유 |
 | AT-08/09 같은 key 재시도, 다른 payload | 단위 | 효과 원장의 멱등과 충돌 |
+| AT-21 활성화 후 조정기 중단 | 단위 | 시작 상태로 남은 효과는 재시작 때 `unknown`과 `held`가 되고 자동 재실행하지 않음 |
+| AT-22 순서 역전·중복 명령 | 단위 | 오래된 revision 명령은 `stale_or_busy_command`, 같은 요청 재전송은 한 번만 실행 |
 | AT-11 대상 UID 변경 | 실환경·단위 | 승인 시 Pod UID 재확인, 증거의 환경 digest 드리프트 거부 |
 | AT-12 증거 만료·재생·다른 run | 단위 | 서명 증거 시험 |
 | AT-17 fence 이후 기존 세션 | 실환경 | 자격 회전에서 회전 전 세션이 서버 쪽에서 끊긴 것을 확인 |
-| AT-19 source 차단 확인 불가 | 구현 | 출발지 로그인이 열려 있으면 활성화 거부(`source_writer_not_fenced`) |
-| AT-20 활성화 응답 유실 | 구현 | `target_pending` 처리. 주입 시험 없음 |
+| AT-19 source 차단 확인 불가 | 단위 | 출발지 이전 자격 로그인이 되면 목적지 활성화 전에 `source_writer_not_fenced`로 멈추고 목적지 로그인을 열지 않음(장애 주입 시험) |
+| AT-20 활성화 응답 유실 | 단위 | `target_pending`에서 writer 상태가 모호하면(둘 다 닫힘, 둘 다 열림, 원본만 열림) 초기화가 `writer_authority_ambiguous`로 보류하고 원본을 다시 열지 않음(장애 주입 시험) |
 | AT-32 과거 writer 자동 재활성화 | 실환경(재기동 범위) | 재기동 인스턴스 쓰기 보류. 스냅샷 복원은 없음 |
 | AT-35 출발지 차단 후 새 기동 | 실환경 | `exit drill` |
 | AT-37 백업·감사 삭제 거부 | 없음 | 상태 원장은 SQLite. WORM 아님 |

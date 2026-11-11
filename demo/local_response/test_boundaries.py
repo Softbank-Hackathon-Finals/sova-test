@@ -766,3 +766,59 @@ def test_registry_scan_is_bound_to_the_run_repository():
             "111111111111.dkr.ecr.ap-northeast-2.amazonaws.com/other@sha256:"
             + "a" * 64,
         )
+
+
+class SqlKube:
+    """Fake adapter: answers the fixed SQL probes and records every statement."""
+
+    def __init__(self, logins, *, old_password_works=False):
+        self.logins = logins
+        self.old_password_works = old_password_works
+        self.statements = []
+
+    def sql(self, side, text, parameters=None, *, admin=False, password=None):
+        self.statements.append((side, text))
+        if "rolcanlogin" in text:
+            return {"ok": True, "rows": [[self.logins[side]]]}
+        if password is not None:
+            return {"ok": self.old_password_works, "rows": [[1]]}
+        return {"ok": True, "rows": []}
+
+
+@pytest.mark.parametrize(
+    "logins",
+    [
+        {"source": False, "target": False},  # activation intent, result unknown
+        {"source": True, "target": True},  # two writers
+        {"source": True, "target": False},  # source reopened
+    ],
+)
+def test_uncertain_activation_holds_instead_of_reopening_the_source(runtime, logins):
+    """AT-20: after TARGET_ACTIVATION_INTENT nothing reopens the source by guess."""
+    from .kube import Unconfirmed
+
+    runtime.kube = SqlKube(logins)
+    runtime.state.update(scenario="migrate", phase="held")
+    runtime.state["evidence"] = {"migration_authority": "target_pending"}
+    with pytest.raises(Unconfirmed, match="writer_authority_ambiguous"):
+        runtime.reset()
+    assert not any(
+        "LOGIN" in text and "NOLOGIN" not in text
+        for _side, text in runtime.kube.statements
+        if "ALTER" in text
+    )
+
+
+def test_target_is_not_activated_while_the_source_still_accepts_logins(runtime):
+    """AT-19: an unconfirmed source fence blocks activation of the target."""
+    from .kube import Unconfirmed
+
+    runtime.kube = SqlKube({"source": False, "target": False}, old_password_works=True)
+    runtime.state.update(scenario="migrate")
+    runtime.settings["password"] = "PRIVATE-DO-NOT-EXPOSE"
+    with pytest.raises(Unconfirmed, match="source_writer_not_fenced"):
+        runtime.finalize()
+    assert not any(
+        "ALTER ROLE app LOGIN" in text for _side, text in runtime.kube.statements
+    )
+    assert runtime.state["evidence"].get("migration_authority") != "target"
