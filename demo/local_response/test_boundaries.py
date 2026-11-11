@@ -357,3 +357,38 @@ def test_isolated_role_leaves_the_bridge_allow(hybrid, tmp_path):
     ops.policy(("api", "worker"))
     bridge = next(d for d in applied if d["metadata"]["name"] == "bridge-ingress")
     assert bridge["spec"]["podSelector"]["matchExpressions"][0]["values"] == ["db"]
+
+
+def test_kubectl_failures_expose_only_a_category():
+    from .kube import failure_kind
+
+    assert (
+        failure_kind(
+            "The request is invalid: the server rejected our request due to an error in our request"
+        )
+        == "rejected"
+    )
+    assert (
+        failure_kind("error: You must be logged in to the server (Unauthorized)")
+        == "unauthorized"
+    )
+    assert failure_kind("dial tcp: lookup x: no such host") == "connection"
+    assert failure_kind("something else entirely") == "other"
+
+
+def test_patch_retries_only_an_atomic_test_rejection(monkeypatch):
+    from . import kube as module
+
+    calls = []
+
+    class Fake(module.Kube):
+        def patch_once(self, side, kind, name, patch):
+            calls.append(1)
+            error = module.Unconfirmed("x")
+            error.kind = "rejected" if len(calls) < 3 else "forbidden"
+            raise error
+
+    monkeypatch.setattr(module.time, "sleep", lambda _s: None)
+    with pytest.raises(module.Unconfirmed) as raised:
+        Fake().patch("source", "deployment", "worker", {"spec": {}})
+    assert raised.value.kind == "forbidden" and len(calls) == 3

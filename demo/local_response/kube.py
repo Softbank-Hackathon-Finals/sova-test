@@ -31,17 +31,53 @@ class Unconfirmed(RuntimeError):
     """An effect or its observation could not be confirmed; never auto-retry."""
 
 
+FAILURE_KINDS = (
+    # (category, stderr markers). Only the category leaves this module.
+    ("rejected", ("rejected our request", "testing value")),
+    ("unauthorized", ("Unauthorized", "must be logged in")),
+    ("forbidden", ("forbidden", "Forbidden")),
+    ("not_found", ("NotFound", "not found")),
+    ("exec_upgrade", ("unable to upgrade connection",)),
+    ("timeout", ("Timeout", "timeout", "deadline exceeded")),
+    (
+        "connection",
+        (
+            "connection refused",
+            "no such host",
+            "EOF",
+            "connection reset",
+            "TLS handshake",
+        ),
+    ),
+)
+
+
+def failure_kind(stderr):
+    for kind, markers in FAILURE_KINDS:
+        if any(marker in stderr for marker in markers):
+            return kind
+    return "other"
+
+
 def run(args, value=None, timeout=35, *, prefix=None, label="local"):
-    result = subprocess.run(
-        (prefix or PREFIX) + args,
-        input=value,
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-    )
+    try:
+        result = subprocess.run(
+            (prefix or PREFIX) + args,
+            input=value,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as expired:
+        error = Unconfirmed(label + "_kubernetes_request_failed:timeout")
+        error.kind = "timeout"
+        raise error from expired
     if result.returncode:
-        # kubectl stderr may include credential payloads; keep it private.
-        error = Unconfirmed(label + "_kubernetes_request_failed")
+        # kubectl stderr may include credential payloads; keep it private and
+        # expose only a coarse category for operators and evidence.
+        kind = failure_kind(result.stderr)
+        error = Unconfirmed(label + "_kubernetes_request_failed:" + kind)
+        error.kind = kind
         error.private_detail = result.stderr
         raise error
     if len(result.stdout) > 2_000_000:
@@ -172,22 +208,40 @@ class Kube:
         )
 
     def get(self, side, kind, name=None):
-        return json.loads(
-            self.run(
-                side,
-                [
-                    "-n",
-                    NAMESPACES[side],
-                    "get",
-                    kind,
-                    *([name] if name else []),
-                    "-o",
-                    "json",
-                ],
-            )
-        )
+        args = [
+            "-n",
+            NAMESPACES[side],
+            "get",
+            kind,
+            *([name] if name else []),
+            "-o",
+            "json",
+        ]
+        # Reads are idempotent: retry a transient transport failure once.
+        for attempt in (1, 2):
+            try:
+                return json.loads(self.run(side, args))
+            except Unconfirmed as error:
+                if attempt == 2 or getattr(error, "kind", None) not in {
+                    "timeout",
+                    "connection",
+                }:
+                    raise
+                time.sleep(1)
 
     def patch(self, side, kind, name, patch):
+        # Read-modify-write with optimistic concurrency. Status updates (for
+        # example a pod turning NotReady) also bump resourceVersion; a failed
+        # `test` applies nothing, so re-read and rebuild, at most three times.
+        for attempt in (1, 2, 3):
+            try:
+                return self.patch_once(side, kind, name, patch)
+            except Unconfirmed as error:
+                if attempt == 3 or getattr(error, "kind", None) != "rejected":
+                    raise
+                time.sleep(0.5)
+
+    def patch_once(self, side, kind, name, patch):
         self.verify(placement(side))
         self.owned(side)
         old = self.get(side, kind, name)
