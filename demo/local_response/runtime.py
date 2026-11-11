@@ -11,7 +11,7 @@ import sqlite3
 import threading
 import time
 
-from .evidence import ResponseEvidence, sha
+from .evidence import ResponseEvidence, producer_digest, sha
 from .security import SecurityGate
 from .kube import Kube, Unconfirmed
 from .manifests import NAMESPACES, PROFILE, configure, placement
@@ -104,6 +104,19 @@ class Runtime(ResponseOperations, RuntimeObservation):
         require(self.kube.identity() == self.settings["cluster_uid"], "cluster_changed")
         for side, uid in self.settings["namespace_uids"].items():
             require(self.kube.owned(side) == uid, "namespace_changed")
+
+    def intended_effect(self):
+        """The concrete change a plan authorizes, re-derived at approval."""
+        scenario = self.state["scenario"]
+        images = self.settings.get("images_by_cluster") or {
+            "local": {k: v["image"] for k, v in self.settings.get("images", {}).items()}
+        }
+        effect = {"scenario": scenario, "images": sha(images)}
+        if scenario == "patch":
+            effect["deploy"] = {"source/api": self.image("source", "v2")}
+        elif scenario == "rollback":
+            effect["deploy"] = {"source/api": self.image("source", "v1")}
+        return effect
 
     def environment_digest(self):
         """Clusters, owned namespaces and the exact pods and images now running."""
@@ -445,6 +458,10 @@ class Runtime(ResponseOperations, RuntimeObservation):
                 "scenario": self.state["scenario"],
                 "run_id": self.state["run_id"],
                 "pods": self.current_uids(),
+                # What approval authorizes, not only where: the exact images
+                # this response will deploy and the code that will run it.
+                "effect": self.intended_effect(),
+                "runner": producer_digest(),
                 "created_at": time.time(),
                 "expires_at": time.time() + 300,
             }
@@ -465,6 +482,11 @@ class Runtime(ResponseOperations, RuntimeObservation):
                 and digest(plan["binding"]) == plan["digest"]
                 and time.time() < plan["binding"]["expires_at"],
                 "plan_expired_or_modified",
+            )
+            require(
+                plan["binding"].get("effect") == self.intended_effect()
+                and plan["binding"].get("runner") == producer_digest(),
+                "approved_effect_changed_replan_required",
             )
             require(
                 self.current_uids() == plan["binding"]["pods"],

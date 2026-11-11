@@ -5,6 +5,7 @@ from http.server import ThreadingHTTPServer
 import json
 import secrets
 import threading
+import time
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -822,3 +823,29 @@ def test_target_is_not_activated_while_the_source_still_accepts_logins(runtime):
         "ALTER ROLE app LOGIN" in text for _side, text in runtime.kube.statements
     )
     assert runtime.state["evidence"].get("migration_authority") != "target"
+
+
+def test_approval_refuses_a_plan_whose_effect_changed(runtime):
+    """P-AT-03 / INV-05: approval binds the exact image a patch deploys."""
+    from .kube import Unconfirmed
+
+    runtime.settings["images"] = {
+        v: {"image": "localhost/sova-response/app@sha256:" + c * 64}
+        for v, c in (("v1", "a"), ("v2", "b"), ("bad", "c"))
+    }
+    runtime.state.update(scenario="patch")
+    from .contracts import digest as plan_digest
+    from .evidence import producer_digest
+
+    binding = {
+        "effect": runtime.intended_effect(),
+        "runner": producer_digest(),
+        "expires_at": time.time() + 60,
+    }
+
+    runtime.state["plan"] = {"binding": binding, "digest": plan_digest(binding)}
+    runtime.settings["images"]["v2"]["image"] = (
+        "localhost/sova-response/app@sha256:" + "d" * 64
+    )
+    with pytest.raises(Unconfirmed, match="approved_effect_changed_replan_required"):
+        runtime.perform("response approve")
