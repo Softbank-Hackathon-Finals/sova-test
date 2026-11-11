@@ -26,7 +26,54 @@ def command(runtime, value, *, timeout=240):
         raise RuntimeError("local_command_not_confirmed: " + value)
 
 
-def qualify(root, scenarios):
+def refused(runtime, value):
+    try:
+        runtime.submit(
+            {
+                "request_id": secrets.token_hex(16),
+                "revision": runtime.state["revision"],
+                "command": value,
+            }
+        )
+    except ValueError:
+        return True
+    return False
+
+
+def security_drill(runtime, keys):
+    """Raise a hold, prove effects are refused, release with a separate signer."""
+    from .security import approve
+    from .security_approver import key_file
+
+    command(runtime, "security hold drill-suspected-compromise")
+    hold = runtime.state["security"]
+    if not hold.get("active"):
+        raise RuntimeError("security_hold_not_active")
+    blocked = {
+        value: refused(runtime, value)
+        for value in ("response reset", "response plan", "recovery start")
+    }
+    if not all(blocked.values()):
+        raise RuntimeError("effect_admitted_during_security_hold")
+    runtime.observe()  # export fresh revisions for the approver
+    approval = approve(
+        runtime.root,
+        key_file(keys, "recovery-approver"),
+        "recovery-approver",
+        "drill-contained",
+    )
+    command(runtime, "security release " + approval)
+    if runtime.state["security"].get("active"):
+        raise RuntimeError("security_hold_not_released")
+    return {
+        "hold_id": hold["hold"]["hold_id"],
+        "blocked_during_hold": blocked,
+        "released_by": runtime.state["security"]["release"]["release"]["approved_by"],
+        "release_fingerprint": runtime.state["security"]["release_fingerprint"],
+    }
+
+
+def qualify(root, scenarios, drill_keys=None):
     lock = open(root / "runner.lock", "a")
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     runtime = Runtime(root)
@@ -79,6 +126,10 @@ def qualify(root, scenarios):
             private_json(filename, report)
             print("PASS " + scenario, flush=True)
         command(runtime, "response reset")
+        if drill_keys:
+            report["security_drill"] = security_drill(runtime, drill_keys)
+            private_json(filename, report)
+            print("PASS security-hold-drill", flush=True)
         report["completed_at"] = now()
         report["passed"] = True
     except Exception as error:
@@ -96,6 +147,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state", required=True, type=Path)
     parser.add_argument("--scenario", choices=sorted(SCENARIOS), action="append")
+    parser.add_argument(
+        "--security-drill-keys",
+        type=Path,
+        help="approver key directory; runs the security hold drill at the end",
+    )
     args = parser.parse_args()
     qualify(
         args.state.resolve(),
@@ -111,6 +167,7 @@ def main():
             "migrate",
             "rollback",
         ],
+        args.security_drill_keys,
     )
 
 

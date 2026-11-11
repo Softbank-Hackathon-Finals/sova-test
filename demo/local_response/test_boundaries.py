@@ -502,3 +502,108 @@ def test_runner_code_change_invalidates_evidence(tmp_path, monkeypatch):
     monkeypatch.setattr(module, "producer_digest", lambda: "e" * 64)
     with pytest.raises(ContractError):
         evidence.accept(receipt, plan_digest="a" * 64, environment="b" * 64)
+
+
+class HoldRuntime:
+    """Just enough runtime for the security gate: state, root, environment."""
+
+    def __init__(self, root):
+        self.root = root
+        self.environment = "e" * 64
+        self.state = {
+            "phase": "awaiting_approval",
+            "plan": {"digest": "a" * 64},
+            "approved": False,
+            "checks": [],
+            "evidence": {"signed": {"verify": {}}},
+        }
+
+    def environment_digest(self):
+        return self.environment
+
+
+def hold_setup(tmp_path, hybrid):
+    from .security import SecurityGate
+    from .security_approver import init, key_file, register
+
+    runtime = HoldRuntime(tmp_path / "state")
+    runtime.root.mkdir(mode=0o700)
+    gate = SecurityGate(runtime)
+    keys = tmp_path / "approver-keys"
+    keys.mkdir(mode=0o700)
+    public = init(keys, "recovery-approver")
+    register(runtime.root, "recovery-approver", public, 1)
+    gate.raise_hold("suspected-compromise")
+    return runtime, gate, key_file(keys, "recovery-approver")
+
+
+def test_security_hold_releases_only_with_independent_signed_current_approval(
+    tmp_path, hybrid
+):
+    from sova_security.contracts.commands import ContractError
+    from .security import approve
+
+    runtime, gate, key = hold_setup(tmp_path, hybrid)
+    assert gate.active()
+    approval = approve(runtime.root, key, "recovery-approver", "contained-and-rotated")
+    released = gate.release(approval)
+    assert not gate.active() and released.release.approved_by == "recovery-approver"
+    # No earlier approval or signed evidence survives the hold.
+    assert runtime.state["phase"] == "detected" and runtime.state["plan"] is None
+    assert "signed" not in runtime.state["evidence"]
+    with pytest.raises(ContractError):
+        gate.release(approval)
+
+
+def test_hold_release_rejects_drift_tamper_and_unregistered_signers(tmp_path, hybrid):
+    from sova_security.contracts.commands import ContractError
+    from .security import approve
+    from .security_approver import init, key_file
+
+    runtime, gate, key = hold_setup(tmp_path, hybrid)
+    approval = approve(runtime.root, key, "recovery-approver", "contained-and-rotated")
+    runtime.environment = "f" * 64  # the environment changed after approval
+    with pytest.raises(ContractError):
+        gate.release(approval)
+    runtime.environment = "e" * 64
+    path = runtime.root / "releases" / (approval + ".json")
+    stored = json.loads(path.read_text())
+    stored["request"]["reason"] = "rubber-stamp"
+    path.write_text(json.dumps(stored))
+    with pytest.raises(ContractError):
+        gate.release(approval)
+    # A key that was never registered cannot approve, even with a valid signature.
+    other = tmp_path / "other-keys"
+    other.mkdir(mode=0o700)
+    init(other, "intruder")
+    forged = approve(runtime.root, key_file(other, "intruder"), "intruder", "let-me-in")
+    with pytest.raises(ContractError):
+        gate.release(forged)
+    assert gate.active()
+
+
+def test_operator_cannot_be_registered_or_approve_its_own_hold(tmp_path, hybrid):
+    from sova_security.contracts.commands import ContractError
+    from .security import hold_scope
+    from .security_approver import register
+
+    runtime, gate, _key = hold_setup(tmp_path, hybrid)
+    with pytest.raises(SystemExit):
+        register(runtime.root, "console-operator", "0" * 64, 1)
+    with pytest.raises(ContractError):
+        gate.authorize("console-operator", hold_scope(), "security:release-approve")
+
+
+def test_runtime_refuses_every_effect_during_a_security_hold(runtime):
+    runtime.state["security"] = {"active": True}
+    for command in (
+        "response reset",
+        "response approve",
+        "response plan",
+        "recovery start",
+    ):
+        with pytest.raises(ValueError):
+            runtime.validate_command(command)
+    runtime.validate_command("security release rel-0123abcd")
+    with pytest.raises(ValueError):
+        runtime.select("isolate")

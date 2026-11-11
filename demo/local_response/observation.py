@@ -77,6 +77,9 @@ class RuntimeObservation:
             },
             "state_revision": generation,
         }
+        if self.security.active():
+            # Keep the approver's view of the hold bound to fresh revisions.
+            self.security.export()
         if self.topology()["name"] == "hybrid-aws":
             from .bridge import read_status
 

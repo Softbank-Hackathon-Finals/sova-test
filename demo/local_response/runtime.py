@@ -12,6 +12,7 @@ import threading
 import time
 
 from .evidence import ResponseEvidence, sha
+from .security import SecurityGate
 from .kube import Kube, Unconfirmed
 from .manifests import NAMESPACES, PROFILE, configure, placement
 from .provision import private_json
@@ -29,6 +30,7 @@ class Runtime(ResponseOperations, RuntimeObservation):
         self.settings = json.loads((self.root / "settings.private.json").read_text())
         configure(self.settings.get("topology", "local"))
         self.kube = kube or Kube.from_settings(self.settings)
+        self.security = SecurityGate(self)
         self.evidence = ResponseEvidence(
             self.root, tenant=PROFILE["owner"], namespace=NAMESPACES["source"]
         )
@@ -222,6 +224,8 @@ class Runtime(ResponseOperations, RuntimeObservation):
                 raise ValueError(
                     "현재 대응을 마친 뒤 response reset으로 초기화해 주세요."
                 )
+            if self.security.active():
+                raise ValueError("security_hold_active_release_required")
             self.state["scenario"] = scenario
             self.state["revision"] += 1
             self.save()
@@ -281,6 +285,14 @@ class Runtime(ResponseOperations, RuntimeObservation):
             return {"accepted": True, "duplicate": False}
 
     def validate_command(self, command):
+        if self.security.active():
+            if not command.startswith("security release "):
+                raise ValueError("security_hold_active_release_required")
+            return
+        if command.startswith("security hold "):
+            return
+        if command.startswith("security release "):
+            raise ValueError("no_active_security_hold")
         phase = (
             self.state["recovery"]["phase"]
             if self.state["recovery"]
@@ -321,6 +333,22 @@ class Runtime(ResponseOperations, RuntimeObservation):
                     (body["request_id"],),
                 )
         except Exception as error:
+            if body["command"].startswith("security "):
+                with self.lock:
+                    self.event(
+                        "security_rejected",
+                        "보안 명령을 거부했습니다. 상태는 바뀌지 않았습니다: "
+                        + (
+                            str(error)[:160]
+                            if isinstance(error, (Unconfirmed, ContractError))
+                            else type(error).__name__
+                        ),
+                    )
+                    self.db.execute(
+                        "UPDATE effects SET status='rejected' WHERE id=?",
+                        (body["request_id"],),
+                    )
+                return
             with self.lock:
                 self.state["phase"] = "held"
                 if self.state["recovery"]:
@@ -360,6 +388,30 @@ class Runtime(ResponseOperations, RuntimeObservation):
             self.save()
 
     def perform(self, command):
+        if command.startswith("security hold "):
+            hold = self.security.raise_hold(command.removeprefix("security hold "))
+            self.event(
+                "security_hold",
+                "보안 보류를 걸었습니다. 해제 전에는 초기화를 포함한 모든 변경을 거부합니다: "
+                + hold.hold_id,
+            )
+            return
+        if command.startswith("security release "):
+            released = self.security.release(command.removeprefix("security release "))
+            self.db.execute(
+                "INSERT INTO journal(at,kind,body) VALUES(?,?,?)",
+                (
+                    now(),
+                    "security_release",
+                    json.dumps(released.document, ensure_ascii=False),
+                ),
+            )
+            self.event(
+                "security_released",
+                "등록된 별도 승인자의 서명으로 보안 보류를 해제했습니다. 이전 승인·증거는 재사용하지 않습니다: "
+                + released.release.approved_by,
+            )
+            return
         if command == "response reset":
             self.reset()
             return

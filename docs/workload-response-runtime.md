@@ -63,7 +63,7 @@ python3 -m local_response.hybrid --state $H/runtime \
 # 3. SSM 터널 감시 (최대 12시간)
 SOVA_SSM_PLUGIN_DIR=<session-manager-plugin 폴더> python3 -m local_response.bridge --state $H/runtime --hours 8
 # 4. 9개 유형 순차 검증 (서버를 띄우기 전, 같은 잠금 사용)
-python3 -m local_response.qualify --state $H/runtime
+python3 -m local_response.qualify --state $H/runtime --security-drill-keys <승인자 폴더>
 # 5. 화면 서버와 화면 경로 검증
 python3 -m local_response.server --state $H/runtime --hours 8
 python3 -m local_response.http_qualify --state $H/runtime --until <ISO 시각>
@@ -117,6 +117,30 @@ FAIL도 서명해 남긴다.
 하나라도 어긋나면 `signed_evidence_rejected`로 보류한다. 위조, 다른 run의 영수증, 만료, 드리프트, 코드 변경, FAIL 결과를 거부하는지는 단위 시험으로 고정했다. 실행기 코드 digest는 실행 중인 프로세스가 불러온 코드 기준이다.
 
 서명 키는 이 Mac의 실행기 상태 폴더(0600)에 있고 실행기 자신이 서명한다. 관측의 출처와 이후 변조는 확인할 수 있지만, 독립 검증기 신원이나 KMS에 보관한 키는 아니다.
+
+## 보안 보류(SECURITY_HOLD)
+
+실행기의 `held`(효과 불명 보류, SAFE_HOLD)와 별개다. 콘솔 운영자가 `security hold <사유>`로 건다. 보류 중에는 초기화를 포함한 모든 효과 명령과 유형 선택을 거부한다. 초기화는 writer를 다시 열기 때문이다. 보류는 상태 원장에 있어 실행기를 다시 시작해도 유지된다.
+
+해제는 팀 `sova-security`의 `HoldRelease` 계약을 따른다.
+
+- 등록된 별도 승인자가 자기 Ed25519 키로 서명한다(`security_approver approve`). 개인키는 실행기 상태 밖에 둔다.
+- 승인자는 보류를 건 운영자와도, 해제 요청자와도 달라야 한다. 콘솔 운영자는 승인자로 등록할 수 없다.
+- 승인은 보류 ID, 범위, 현재 revisions(실행기 코드, 계획, 보류 문서, 관측 환경)에 결속되고 15분 안에 써야 한다. 그 사이 환경이 바뀌면 무효다.
+- 해제 뒤에는 이전 승인과 서명 증거를 재사용하지 않는다. 승인 전 계획은 다시 계획하고, 승인된 대응은 다시 검증한다.
+
+```bash
+# 승인자(운영자가 아닌 사람)의 키. 실행기 상태 밖에 둔다.
+python3 -m local_response.security_approver init --key-dir <승인자 폴더> --approver recovery-approver
+python3 -m local_response.security_approver register --state $H/runtime --approver recovery-approver --public-key <공개키>
+# 콘솔: security hold suspected-compromise
+python3 -m local_response.security_approver approve --state $H/runtime --key-dir <승인자 폴더> --approver recovery-approver --reason contained-and-rotated
+# 콘솔: security release <승인ID>
+```
+
+`qualify --security-drill-keys <승인자 폴더>`는 9개 유형 뒤에 같은 절차를 실제 실행기에서 확인한다. 순서는 보류, 효과 명령 3개 거부 확인, 별도 승인자 서명, 해제다.
+
+키는 신원을 결속할 뿐 사람의 존재나 로그인을 증명하지 않는다. 승인자 등록은 소유자 작업이고, 별도 관리 승인 절차는 아직 없다.
 
 ## 비용과 정리
 

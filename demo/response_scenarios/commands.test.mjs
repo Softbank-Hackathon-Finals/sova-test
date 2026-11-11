@@ -184,3 +184,16 @@ test("terminal reset starts an unapproved run with the same scenario and no real
   assert.equal(reset.history.length, 1);
   assert.equal(reset.source, "mock");
 });
+
+test("a security hold admits only an approved release, and only live", () => {
+  const held = {...createSession("isolate"), security: {active: true}};
+  assert.equal(parseCommand("security release rel-0123abcd", held).kind, "security_release");
+  for (const raw of ["response reset", "response approve", "response plan", "inject access-violation --target worker"])
+    assert.equal(parseCommand(raw, held).kind, "error");
+  assert.equal(parseCommand("workload status", held).kind, "workload_status");
+  const normal = createSession("isolate");
+  assert.equal(parseCommand("security hold suspected-compromise", normal).kind, "security_hold");
+  assert.equal(parseCommand("security hold Bad Reason", normal).kind, "error");
+  assert.equal(parseCommand("security release rel-0123abcd", normal).kind, "error");
+  assert.equal(nextCommand(held), "security release <승인ID>");
+});

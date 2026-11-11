@@ -25,6 +25,7 @@ export function injectionCommand(id) {
 }
 // Each suggestion must be explicitly submitted; there is no playback scheduler.
 export function nextCommand(session) {
+  if (session.security?.active) return "security release <승인ID>";
   const phase = currentPhase(session);
   if (phase === "normal") return injectionCommand(session.scenario);
   if (recoveryAvailable(session)) return "recovery start";
@@ -99,6 +100,24 @@ export function parseCommand(raw, session) {
     "response watch": "watch",
   };
   if (Object.hasOwn(readOnly, name)) return { kind: readOnly[name] };
+  // Security hold and its separately approved release (live runtime only).
+  if (tokens[0] === "security") {
+    if (tokens.length === 3 && tokens[1] === "hold" && /^[a-z0-9][a-z0-9-]{2,63}$/.test(tokens[2]))
+      return { kind: "security_hold", reason: tokens[2] };
+    if (tokens.length === 3 && tokens[1] === "release" && /^[a-z0-9][a-z0-9-]{7,63}$/.test(tokens[2]))
+      return session.security?.active
+        ? { kind: "security_release", approval: tokens[2] }
+        : { kind: "error", message: "해제할 보안 보류가 없습니다." };
+    return {
+      kind: "error",
+      message: "security hold <사유> 또는 security release <승인ID> 형식으로 입력해 주세요.",
+    };
+  }
+  if (session.security?.active)
+    return {
+      kind: "error",
+      message: "보안 보류 중입니다. 별도 승인자가 서명한 해제 승인 뒤 security release <승인ID>만 실행할 수 있습니다.",
+    };
   if (name === "response approve") {
     return session.phase === "awaiting_approval" &&
       !session.approved &&
