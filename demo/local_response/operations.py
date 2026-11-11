@@ -57,7 +57,8 @@ class ResponseOperations:
         elif s == "restart":
             require(
                 self.admin("source", "worker", "fault", {"enabled": True})["status"]
-                == 200
+                == 200,
+                "worker_fault_unconfirmed",
             )
             require(
                 self.kube.request("source", "worker")["status"] == 503,
@@ -80,7 +81,8 @@ class ResponseOperations:
         elif s == "scale":
             require(
                 self.admin("source", "worker", "fault", {"enabled": True})["status"]
-                == 200
+                == 200,
+                "worker_fault_unconfirmed",
             )
             for index in range(16):
                 self.sql(
@@ -98,7 +100,10 @@ class ResponseOperations:
             )
             self.state["evidence"]["credential_baseline"] = {"current_login": True}
         elif s == "migrate":
-            require(self.kube.request("source", "api", "/messages")["status"] == 200)
+            require(
+                self.kube.request("source", "api", "/messages")["status"] == 200,
+                "migration_source_unreadable",
+            )
             self.state["evidence"]["migration_source"] = self.fingerprint("source")
 
     def policy(self, roles=(), *, egress=False, recovery=False):
@@ -240,7 +245,9 @@ class ResponseOperations:
         elif s == "patch":
             self.set_image("source", "api", "v2")
             require(
-                self.admin("source", "api", "write", {"enabled": True})["status"] == 200
+                self.admin("source", "api", "write", {"enabled": True})["status"]
+                == 200,
+                "patched_write_gate_unconfirmed",
             )
         elif s == "restart":
             self.restart("source", "worker")
@@ -263,7 +270,9 @@ class ResponseOperations:
         elif s == "rollback":
             self.set_image("source", "api", "v1")
             require(
-                self.admin("source", "api", "write", {"enabled": True})["status"] == 200
+                self.admin("source", "api", "write", {"enabled": True})["status"]
+                == 200,
+                "rolled_back_write_gate_unconfirmed",
             )
         elif s == "migrate":
             self.migrate_prepare()
@@ -412,7 +421,8 @@ print(json.dumps({'rotated':True}))
                         code,
                         {"host": "db." + NAMESPACES[side], "password": new},
                     )
-                )["rotated"]
+                )["rotated"],
+                "credential_rotation_unconfirmed",
             )
         for side, ns in NAMESPACES.items():
             self.kube.apply(
@@ -441,7 +451,8 @@ print(json.dumps({'rotated':True}))
             "source", "SELECT 1", password=new
         )["ok"]
         require(
-            self.admin("source", "api", "write", {"enabled": True})["status"] == 200
+            self.admin("source", "api", "write", {"enabled": True})["status"] == 200,
+            "rotated_write_gate_unconfirmed",
         )
 
     def migrate_prepare(self):
@@ -485,7 +496,8 @@ print(json.dumps({'rotated':True}))
         require(
             source in {"source", "target"}
             and target in {"source", "target"}
-            and source != target
+            and source != target,
+            "copy_direction_invalid",
         )
         messages = self.sql(
             source, 'SELECT id,body FROM messages ORDER BY id COLLATE "C"'
@@ -515,7 +527,8 @@ print(json.dumps({'copied':True}))
                         "jobs": jobs,
                     },
                 )
-            )["copied"]
+            )["copied"],
+            "copy_unconfirmed",
         )
         require(
             self.fingerprint(source) == self.fingerprint(target), "copied_data_mismatch"
@@ -738,14 +751,18 @@ print(json.dumps({'copied':True}))
             require(
                 self.admin("source", "api", "write", {"enabled": False})["status"]
                 is None
-                or not self.pods("source", "api")
+                or not self.pods("source", "api"),
+                "source_write_gate_still_open",
             )
             require(
-                self.admin("target", "api", "write", {"enabled": True})["status"] == 200
+                self.admin("target", "api", "write", {"enabled": True})["status"]
+                == 200,
+                "replacement_write_gate_unconfirmed",
             )
             require(
                 self.admin("control", "edge", "route", {"route": "target"})["status"]
-                == 200
+                == 200,
+                "entry_route_unconfirmed",
             )
         if s == "migrate":
             require(
@@ -765,7 +782,8 @@ print(json.dumps({'copied':True}))
             self.save()
             require(
                 self.admin("control", "edge", "route", {"route": "target"})["status"]
-                == 200
+                == 200,
+                "entry_route_unconfirmed",
             )
             self.kube.scale("target", "worker", 1)
             self.kube.wait("target", "worker")
@@ -804,21 +822,47 @@ print(json.dumps({'copied':True}))
             )
 
     def recover_finalize(self):
-        require(self.kube.request("source", "api", "/messages")["status"] == 200)
         require(
-            self.admin("target", "api", "write", {"enabled": False})["status"]
-            in {200, None}
+            self.kube.request("source", "api", "/messages")["status"] == 200,
+            "recovered_source_api_unconfirmed",
         )
         require(
-            self.admin("source", "api", "write", {"enabled": True})["status"] == 200
+            self.admin("target", "api", "write", {"enabled": False})["status"]
+            in {200, None},
+            "replacement_write_gate_unconfirmed",
+        )
+        require(
+            self.admin("source", "api", "write", {"enabled": True})["status"] == 200,
+            "source_write_gate_unconfirmed",
         )
         self.policy(())
         require(
-            self.admin("control", "edge", "route", {"route": "source"})["status"] == 200
+            self.admin("control", "edge", "route", {"route": "source"})["status"]
+            == 200,
+            "entry_route_unconfirmed",
         )
         self.kube.scale("target", "api", 0)
-        require(self.kube.request("control", "edge", "/messages")["status"] == 200)
+        # The restored allow (including the bridge ingress in hybrid) reaches
+        # the dataplane asynchronously; observe the entry, bounded.
+        require(
+            self.until_ok(
+                lambda: (
+                    self.kube.request("control", "edge", "/messages")["status"] == 200
+                )
+            ),
+            "entry_to_recovered_source_unconfirmed",
+        )
         self.kube.scale("target", "worker", 0)
+
+    def until_ok(self, probe, timeout=45, interval=2):
+        """Bounded readback of an effect that propagates asynchronously."""
+        until = time.monotonic() + timeout
+        while True:
+            if probe():
+                return True
+            if time.monotonic() >= until:
+                return False
+            time.sleep(interval)
 
     def reset(self):
         # Resource recovery, not history deletion. User data and journals survive.
@@ -904,10 +948,13 @@ print(json.dumps({'copied':True}))
                 self.admin(side, "api", "write", {"enabled": side == "source"})[
                     "status"
                 ]
-                == 200
+                == 200,
+                "reset_write_gate_unconfirmed",
             )
         require(
-            self.admin("control", "edge", "route", {"route": "source"})["status"] == 200
+            self.admin("control", "edge", "route", {"route": "source"})["status"]
+            == 200,
+            "entry_route_unconfirmed",
         )
         self.kube.scale("target", "api", 0)
         self.kube.scale("source", "worker", 1)
