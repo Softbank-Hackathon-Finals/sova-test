@@ -8,7 +8,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import signal
 import threading
+import time
 from urllib.parse import urlsplit
 
 from operator_auth import OperatorAuth
@@ -273,6 +275,21 @@ def main():
             + "/console/ (owner access file required)",
             flush=True,
         )
+
+        def drain():
+            # Finish the command in flight (and its readback) before exiting,
+            # so a normal stop never leaves an effect of unknown outcome.
+            until = time.monotonic() + 120
+            while runtime.busy and time.monotonic() < until:
+                time.sleep(0.5)
+            server.shutdown()
+
+        def terminate(*_):
+            runtime.closing = True  # refuse new commands from now on
+            threading.Thread(target=drain, daemon=True).start()
+
+        signal.signal(signal.SIGTERM, terminate)
+        signal.signal(signal.SIGINT, terminate)
         try:
             server.serve_forever()
         finally:

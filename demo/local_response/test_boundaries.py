@@ -849,3 +849,15 @@ def test_approval_refuses_a_plan_whose_effect_changed(runtime):
     )
     with pytest.raises(Unconfirmed, match="approved_effect_changed_replan_required"):
         runtime.perform("response approve")
+
+
+def test_a_closing_runner_refuses_new_commands(runtime):
+    runtime.closing = True
+    with pytest.raises(ValueError, match="runner_shutting_down"):
+        runtime.submit(
+            {
+                "request_id": secrets.token_hex(16),
+                "revision": 0,
+                "command": "response reset",
+            }
+        )

@@ -39,6 +39,7 @@ class Runtime(ResponseOperations, RuntimeObservation):
         self.lock = threading.RLock()
         self.observation = None
         self.busy = False
+        self.closing = False
         self.db = sqlite3.connect(
             self.root / "responses.sqlite", check_same_thread=False
         )
@@ -288,6 +289,8 @@ class Runtime(ResponseOperations, RuntimeObservation):
                     "duplicate": True,
                     "effect_status": previous[1],
                 }
+            if self.closing:
+                raise ValueError("runner_shutting_down")
             if self.busy or body["revision"] != self.state["revision"]:
                 raise ValueError("stale_or_busy_command")
             self.validate_command(body["command"])
