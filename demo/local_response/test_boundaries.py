@@ -863,3 +863,97 @@ def test_a_closing_runner_refuses_new_commands(runtime):
                 "command": "response reset",
             }
         )
+
+
+class PodKube:
+    """Fake adapter that reports a fixed set of pod UIDs per side and role."""
+
+    def __init__(self, uids):
+        self.uids = uids
+
+    def get(self, side, kind, name=None):
+        assert kind == "pods"
+        return {
+            "items": [
+                {"metadata": {"uid": uid, "labels": {"sova.io/role": role}}}
+                for role, uids in self.uids.get(side, {}).items()
+                for uid in uids
+            ]
+        }
+
+
+def test_approval_refuses_a_plan_after_the_target_pods_changed(runtime):
+    """AT-11: the same names with new UIDs void the plan."""
+    from .contracts import digest as plan_digest
+    from .evidence import producer_digest
+    from .kube import Unconfirmed
+
+    runtime.settings["images"] = {
+        "v1": {"image": "localhost/sova-response/app@sha256:" + "a" * 64}
+    }
+    runtime.state.update(scenario="isolate")
+    runtime.kube = PodKube({"source": {"api": ["api-1"], "worker": ["worker-1"]}})
+    binding = {
+        "pods": runtime.current_uids(),
+        "effect": runtime.intended_effect(),
+        "runner": producer_digest(),
+        "expires_at": time.time() + 60,
+    }
+    runtime.state["plan"] = {"binding": binding, "digest": plan_digest(binding)}
+    runtime.kube = PodKube({"source": {"api": ["api-1"], "worker": ["worker-2"]}})
+    with pytest.raises(Unconfirmed, match="workload_changed_replan_required"):
+        runtime.perform("response approve")
+    assert runtime.state["approved"] is False
+
+
+def test_foreign_namespaces_are_refused_before_any_change():
+    """INV-11: ownership is checked on every call, not inferred from names."""
+    from .kube import Cluster, Kube, Unconfirmed
+
+    class Foreign(Cluster):
+        def run(self, args, value=None, timeout=35):
+            if args[:3] == ["get", "namespace", "kube-system"]:
+                return json.dumps({"metadata": {"uid": "fixed"}})
+            if args[:2] == ["get", "namespace"]:
+                return json.dumps(
+                    {
+                        "metadata": {
+                            "uid": "u",
+                            "labels": {"sova.io/owner": "someone-else"},
+                        }
+                    }
+                )
+            raise AssertionError("no other call may happen: " + " ".join(args))
+
+    kube = Kube({"local": Foreign("local", [], "fixed")})
+    with pytest.raises(Unconfirmed, match="namespace_ownership_mismatch"):
+        kube.owned("source")
+    with pytest.raises(ValueError):
+        kube.apply(
+            {
+                "metadata": {
+                    "name": "x",
+                    "namespace": "kube-system",
+                    "labels": {"sova.io/owner": OWNER},
+                }
+            }
+        )
+    with pytest.raises(ValueError):
+        kube.apply(
+            {"metadata": {"name": "x", "namespace": NAMESPACES["source"], "labels": {}}}
+        )
+
+
+def test_an_expired_release_approval_cannot_release_the_hold(tmp_path, hybrid):
+    from datetime import UTC, datetime, timedelta
+    from sova_security.contracts.commands import ContractError
+    from .security import approve
+
+    runtime, gate, key = hold_setup(tmp_path, hybrid)
+    approval = approve(
+        runtime.root, key, "recovery-approver", "contained-and-rotated", minutes=1
+    )
+    gate.clock = lambda: datetime.now(UTC) + timedelta(minutes=2)
+    with pytest.raises(ContractError):
+        gate.release(approval)
+    assert gate.active()
