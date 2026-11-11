@@ -88,12 +88,7 @@ class ResponseOperations:
                 == 200,
                 "worker_fault_unconfirmed",
             )
-            for index in range(16):
-                self.sql(
-                    "source",
-                    "INSERT INTO jobs(id,body) VALUES(%s,%s)",
-                    [secrets.token_hex(16), "local-scale-job-" + str(index)],
-                )
+            self.seed_jobs(16, "scale-job")
             self.state["evidence"]["queue_before"] = self.fingerprint("source")
         elif s == "credentials":
             require(
@@ -589,16 +584,24 @@ p.write_text(json.dumps(r));print(json.dumps(r))
         self.kube.wait(side, role)
 
     def seed_jobs(self, count, label):
+        """Queue `count` jobs in one statement so they become visible together.
+
+        Inserting one row per probe call trickles jobs in more slowly than the
+        workers poll, so whichever worker polls first takes every job and the
+        two-worker distribution check measures timing, not scale-out.
+        """
         require(1 <= count <= 32, "bounded_jobs_required")
-        ids = []
-        for index in range(count):
-            job_id = secrets.token_hex(16)
-            self.sql(
-                "source",
-                "INSERT INTO jobs(id,body) VALUES(%s,%s)",
-                [job_id, "local-" + label + "-" + str(index)],
-            )
-            ids.append(job_id)
+        ids = [secrets.token_hex(16) for _ in range(count)]
+        self.sql(
+            "source",
+            "INSERT INTO jobs(id,body) SELECT * FROM unnest(%s::text[], %s::text[])",
+            [ids, ["local-" + label + "-" + str(index) for index in range(count)]],
+        )
+        require(
+            self.sql("source", "SELECT count(*) FROM jobs WHERE id=ANY(%s)", [ids])
+            == [[count]],
+            "seeded_jobs_unconfirmed",
+        )
         return ids
 
     def rotate(self):
