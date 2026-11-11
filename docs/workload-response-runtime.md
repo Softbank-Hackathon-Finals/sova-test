@@ -81,6 +81,9 @@ python3 -m local_response.http_qualify --state $H/runtime --until <ISO 시각>
 - `http-qualification-*.json`: 화면 경로 반복 실행 결과(주기·유형·소요 시간·검사)
 - `bridge-status.json`: 터널별 노드·재시작 횟수·수신 여부
 - `latest-evidence.json`: 마지막 실행 직후의 상태와 관측
+- `evidence/*.json`: 단계별 서명 증거 봉투. `evidence-trust.json`은 검증용 공개키와 유효기간이다. 개인키 `evidence-signing.private.json`은 공유하지 않는다.
+- `support-record-*.json`: 서명된 자격 기록
+- `security-hold.json`, `releases/*.json`: 활성 보류의 승인 대상 revisions와 별도 승인자가 서명한 해제 승인. `security-approvers.json`은 등록된 승인자 공개키다.
 
 ## 자격 회수의 실효
 
@@ -196,12 +199,12 @@ python3 -m local_response.support --state $H/runtime --report $H/runtime/qualifi
 
 ## 비용과 정리
 
-하이브리드 출발지는 EKS 제어 평면, t4g.medium 2대, EBS, 로그 3일 보관으로 시간당 약 0.2달러다. NAT 게이트웨이는 쓰지 않는다. 노드는 공개 서브넷에 있지만, 들어오는 트래픽은 EKS가 관리하는 클러스터 보안 그룹만 허용한다. 모든 자원에 `component=sova-response-hybrid-source`, `RunId`, `ExpiresAt` 태그가 붙는다.
+하이브리드 출발지는 EKS 제어 평면, t4g.medium 2대, EBS, 로그 3일 보관으로 시간당 약 0.2달러다. NAT 게이트웨이는 쓰지 않는다. 노드는 공개 서브넷에 있지만, 들어오는 트래픽은 EKS가 관리하는 클러스터 보안 그룹만 허용한다. 모든 자원에 `component=sova-response-hybrid-source`, `RunId`, `ExpiresAt` 태그가 붙는다. EBS CSI가 동적으로 만드는 DB 볼륨은 Terraform 기본 태그가 닿지 않으므로, EBS CSI 애드온의 `extraVolumeTags`로 같은 태그를 붙인다.
 
 정리 순서:
 
 1. 서버와 터널 감시를 멈춘다.
-2. `terraform destroy`를 실행한다. ECR 저장소는 `force_delete`로 함께 지워진다. EBS 볼륨은 StorageClass `Delete`라서 PVC와 함께 지워진다. 남는 볼륨이 없는지는 `RunId` 태그로 확인한다.
+2. `terraform destroy`를 실행한다. ECR 저장소는 `force_delete`로 함께 지워진다. EBS 볼륨은 StorageClass `Delete`라서 PVC와 함께 지워진다. 다만 PVC보다 클러스터가 먼저 지워지면 볼륨이 남을 수 있다. 그래서 destroy 전에 소유 namespace를 지우거나, 끝난 뒤 `RunId` 태그로 남은 볼륨을 찾아 지운다.
 3. 로컬의 `sova-hybrid-*` 네임스페이스와 PV는 데이터 보존을 위해 자동으로 지우지 않는다.
 
 ## 범위 밖

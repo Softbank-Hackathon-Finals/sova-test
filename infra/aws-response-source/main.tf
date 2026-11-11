@@ -247,9 +247,14 @@ resource "aws_iam_role_policy_attachment" "ebs_csi" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
 resource "aws_eks_addon" "ebs_csi" {
-  cluster_name                = aws_eks_cluster.source.name
-  addon_name                  = "aws-ebs-csi-driver"
-  addon_version               = var.addon_versions["aws-ebs-csi-driver"]
+  cluster_name  = aws_eks_cluster.source.name
+  addon_name    = "aws-ebs-csi-driver"
+  addon_version = var.addon_versions["aws-ebs-csi-driver"]
+  # Dynamically provisioned volumes are outside Terraform's default_tags;
+  # tag them so cost and the post-destroy leftover check can find them.
+  configuration_values = jsonencode({
+    controller = { extraVolumeTags = { RunId = var.run_id, component = local.tags.component, ExpiresAt = var.expires_at } }
+  })
   resolve_conflicts_on_create = "OVERWRITE"
   pod_identity_association {
     role_arn        = aws_iam_role.ebs_csi.arn
