@@ -701,3 +701,68 @@ def test_support_record_requires_all_nine_passing(tmp_path, hybrid):
     report["results"] = report["results"][:-1]
     with pytest.raises(ValueError):
         support.build(report, observed_profiles(), evidence=evidence)
+
+
+def test_rescan_classifies_findings_and_never_calls_remaining_resolved():
+    from .registry import compare
+
+    before = {
+        "image_digest": "sha256:a",
+        "findings": [["CVE-1", "HIGH"], ["CVE-2", "CRITICAL"]],
+    }
+    same = {
+        "image_digest": "sha256:b",
+        "findings": [["CVE-1", "HIGH"], ["CVE-2", "CRITICAL"]],
+    }
+    fixed = {
+        "image_digest": "sha256:c",
+        "findings": [["CVE-1", "HIGH"], ["CVE-9", "LOW"]],
+    }
+    unchanged = compare(before, same)
+    assert unchanged["resolved"] == {} and unchanged["remaining"] == {
+        "HIGH": 1,
+        "CRITICAL": 1,
+    }
+    changed = compare(before, fixed)
+    assert changed["resolved"] == {"CRITICAL": 1}
+    assert changed["introduced"] == {"LOW": 1} and changed["introduced_names"] == [
+        "CVE-9"
+    ]
+
+
+def test_patch_rescan_outcomes(tmp_path):
+    from .operations import ResponseOperations
+
+    checks = []
+    ops = ResponseOperations()
+    ops.state = {
+        "evidence": {
+            "image_scan_before": {"not_run": "no_registry_scan_in_local_topology"}
+        }
+    }
+    ops.rescan_patched_image(
+        lambda name, ok, ev=None: checks.append((name, ok)),
+        "x@sha256:" + "a" * 64,
+        True,
+    )
+    assert ops.state["evidence"]["remediation"]["image_findings"]["status"] == "NOT_RUN"
+    assert checks == []  # local topology: no registry rescan, never a PASS
+
+
+def test_registry_scan_is_bound_to_the_run_repository():
+    from .registry import ScanUnavailable, scan
+
+    with pytest.raises(ScanUnavailable):
+        scan({}, "repo@sha256:" + "a" * 64)
+    settings = {
+        "aws": {
+            "repository_url": "111111111111.dkr.ecr.ap-northeast-2.amazonaws.com/run-a",
+            "region": "ap-northeast-2",
+        }
+    }
+    with pytest.raises(ScanUnavailable):
+        scan(
+            settings,
+            "111111111111.dkr.ecr.ap-northeast-2.amazonaws.com/other@sha256:"
+            + "a" * 64,
+        )

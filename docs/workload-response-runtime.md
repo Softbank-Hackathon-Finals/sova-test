@@ -142,6 +142,23 @@ python3 -m local_response.security_approver approve --state $H/runtime --key-dir
 
 키는 신원을 결속할 뿐 사람의 존재나 로그인을 증명하지 않는다. 승인자 등록은 소유자 작업이고, 별도 관리 승인 절차는 아직 없다.
 
+## 패치 후 재스캔
+
+배포가 성공했다고 취약점이 해소된 것은 아니다(명세 P-G5, P-AT-04). 패치 유형은 배포 전에 지금 실행 중인 출발지 api 이미지 digest의 레지스트리 스캔 결과를 기록한다. 배포 뒤에는 새 digest의 스캔 결과를 다시 읽어 각 항목을 해소, 잔존, 신규로 나눈다.
+
+- 하이브리드(ECR 푸시 시 스캔):
+  - 배포된 digest의 스캔이 완료되지 않았으면 `deployed_image_rescanned`가 실패한다.
+  - 패치가 새 항목을 만들면 `no_findings_introduced_by_patch`가 실패한다.
+  - 잔존 항목은 해소로 표시하지 않고 `NOT_RESOLVED` 잔여 위험으로 남긴다.
+- 로컬 배치에는 레지스트리 스캔이 없다. `NOT_RUN`으로 남기고 PASS로 바꾸지 않는다.
+
+이번 실행 전용 ECR에서 v1과 v2는 같은 기반 이미지를 써서 같은 81개 항목이 나왔다(CRITICAL 8, HIGH 32 등). 그래서 패치 유형의 결과는 다음과 같다.
+
+- 통제된 앱 결함(`legacy_feature`): RESOLVED
+- 이미지 취약점: 0개 해소, 81개 잔존(NOT_RESOLVED)
+
+기반 이미지 교체는 이 패치의 범위가 아니다.
+
 ## 자격 기록과 지원 선언
 
 9개 유형을 모두 통과한 실행에서만 자격 기록(`support-record-*.json`, 명세 §28.4)을 만든다. 기록에 들어가는 항목은 다음과 같다.

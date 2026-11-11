@@ -15,6 +15,7 @@ from .manifests import (
     role_allow,
 )
 from .provision import private_json
+from . import registry
 
 
 class ResponseOperations:
@@ -78,6 +79,9 @@ class ResponseOperations:
                 "controlled_legacy_feature_required",
             )
             self.state["evidence"]["security_baseline"] = check
+            self.state["evidence"]["image_scan_before"] = self.image_scan(
+                self.container("source", "api")["image"]
+            )
         elif s == "scale":
             require(
                 self.admin("source", "worker", "fault", {"enabled": True})["status"]
@@ -394,6 +398,48 @@ p.write_text(json.dumps(r));print(json.dumps(r))
             time.sleep(0.3)
         require(False, "pre_rotation_session_not_established")
 
+    def image_scan(self, image):
+        """Registry findings for a pinned image; NOT_RUN where there is none."""
+        if PROFILE["name"] != "hybrid-aws":
+            return {"not_run": "no_registry_scan_in_local_topology"}
+        try:
+            return registry.scan(self.settings, image)
+        except registry.ScanUnavailable as error:
+            return {"unavailable": str(error)}
+
+    def rescan_patched_image(self, check, image, controlled_closed):
+        """A successful rollout is not a resolved finding (P-G5, P-AT-04)."""
+        before = self.state["evidence"].get("image_scan_before", {})
+        remediation = {
+            "controlled_finding": "RESOLVED" if controlled_closed else "NOT_RESOLVED"
+        }
+        if "not_run" in before:
+            remediation["image_findings"] = {"status": "NOT_RUN", **before}
+        else:
+            after = self.image_scan(image)
+            rescanned = "findings" in before and "findings" in after
+            check(
+                "deployed_image_rescanned",
+                rescanned and after["image_digest"] == image.split("@", 1)[1],
+                {
+                    k: after.get(k)
+                    for k in ("image_digest", "completed_at", "unavailable")
+                },
+            )
+            if rescanned:
+                comparison = registry.compare(before, after)
+                check(
+                    "no_findings_introduced_by_patch",
+                    not comparison["introduced"],
+                    comparison["introduced_names"],
+                )
+                remediation["image_findings"] = {
+                    # Remaining findings are residual risk, never "resolved".
+                    "status": "NOT_RESOLVED" if comparison["remaining"] else "RESOLVED",
+                    **comparison,
+                }
+        self.state["evidence"]["remediation"] = remediation
+
     def admin_each_pod(self, side, role, path, body):
         """Send an admin call to every current pod by IP, bypassing the Service."""
         pods = [
@@ -708,13 +754,14 @@ print(json.dumps({'copied':True}))
                 ],
             )
             if s == "patch":
-                check(
-                    "controlled_security_regression_closed",
+                closed = (
                     self.kube.request("source", "api", "/security-check")
                     .get("body", {})
                     .get("legacy_feature_enabled")
-                    is False,
+                    is False
                 )
+                check("controlled_security_regression_closed", closed)
+                self.rescan_patched_image(check, image, closed)
         elif s == "restart":
             require(self.wait_queue(), "restarted_worker_queue_unconfirmed")
             check(
