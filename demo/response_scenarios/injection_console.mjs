@@ -8,7 +8,7 @@ import {
 } from "./model.mjs";
 import { injectionCommand, parseCommand, nextCommand } from "./commands.mjs";
 
-export function mountInjectionConsole({ getSession, onCommand }) {
+export function mountInjectionConsole({ getSession, onCommand, getSnapshot = snapshot }) {
   const input = document.getElementById("injection-command");
   const output = document.getElementById("injection-output");
   const feedback = document.getElementById("injection-feedback");
@@ -76,7 +76,7 @@ export function mountInjectionConsole({ getSession, onCommand }) {
       return;
     }
     if (["status", "workload_status", "watch"].includes(command.kind)) {
-      const view = snapshot(session);
+      const view = getSnapshot(session);
       line(
         "info",
         `현재 대응 상태: ${definition(session.scenario).title} · ${PHASE_LABELS[currentPhase(session)]} · 승인 ${session.approved ? "확인" : "대기"}`,
@@ -140,7 +140,10 @@ export function mountInjectionConsole({ getSession, onCommand }) {
           "accepted",
           "명령 접수 · 현재 단계만 처리합니다. 다음 명령 실행 전까지 대기합니다.",
         );
-      onCommand(raw);
+      Promise.resolve(onCommand(raw)).catch(error => {
+        line("error", error.message);
+        feedback.textContent = error.message;
+      });
       return;
     }
     line("error", "처리할 수 없는 명령입니다.");

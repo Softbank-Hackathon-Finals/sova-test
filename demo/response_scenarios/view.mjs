@@ -13,6 +13,7 @@ import { createMotionClock, motionPlan } from "./motion.mjs";
 import { mountSidebar, mountStudioView } from "./layout.mjs";
 import { mountInjectionConsole } from "./injection_console.mjs";
 import { executeCommand } from "./commands.mjs";
+import { liveMode, connectRuntime, runtimeCommand, chooseRuntime, runtimeStatus, localGraph } from "./runtime_client.mjs";
 
 const $ = (id) => document.getElementById(id);
 const element = (tag, text, className) => {
@@ -36,6 +37,7 @@ let session = createSession(),
   currentGraph = null,
   currentMotionPlan = null;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+if (liveMode) session = {...session, source: "local-rke2", history: [], outcome: "unknown"};
 const motion = createMotionClock(applyMotionFrame);
 const glyphs = {
   entry: "↗",
@@ -49,7 +51,18 @@ const glyphs = {
   database: "▥",
 };
 
+function readSnapshot() {
+  return liveMode ? localGraph(session, snapshot(session)) : snapshot(session);
+}
+function showError(error) {
+  $("injection-feedback").textContent = error.message;
+  $("stat-availability").textContent = "연결·실행 상태 확인 필요";
+}
 function reset(id = session.scenario) {
+  if (liveMode) {
+    chooseRuntime(id).catch(showError);
+    return;
+  }
   motion.clear();
   runVersion++;
   motionPaused = false;
@@ -219,7 +232,7 @@ function renderGraph(view) {
     svgElement(
       "text",
       { x: 270, y: 107, class: "environment-title" },
-      "AWS · 출발 환경",
+      liveMode ? "로컬 출발지 · 이 Mac RKE2" : "AWS · 출발 환경",
     ),
   );
   const onprem = svgElement("g");
@@ -235,7 +248,7 @@ function renderGraph(view) {
     svgElement(
       "text",
       { x: 1100, y: 107, class: "environment-title" },
-      "온프렘 · 목적지",
+      liveMode ? "로컬 목적지 · 같은 RKE2" : "온프렘 · 목적지",
     ),
   );
   svg.append(aws, onprem);
@@ -255,7 +268,7 @@ function renderGraph(view) {
         session.phase === "held"
           ? "논리적 격리 영역 · 상태 확인 필요"
           : view.operating
-            ? "논리적 격리 영역 · AWS 내부"
+            ? liveMode ? "논리적 격리 영역 · 이 Mac RKE2" : "논리적 격리 영역 · AWS 내부"
             : "논리적 격리 영역 · 대기",
       ),
     );
@@ -395,8 +408,8 @@ function renderGraph(view) {
     );
     const choose = () => {
       selected = item.id;
-      renderGraph(snapshot(session));
-      renderInspector(snapshot(session));
+      renderGraph(readSnapshot());
+      renderInspector(readSnapshot());
     };
     group.onclick = choose;
     group.onkeydown = (event) => {
@@ -448,7 +461,7 @@ function renderGraph(view) {
     );
     svg.append(chip);
   }
-  $("motion-caption").textContent = currentMotionPlan.caption;
+  $("motion-caption").textContent = liveMode ? "실제 로컬 자원 관측 · 움직임은 논리적 배치 표시이며 물리적 이동을 뜻하지 않습니다." : currentMotionPlan.caption;
   motion.transition(currentMotionPlan.positions, {
     identity: `${runVersion}:${session.scenario}:${currentPhase(session)}`,
     duration: 1400,
@@ -488,6 +501,18 @@ function renderInspector(view) {
         "inspector-warning",
       ),
     );
+  if (liveMode) {
+    root.append(element("h4", "실제 Kubernetes 관측"));
+    for (const resource of item.resources || []) {
+      root.append(element("p", `${resource.name} · ${resource.ready ? "Ready" : resource.phase}`));
+      root.append(element("small", `Pod UID: ${resource.uid}`));
+      for (const image of resource.images || []) root.append(element("p", image.image_id || "imageID 미확인", "inspector-footnote"));
+    }
+    const observed = runtimeStatus()?.observation;
+    root.append(element("p", observed?.observed_at ? `관측 시각: ${new Date(observed.observed_at).toLocaleTimeString("ko-KR")}` : "실제 관측을 기다립니다.", "inspector-footnote"));
+    const relevant = session.checks || [];
+    for (const check of relevant) root.append(element("p", `${check.passed ? "PASS" : "BLOCK"} · ${check.name}`, check.passed ? "inspector-footnote" : "inspector-warning"));
+  }
   root.append(element("h4", "연결 상태"));
   const labels = {
     flow: "흐름 유지",
@@ -555,13 +580,13 @@ function renderApproval() {
 }
 function render() {
   const spec = definition(session.scenario),
-    view = snapshot(session);
+    view = readSnapshot();
   renderScenarios();
-  $("scenario-title").textContent = spec.title;
-  $("scenario-english").textContent = spec.englishTitle;
+  $("scenario-title").textContent = liveMode && spec.id === "migrate" ? "로컬 출발지 → 이 Mac 온프렘 이전" : spec.title;
+  $("scenario-english").textContent = liveMode && spec.id === "migrate" ? "Local Source to On-Premises Migration" : spec.englishTitle;
   $("scenario-group").textContent = spec.group;
-  $("scenario-description").textContent = spec.summary;
-  $("stat-phase").textContent = PHASE_LABELS[currentPhase(session)];
+  $("scenario-description").textContent = liveMode ? "이 Mac의 전용 앱·PostgreSQL에 실제 명령을 적용합니다. 결과는 서버의 실행 기록과 관측으로 확인합니다." : spec.summary;
+  $("stat-phase").textContent = liveMode && !runtimeStatus() ? "실제 연결 확인 중" : PHASE_LABELS[currentPhase(session)];
   $("stat-scenario").textContent = spec.title;
   $("stat-availability").textContent = view.availability;
   $("stat-isolation").textContent =
@@ -591,12 +616,12 @@ function render() {
   );
   $("outcome").disabled = session.phase !== "normal";
   $("recovery-outcome").disabled = !recoveryAvailable(session);
-  $("preapproved").disabled = !spec.policy || session.phase !== "normal";
+  $("preapproved").disabled = liveMode || !spec.policy || session.phase !== "normal";
   $("preapproved").checked = session.preapproved;
   $("policy-description").textContent = spec.policy
     ? "이 유형의 범위만 미리 허용합니다. 시작 전 선택할 수 있습니다."
     : "이 유형은 단계별 승인을 유지합니다.";
-  $("scope-description").textContent = spec.result;
+  $("scope-description").textContent = liveMode ? "전용 로컬 RKE2 시험 앱입니다. 팀 운영 승인·실제 AWS 이전·자동 사이버공격 탐지와 구분합니다." : spec.result;
   const facts = [
     [
       "대상",
@@ -642,24 +667,24 @@ $("preapproved").onchange = () => reset();
 $("motion-toggle").onclick = () => setMotionPaused(!motionPaused);
 $("zoom-in").onclick = () => {
   zoom = Math.min(2, zoom + 0.2);
-  renderGraph(snapshot(session));
+  renderGraph(readSnapshot());
 };
 $("zoom-out").onclick = () => {
   zoom = Math.max(1, zoom - 0.2);
-  renderGraph(snapshot(session));
+  renderGraph(readSnapshot());
 };
 $("zoom-fit").onclick = () => {
   zoom = 1;
-  renderGraph(snapshot(session));
+  renderGraph(readSnapshot());
 };
 $("export").onclick = () => {
-  const payload = {
+  const payload = liveMode ? runtimeStatus() : {
     kind: "sova.workload-response.mock.v1",
     provenance: "mock",
     actual_execution: false,
     scenario: session.scenario,
     session,
-    result: snapshot(session),
+    result: readSnapshot(),
     note: "화면 재생 기록이며 운영 판정이나 실행 권한을 부여하지 않습니다.",
   };
   const url = URL.createObjectURL(
@@ -697,7 +722,12 @@ reducedMotion.addEventListener("change", () => {
 });
 const injectionConsole = mountInjectionConsole({
   getSession: () => session,
-  onCommand: (raw) => {
+  getSnapshot: () => readSnapshot(),
+  onCommand: async (raw) => {
+    if (liveMode) {
+      await runtimeCommand(raw);
+      return;
+    }
     const result = executeCommand(session, raw, {
       recoveryOutcome: $("recovery-outcome").value,
       outcome: $("outcome").value,
@@ -713,6 +743,28 @@ const injectionConsole = mountInjectionConsole({
     render();
   },
 });
+if (liveMode) {
+  document.querySelector(".injection-submit").disabled = true;
+  document.getElementById("injection-command").disabled = true;
+  const appLink = element("a", "실제 앱 보기", "button secondary");
+  appLink.href = "/app/";
+  appLink.target = "_blank";
+  appLink.rel = "noopener";
+  document.querySelector(".topbar-right").prepend(appLink);
+  document.querySelector(".header-note").textContent = "이 Mac · 실제 RKE2 연결";
+  document.querySelector(".panel-intro").textContent = "완료 후 response reset으로 복귀한 뒤 유형을 바꿉니다.";
+  connectRuntime(value => {
+    const changed = session.run_id !== value.session.run_id;
+    session = value.session;
+    if (changed) { runVersion++; motion.clear(); }
+    if (session.recovery?.phase === "recovered") session.recovery.outcome = "pass";
+    render();
+    const disabled = value.busy || !value.observation?.current;
+    document.querySelector(".injection-submit").disabled = disabled;
+    document.getElementById("injection-command").disabled = disabled;
+    document.querySelector(".header-note").textContent = value.busy ? "실제 명령 처리 중" : "이 Mac · 실제 RKE2 관측";
+  }, showError);
+}
 mountSidebar();
 mountStudioView();
 window.addEventListener("pagehide", () => {

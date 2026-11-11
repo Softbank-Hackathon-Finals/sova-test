@@ -28,6 +28,7 @@ def assets():
             "text/javascript; charset=utf-8",
         ),
         "view.mjs": (ROOT / "view.mjs", "text/javascript; charset=utf-8"),
+        "runtime_client.mjs": (ROOT / "runtime_client.mjs", "text/javascript; charset=utf-8"),
         "styles.css": (ROOT / "styles.css", "text/css; charset=utf-8"),
         "base.css": (
             ROOT.parents[1] / "console" / "src" / "styles.css",
