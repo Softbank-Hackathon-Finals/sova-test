@@ -57,7 +57,12 @@ await call("Page.enable");
 await call("Emulation.setDeviceMetricsOverride", { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
 await call("Page.navigate", { url: consoleUrl });
 await until(async () => (await text("stat-phase")) && (await text("stat-phase")) !== "실제 연결 확인 중", "live state");
-const steps = { live_phase: await text("stat-phase"), scope: (await text("scope-description")).slice(0, 120) };
+const steps = {
+  live_phase: await text("stat-phase"),
+  scope: (await text("scope-description")).slice(0, 240),
+  description: (await text("scenario-description")).slice(0, 160),
+  zones: await evaluate(`[...document.querySelectorAll(".environment-title")].map(e => e.textContent)`),
+};
 assert.equal(await evaluate(`document.body.dataset.runtime`), "local-rke2");
 assert.equal(await evaluate("location.hash"), "", "one-time token must leave the address bar");
 await shot("01-live");

@@ -110,7 +110,12 @@ class Runtime(ResponseOperations, RuntimeObservation):
         """The concrete change a plan authorizes, re-derived at approval."""
         scenario = self.state["scenario"]
         images = self.settings.get("images_by_cluster") or {
-            "local": {k: v["image"] for k, v in self.settings.get("images", {}).items()}
+            # The local bundle also records workload_sha256 (a plain digest).
+            "local": {
+                k: v["image"]
+                for k, v in self.settings.get("images", {}).items()
+                if isinstance(v, dict)
+            }
         }
         effect = {"scenario": scenario, "images": sha(images)}
         if scenario == "patch":

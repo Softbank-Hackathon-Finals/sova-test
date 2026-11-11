@@ -833,6 +833,8 @@ def test_approval_refuses_a_plan_whose_effect_changed(runtime):
         v: {"image": "localhost/sova-response/app@sha256:" + c * 64}
         for v, c in (("v1", "a"), ("v2", "b"), ("bad", "c"))
     }
+    # The local bundle also carries a plain digest next to the images.
+    runtime.settings["images"]["workload_sha256"] = "e" * 64
     runtime.state.update(scenario="patch")
     from .contracts import digest as plan_digest
     from .evidence import producer_digest
