@@ -339,10 +339,10 @@ def test_hybrid_manifests_split_by_cluster_and_pin_images(hybrid):
     assert {s["endpoints"][0]["addresses"][0] for s in slices} == {hybrid.LIMA_HOST}
 
 
-def test_isolated_role_leaves_the_bridge_allow(hybrid, tmp_path):
+def test_isolation_changes_rules_never_selectors(hybrid):
     from .operations import ResponseOperations
 
-    applied = []
+    applied, deleted = [], []
 
     class Fake:
         def get(self, side, kind, name):
@@ -352,11 +352,30 @@ def test_isolated_role_leaves_the_bridge_allow(hybrid, tmp_path):
         def apply(self, document, **_):
             applied.append(document)
 
+        def delete_legacy_policy(self, side, name):
+            deleted.append(name)
+
     ops = ResponseOperations()
     ops.kube, ops.state = Fake(), {"evidence": {}}
+    ops.settings = {"aws": {"node_ips": ["172.28.10.11"]}}
     ops.policy(("api", "worker"))
-    bridge = next(d for d in applied if d["metadata"]["name"] == "bridge-ingress")
-    assert bridge["spec"]["podSelector"]["matchExpressions"][0]["values"] == ["db"]
+    allows = {d["metadata"]["name"]: d["spec"] for d in applied}
+    for role in ("api", "worker"):
+        spec = allows["allow-" + role]
+        assert spec["podSelector"] == {"matchLabels": hybrid.labels(role)}
+        assert spec["ingress"] == [] and spec["egress"] == []
+    assert allows["namespace-boundary"]["podSelector"] == hybrid.boundary_selector(
+        "source"
+    )
+    assert allows["bridge-ingress"]["podSelector"]["matchExpressions"][0]["values"] == [
+        "db"
+    ]
+    assert deleted == ["isolate-api", "isolate-worker"]
+    applied.clear()
+    ops.policy(())
+    api = next(d for d in applied if d["metadata"]["name"] == "allow-api")["spec"]
+    assert api["podSelector"] == {"matchLabels": hybrid.labels("api")}
+    assert any("ipBlock" in peer for rule in api["ingress"] for peer in rule["from"])
 
 
 def test_kubectl_failures_expose_only_a_category():

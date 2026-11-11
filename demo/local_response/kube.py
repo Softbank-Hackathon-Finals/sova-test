@@ -207,6 +207,48 @@ class Kube:
             timeout=90,
         )
 
+    def delete_legacy_policy(self, side, name):
+        """Remove a pre-migration `isolate-<role>` allow policy, if present."""
+        if not re.fullmatch(r"isolate-(api|worker)", name):
+            raise ValueError("bounded_delete_required")
+        self.verify(placement(side))
+        self.owned(side)
+        ns = NAMESPACES[side]
+        found = self.run(
+            side,
+            [
+                "-n",
+                ns,
+                "get",
+                "networkpolicy",
+                name,
+                "--ignore-not-found",
+                "-o",
+                "json",
+            ],
+        )
+        if not found.strip():
+            return False
+        value = json.loads(found)
+        if (
+            value["metadata"].get("labels", {}).get("sova.io/owner")
+            != manifests.PROFILE["owner"]
+        ):
+            raise Unconfirmed("resource_ownership_mismatch")
+        self.run(
+            side,
+            [
+                "-n",
+                ns,
+                "delete",
+                "networkpolicy",
+                name,
+                "--wait=true",
+                "--ignore-not-found",
+            ],
+        )
+        return True
+
     def get(self, side, kind, name=None):
         args = [
             "-n",

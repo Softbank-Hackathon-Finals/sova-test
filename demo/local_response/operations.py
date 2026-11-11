@@ -5,7 +5,15 @@ import secrets
 import time
 from concurrent.futures import ThreadPoolExecutor
 from .contracts import now, require
-from .manifests import NAMESPACES, PROFILE, host, labels, meta
+from .manifests import (
+    ISOLATABLE,
+    NAMESPACES,
+    PROFILE,
+    boundary_selector,
+    host,
+    meta,
+    role_allow,
+)
 from .provision import private_json
 
 
@@ -94,94 +102,39 @@ class ResponseOperations:
             self.state["evidence"]["migration_source"] = self.fingerprint("source")
 
     def policy(self, roles=(), *, egress=False, recovery=False):
-        # Remove the broad allow policy from selected Pods; additive deny-only
-        # policies cannot override an existing allow. Both writes are read back.
-        source = self.kube.get("source", "networkpolicy", "namespace-boundary")
-        source.pop("status", None)
-        source["spec"]["podSelector"] = (
-            {
-                "matchExpressions": [
-                    {"key": "sova.io/role", "operator": "NotIn", "values": list(roles)}
-                ]
-            }
-            if roles
-            else {}
-        )
-        self.kube.apply(source)
+        """Set each isolatable role's own allow policy; selectors never move.
+
+        `roles` get the isolated (or egress-limited, or recovery) rules and the
+        others get normal rules. Enforcement is observed separately, because
+        policy agents program the dataplane asynchronously.
+        """
+        mode = "recovery" if recovery else "egress" if egress else "isolated"
+        node_ips = (self.settings.get("aws") or {}).get("node_ips")
+        # One-time convergence from the earlier selector-edit model.
+        converge = [("namespace-boundary", boundary_selector("source"))]
         if PROFILE["name"] == "hybrid-aws":
-            # The SSM bridge enters from node addresses. An isolated role must
-            # leave that allow too, or bridged traffic would still reach it.
-            bridge = self.kube.get("source", "networkpolicy", "bridge-ingress")
-            bridge.pop("status", None)
-            bridge["spec"]["podSelector"] = {
-                "matchExpressions": [
+            converge.append(
+                (
+                    "bridge-ingress",
                     {
-                        "key": "sova.io/role",
-                        "operator": "In",
-                        "values": [r for r in ("api", "db") if r not in roles],
-                    }
-                ]
-            }
-            self.kube.apply(bridge)
-        for role in roles:
-            spec = {
-                "podSelector": {"matchLabels": labels(role)},
-                "policyTypes": ["Ingress", "Egress"],
-                "ingress": [],
-                "egress": [],
-            }
-            if egress or recovery:
-                spec["ingress"] = [
-                    {"from": [{"namespaceSelector": {"matchLabels": labels()}}]}
-                ]
-                if recovery:
-                    spec["ingress"] = [
-                        {
-                            "from": [
-                                {
-                                    "namespaceSelector": {
-                                        "matchLabels": {
-                                            "kubernetes.io/metadata.name": NAMESPACES[
-                                                "control"
-                                            ]
-                                        }
-                                    },
-                                    "podSelector": {"matchLabels": labels("probe")},
-                                }
-                            ],
-                            "ports": [{"protocol": "TCP", "port": 8080}],
-                        }
-                    ]
-                spec["egress"] = [
-                    {
-                        "to": [{"podSelector": {"matchLabels": labels("db")}}],
-                        "ports": [{"protocol": "TCP", "port": 5432}],
+                        "matchExpressions": [
+                            {"key": "sova.io/role", "operator": "In", "values": ["db"]}
+                        ]
                     },
-                    {
-                        "to": [
-                            {
-                                "namespaceSelector": {
-                                    "matchLabels": {
-                                        "kubernetes.io/metadata.name": "kube-system"
-                                    }
-                                },
-                                "podSelector": {"matchLabels": {"k8s-app": "kube-dns"}},
-                            }
-                        ],
-                        "ports": [
-                            {"protocol": "UDP", "port": 53},
-                            {"protocol": "TCP", "port": 53},
-                        ],
-                    },
-                ]
-            self.kube.apply(
-                {
-                    "apiVersion": "networking.k8s.io/v1",
-                    "kind": "NetworkPolicy",
-                    "metadata": meta("isolate-" + role, NAMESPACES["source"]),
-                    "spec": spec,
-                }
+                )
             )
+        for name, selector in converge:
+            current = self.kube.get("source", "networkpolicy", name)
+            if current["spec"]["podSelector"] != selector:
+                current.pop("status", None)
+                current["spec"]["podSelector"] = selector
+                self.kube.apply(current)
+        for role in ISOLATABLE:
+            self.kube.apply(
+                role_allow(role, mode if role in roles else "normal", node_ips)
+            )
+        for role in ISOLATABLE:
+            self.kube.delete_legacy_policy("source", "isolate-" + role)
         self.state["evidence"]["policy_roles"] = list(roles)
 
     def set_writer(self, side, enabled):

@@ -37,8 +37,11 @@ flowchart LR
 
 - **클러스터를 오가는 경로는 SSM 터널 하나다.** 로컬 Pod는 `source-api`, `source-db` Service로 나간다. 이 Service의 EndpointSlice는 Lima가 Mac 루프백으로 넘기는 `192.168.5.2`를 가리킨다. Mac에서는 `session-manager-plugin`이 SSM 세션을 열고, EKS 노드가 출발지 Service ClusterIP로 전달한다. 출발지에는 공개 LoadBalancer나 공개 DB 포트가 없다.
 - **EKS 쪽에서 이 Mac으로 오는 경로는 없다.** `host()`는 출발지에서 목적지로 가는 주소를 만들지 않는다.
-- **터널 허용 범위를 좁힌다.** 브리지 트래픽은 노드 주소에서 들어온다. `bridge-ingress` NetworkPolicy는 노드 서브넷에서 출발지 api·db의 해당 포트만 허용한다. 격리된 역할은 이 허용에서도 빠진다. 그러지 않으면 터널로 들어온 트래픽이 격리된 Pod에 닿는다.
-- **NetworkPolicy는 실제로 집행된다.** EKS에서는 VPC CNI의 network policy agent가, 로컬에서는 Calico가 집행한다.
+- **격리는 규칙만 바꾸고 선택자는 바꾸지 않는다.** 격리할 수 있는 출발지 역할(api, worker)은 공용 `namespace-boundary` 허용에서 처음부터 빠지고, 각자 자기 허용 정책(`allow-api`, `allow-worker`)만 적용받는다. 격리·발신 제한·복구는 이 정책의 규칙만 바꾼다. EKS VPC CNI 1.22의 정책 에이전트는 Pod가 어떤 정책의 선택자에서 빠질 때 그 정책의 허용 항목을 eBPF 맵에 남겼다. 그래서 차단 정책을 적용한 뒤에도 작업자가 새 연결을 받았고, 실행기가 이를 확인하지 못해 보류했다. 선택자를 옮기는 방식은 쓰지 않는다. 예전 방식의 `isolate-*` 정책은 첫 초기화 때 지우고, 초기화가 api·worker를 새 ReplicaSet으로 다시 띄워 남은 맵을 버린다.
+- **터널 허용 범위를 좁힌다.** 브리지 트래픽은 노드 주소에서 들어온다. 노드 IP(/32)만 허용한다. api 포트 허용은 `allow-api`의 정상 규칙 안에 있어서 격리하면 함께 빠지고, db 포트 허용은 고정된 `bridge-ingress`에 있다. VPC CNI에서는 Pod도 노드와 같은 서브넷 IP를 받으므로, 서브넷 범위로 허용하면 클러스터 안의 모든 Pod가 허용된다.
+- **터널 감시는 허용된 노드로만 연결한다.** 노드가 교체되면 연결할 노드가 없어 터널이 끊기고, 관측이 실패해 보류된다. `python3 -m local_response.hybrid --state $H/runtime --refresh-bridge`로 현재 노드를 다시 허용한다.
+- **NetworkPolicy는 실제로 집행된다.** EKS에서는 VPC CNI의 network policy agent가, 로컬에서는 Calico가 집행한다. VPC CNI는 정책을 비동기로 적용하므로 수 초가 걸린다. 그래서 격리 뒤에는 실행 중인 Pod가 새 연결을 거부하는 것을 최대 45초까지 다시 확인한 다음에 진행한다. 정책을 쓴 것만으로는 집행으로 보지 않는다.
+- **충돌과 실패를 구분한다.** Deployment 변경은 `resourceVersion` test가 들어간 JSON Patch로 한다. 상태 갱신으로 test가 실패하면 아무것도 적용되지 않으므로, 다시 읽어 최대 3번 시도한다. exec로 만드는 효과는 자동으로 다시 실행하지 않는다. 보류 기록에는 kubectl 실패 종류(rejected, unauthorized, timeout, connection 등)만 남고 stderr는 남기지 않는다.
 - **판정은 각 클러스터 안에서 한다.** 출발지 HTTP·SQL 확인은 EKS 안의 probe가, 목적지·진입점 확인은 로컬 probe가 한다. 데이터 전환은 제어 호스트가 출발지 DB를 읽고 목적지 DB에 쓰는 제한된 stop-and-copy다(2,000행 상한). CDC나 무중단 복제를 주장하지 않는다.
 - **이미지는 digest로 고정한다.** EKS는 실행 전용 ECR(태그 변경 불가, 푸시 시 검사)의 digest를 쓰고, 로컬은 containerd에 들여온 digest를 쓴다. 같은 소스(`workload.py` 해시 기록)에서 만든 ARM64 이미지다.
 - **자격 증명은 개인 상태에만 둔다.** DB·관리 토큰, kubeconfig, EKS 토큰 캐시는 상태 폴더(0700)의 0600 파일이다. kubeconfig는 정적 토큰 없이 `eks_token`으로 15분짜리 토큰을 받는다.

@@ -217,6 +217,9 @@ def main():
     parser.add_argument("--state", type=Path, required=True)
     parser.add_argument("--port", type=int, default=18142)
     parser.add_argument("--hours", type=float, default=8)
+    parser.add_argument(
+        "--open", action="store_true", help="open the one-time link in the browser"
+    )
     args = parser.parse_args()
     if not 1024 <= args.port <= 65535 or not 0 < args.hours <= 12:
         parser.error("bounded loopback port and runtime required")
@@ -259,6 +262,11 @@ def main():
         ("127.0.0.1", args.port), handler(runtime, auth, origin, local_assets())
     ) as server:
         server.daemon_threads = True
+        if args.open:
+            # The one-time link is consumed by the first page load.
+            import webbrowser
+
+            webbrowser.open(origin + "/console/#" + token)
         print(
             "Sova local RKE2 console: "
             + origin

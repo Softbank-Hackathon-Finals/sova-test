@@ -394,7 +394,7 @@ def documents(
                 "kind": "NetworkPolicy",
                 "metadata": meta("namespace-boundary", ns),
                 "spec": {
-                    "podSelector": {},
+                    "podSelector": boundary_selector(side),
                     "policyTypes": ["Ingress", "Egress"],
                     "ingress": [
                         {"from": [{"namespaceSelector": {"matchLabels": labels()}}]}
@@ -475,9 +475,105 @@ def documents(
             docs.append(service("db", ns, 5432))
         for role in ROLES[side]:
             docs += [workload(role, side, image), service(role, ns)]
+        if side == "source":
+            docs += [role_allow(role, node_ips=node_ips) for role in ISOLATABLE]
     if PROFILE["name"] == "hybrid-aws":
         docs += bridge_documents(cluster, node_ips)
     return docs
+
+
+ISOLATABLE = ("api", "worker")
+
+
+def owner_peers():
+    return [{"namespaceSelector": {"matchLabels": labels()}}]
+
+
+def dns_egress():
+    return {
+        "to": [
+            {
+                "namespaceSelector": {
+                    "matchLabels": {"kubernetes.io/metadata.name": "kube-system"}
+                },
+                "podSelector": {"matchLabels": {"k8s-app": "kube-dns"}},
+            }
+        ],
+        "ports": [{"protocol": "UDP", "port": 53}, {"protocol": "TCP", "port": 53}],
+    }
+
+
+def db_egress():
+    return {
+        "to": [{"podSelector": {"matchLabels": labels("db")}}],
+        "ports": [{"protocol": "TCP", "port": 5432}],
+    }
+
+
+def role_allow(role, mode="normal", node_ips=None):
+    """The only allow policy that selects an isolatable source role.
+
+    Responses change its rules, never its selector. Some policy agents (EKS VPC
+    CNI 1.22) keep a pod's old allow entries when the pod leaves a policy's
+    selector, so selector edits are not a reliable way to isolate.
+    """
+    if role not in ISOLATABLE:
+        raise ValueError("isolatable_role_required")
+    if mode == "normal":
+        ingress = [{"from": owner_peers()}]
+        if role == "api" and PROFILE["name"] == "hybrid-aws":
+            ingress.append(
+                {
+                    "from": bridge_ingress_from(node_ips),
+                    "ports": [{"protocol": "TCP", "port": BRIDGE["api"]["port"]}],
+                }
+            )
+        egress = [{"to": owner_peers()}, dns_egress()]
+    elif mode == "isolated":
+        ingress, egress = [], []
+    elif mode == "egress":
+        ingress, egress = [{"from": owner_peers()}], [db_egress(), dns_egress()]
+    elif mode == "recovery":
+        ingress = [
+            {
+                "from": [
+                    {
+                        "namespaceSelector": {
+                            "matchLabels": {
+                                "kubernetes.io/metadata.name": NAMESPACES["control"]
+                            }
+                        },
+                        "podSelector": {"matchLabels": labels("probe")},
+                    }
+                ],
+                "ports": [{"protocol": "TCP", "port": 8080}],
+            }
+        ]
+        egress = [db_egress(), dns_egress()]
+    else:
+        raise ValueError("unknown_policy_mode")
+    return {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "NetworkPolicy",
+        "metadata": meta("allow-" + role, NAMESPACES["source"]),
+        "spec": {
+            "podSelector": {"matchLabels": labels(role)},
+            "policyTypes": ["Ingress", "Egress"],
+            "ingress": ingress,
+            "egress": egress,
+        },
+    }
+
+
+def boundary_selector(side):
+    # Isolatable source roles are governed only by their own allow policy.
+    if side == "source":
+        return {
+            "matchExpressions": [
+                {"key": "sova.io/role", "operator": "NotIn", "values": list(ISOLATABLE)}
+            ]
+        }
+    return {}
 
 
 def bridge_ingress_from(node_ips):
@@ -507,7 +603,8 @@ def bridge_documents(cluster, node_ips=None):
                             {
                                 "key": "sova.io/role",
                                 "operator": "In",
-                                "values": ["api", "db"],
+                                # api's bridge allow lives in allow-api.
+                                "values": ["db"],
                             }
                         ]
                     },
@@ -516,8 +613,7 @@ def bridge_documents(cluster, node_ips=None):
                         {
                             "from": bridge_ingress_from(node_ips),
                             "ports": [
-                                {"protocol": "TCP", "port": item["port"]}
-                                for item in BRIDGE.values()
+                                {"protocol": "TCP", "port": BRIDGE["db"]["port"]}
                             ],
                         }
                     ],
