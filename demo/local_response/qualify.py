@@ -10,6 +10,7 @@ import time
 
 from .provision import private_json
 from .runtime import Runtime, SCENARIOS, SIGNALS, now
+from .support import REQUIRED
 
 
 def command(runtime, value, *, timeout=240):
@@ -132,6 +133,16 @@ def qualify(root, scenarios, drill_keys=None):
             print("PASS security-hold-drill", flush=True)
         report["completed_at"] = now()
         report["passed"] = True
+        if set(scenarios) == set(REQUIRED):
+            from .support import build, profiles
+
+            private_json(filename, report)
+            record = build(report, profiles(runtime.kube), evidence=runtime.evidence)
+            private_json(
+                root / ("support-record-" + record["record_id"] + ".json"), record
+            )
+            report["support_record"] = record["record_id"]
+            print("QUALIFIED " + record["record_id"], flush=True)
     except Exception as error:
         report["passed"] = False
         report["error"] = type(error).__name__

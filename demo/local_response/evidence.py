@@ -82,7 +82,7 @@ def contract_digest(scenario):
         {
             "verifier": VERIFIER_VERSION,
             "scenario": scenario,
-            "signal": list(SIGNALS[scenario]),
+            "signal": list(SIGNALS.get(scenario, ("qualification-record", "all"))),
         }
     )
 
@@ -119,7 +119,7 @@ class ResponseEvidence:
             ISSUER,
             self.key_id,
             public,
-            tuple(self.scope(s) for s in sorted(SCENARIOS)),
+            tuple(self.scope(s) for s in sorted(SCENARIOS) + ["qualification"]),
             (VERIFIER_VERSION,),
             created - timedelta(seconds=1),
             created + timedelta(days=TRUST_DAYS),

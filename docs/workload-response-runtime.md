@@ -142,6 +142,28 @@ python3 -m local_response.security_approver approve --state $H/runtime --key-dir
 
 키는 신원을 결속할 뿐 사람의 존재나 로그인을 증명하지 않는다. 승인자 등록은 소유자 작업이고, 별도 관리 승인 절차는 아직 없다.
 
+## 자격 기록과 지원 선언
+
+9개 유형을 모두 통과한 실행에서만 자격 기록(`support-record-*.json`, 명세 §28.4)을 만든다. 기록에 들어가는 항목은 다음과 같다.
+
+- **방향과 실행기:** 출발지와 목적지 프로필, 방향, 실행기 커밋과 코드 digest
+  - 출발지와 목적지 프로필: Kubernetes, CNI와 정책 엔진 이미지, 노드 아키텍처·인스턴스·OS, 저장소
+- **결과:** 유형별 검사 이름과 서명 증거 지문
+- **범위:** 시험한 한계, 제외 범위, 만료(7일), 무효화 조건
+
+기록도 실행기 키로 서명한다.
+
+지원 선언(`SUPPORTED`)은 이 기록으로만 한다. 다음 경우에는 `NEEDS_EVIDENCE` 또는 `UNSUPPORTED`로 이유와 함께 표시한다(명세 AT-02, AT-03).
+
+- 방향이 정확히 같지 않다. 역방향과 failback은 자격이 없다.
+- 지금 관측한 프로필이 다르다. CNI나 Kubernetes를 업그레이드하면 재검증해야 한다.
+- 만료됐다.
+- 실행기 코드가 바뀌었다.
+
+```bash
+python3 -m local_response.support --state $H/runtime --report $H/runtime/qualification-<id>.json
+```
+
 ## 비용과 정리
 
 하이브리드 출발지는 EKS 제어 평면, t4g.medium 2대, EBS, 로그 3일 보관으로 시간당 약 0.2달러다. NAT 게이트웨이는 쓰지 않는다. 노드는 공개 서브넷에 있지만, 들어오는 트래픽은 EKS가 관리하는 클러스터 보안 그룹만 허용한다. 모든 자원에 `component=sova-response-hybrid-source`, `RunId`, `ExpiresAt` 태그가 붙는다.

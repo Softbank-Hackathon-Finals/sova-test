@@ -77,6 +77,19 @@ class RuntimeObservation:
             },
             "state_revision": generation,
         }
+        if time.monotonic() - self.support_checked > 60:
+            # Support is declared only from a qualification record that still
+            # matches the platforms observed now; refreshed once a minute.
+            from .support import declare, latest, profiles
+
+            self.support_checked = time.monotonic()
+            try:
+                self.support_view = declare(latest(self.root), profiles(self.kube))
+            except Exception:
+                self.support_view = {
+                    "status": "NEEDS_EVIDENCE",
+                    "reasons": ["platform profile unreadable"],
+                }
         if self.security.active():
             # Keep the approver's view of the hold bound to fresh revisions.
             self.security.export()

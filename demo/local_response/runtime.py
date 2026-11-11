@@ -31,6 +31,8 @@ class Runtime(ResponseOperations, RuntimeObservation):
         configure(self.settings.get("topology", "local"))
         self.kube = kube or Kube.from_settings(self.settings)
         self.security = SecurityGate(self)
+        self.support_view = None
+        self.support_checked = 0.0
         self.evidence = ResponseEvidence(
             self.root, tenant=PROFILE["owner"], namespace=NAMESPACES["source"]
         )
@@ -242,6 +244,7 @@ class Runtime(ResponseOperations, RuntimeObservation):
                     else "이 Mac의 전용 RKE2 · 로컬 출발지/목적지 · 팀 운영/T10 승인과 분리"
                 ),
                 "topology": self.topology(),
+                "support": self.support_view,
                 "busy": self.busy,
                 "session": json.loads(json.dumps(self.state)),
                 "observation": self.observation,

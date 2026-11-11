@@ -607,3 +607,97 @@ def test_runtime_refuses_every_effect_during_a_security_hold(runtime):
     runtime.validate_command("security release rel-0123abcd")
     with pytest.raises(ValueError):
         runtime.select("isolate")
+
+
+def observed_profiles():
+    return {
+        "source": {
+            "provider": "aws",
+            "backend": "eks",
+            "kubernetes": "v1.35.9-eks",
+            "network": {
+                "cni": "aws-vpc-cni",
+                "images": ["amazon-k8s-cni:v1.22.4"],
+                "policy_engine": "vpc-cni-network-policy-agent",
+            },
+            "storage": "ebs-csi-gp3",
+            "nodes": [["arm64", "t4g.medium", "Amazon Linux 2023"]],
+            "placement": "aws",
+        },
+        "target": {
+            "provider": "on-prem",
+            "backend": "rke2",
+            "kubernetes": "v1.35.9+rke2r1",
+            "network": {
+                "cni": "canal-calico",
+                "images": ["hardened-calico:v3.32.2"],
+                "policy_engine": "calico",
+            },
+            "storage": "local-pv",
+            "nodes": [["arm64", "vm", "Ubuntu 24.04.5 LTS"]],
+            "placement": "local",
+        },
+    }
+
+
+def nine_report():
+    session = {
+        "checks": [{"name": "c", "passed": True}],
+        "evidence": {"signed": {"verify": {"fingerprint": "f" * 64}}},
+    }
+    from .support import REQUIRED
+
+    return {
+        "passed": True,
+        "started_at": "2026-11-12T00:00:00+00:00",
+        "base_commit": "abc",
+        "cluster_uid": {"aws": "u1", "local": "u2"},
+        "results": [
+            {"scenario": s, "passed": True, "state": {"session": session}}
+            for s in REQUIRED
+        ],
+    }
+
+
+def test_support_is_declared_only_from_a_matching_unexpired_record(tmp_path, hybrid):
+    from datetime import UTC, datetime, timedelta
+    from .evidence import ResponseEvidence
+    from . import support
+
+    evidence = ResponseEvidence(
+        tmp_path, tenant="owner", namespace="sova-hybrid-source"
+    )
+    record = support.build(nine_report(), observed_profiles(), evidence=evidence)
+    assert record["direction"] == {
+        "from": "aws/eks",
+        "to": "on-prem/rke2",
+        "reverse_qualified": False,
+        "failback": record["direction"]["failback"],
+    }
+    assert support.declare(record, observed_profiles())["status"] == "SUPPORTED"
+    assert support.declare(None, observed_profiles())["status"] == "NEEDS_EVIDENCE"
+    reverse = support.declare(
+        record, observed_profiles(), direction={"from": "on-prem/rke2", "to": "aws/eks"}
+    )
+    assert reverse["status"] == "UNSUPPORTED"
+    upgraded = observed_profiles()
+    upgraded["source"]["network"]["images"] = ["amazon-k8s-cni:v1.23.3"]
+    assert support.declare(record, upgraded)["status"] == "NEEDS_EVIDENCE"
+    later = datetime.now(UTC) + timedelta(days=8)
+    assert (
+        support.declare(record, observed_profiles(), now=later)["status"]
+        == "NEEDS_EVIDENCE"
+    )
+
+
+def test_support_record_requires_all_nine_passing(tmp_path, hybrid):
+    from .evidence import ResponseEvidence
+    from . import support
+
+    evidence = ResponseEvidence(
+        tmp_path, tenant="owner", namespace="sova-hybrid-source"
+    )
+    report = nine_report()
+    report["results"] = report["results"][:-1]
+    with pytest.raises(ValueError):
+        support.build(report, observed_profiles(), evidence=evidence)
