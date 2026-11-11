@@ -197,6 +197,33 @@ python3 -m local_response.security_approver approve --state $H/runtime --key-dir
 python3 -m local_response.support --state $H/runtime --report $H/runtime/qualification-<id>.json
 ```
 
+## 감사 보존(WORM)
+
+실행기의 원장(SQLite)과 증거 파일은 이 Mac에 있어 같은 권한이면 지울 수 있다. 감사 보존은 실행기와 분리한 두 가지로 한다(명세 §23.4, SEC-07, AT-37).
+
+- `infra/aws-response-audit`: Object Lock(GOVERNANCE, 기본 1일) 버킷과 `audit-writer` 역할.
+  - 버킷은 버전 관리, 암호화, 공개 차단을 쓰고 TLS 연결만 받는다.
+  - 쓰기 역할은 올리기, 읽기, 버전 삭제 시도만 할 수 있다. 보존 단축, 잠금 우회, 버킷 잠금·버전 관리·정책 변경은 명시적으로 거부한다.
+  - IAM 역할과 버킷을 새로 만들므로 소유자 승인 뒤에만 적용한다. 이 문서 작성 시점에는 적용하지 않았다.
+- `demo/audit_shipper`
+  - `ship`은 허용 목록의 증거만 쓰기 역할로 올린다. 대상은 서명 봉투, 자격 기록, 검증 보고서, 해제 승인, 원장 JSONL(읽기 전용 추출)이다.
+  - 개인키, kubeconfig, 토큰, 설정, 회전 자료, 콘솔 접속 링크, SQLite 파일은 패턴에 맞아도 거부한다.
+  - 올린 뒤 SHA-256 체크섬과 잠금 보존을 확인하고 버전 영수증을 남긴다.
+  - `worm`은 쓰기 역할로 다음을 실제로 시도한다. AWS가 AccessDenied로 거부할 때만 통과로 본다.
+    - 잠긴 버전 삭제
+    - 보존 단축
+    - 버전 없는 삭제. 삭제 표식만 생기는지 본다.
+    - 원본 버전 다시 읽기
+
+```bash
+cd infra/aws-response-audit   # 승인 뒤
+TF_DATA_DIR=$H/audit/.terraform terraform init -backend-config=path=$H/audit/terraform.tfstate
+TF_DATA_DIR=$H/audit/.terraform terraform apply -var-file=<account_id·operator_arn·run_id·expires_at>
+cd ../../demo
+python3 -m audit_shipper.ship --state $H/runtime --bucket <audit_bucket> --writer-role-arn <audit_writer_role_arn> --prefix hybrid-aws/runtime
+python3 -m audit_shipper.worm --state $H/runtime --bucket <audit_bucket> --writer-role-arn <audit_writer_role_arn>
+```
+
 ## 비용과 정리
 
 하이브리드 출발지는 EKS 제어 평면, t4g.medium 2대, EBS, 로그 3일 보관으로 시간당 약 0.2달러다. NAT 게이트웨이는 쓰지 않는다. 노드는 공개 서브넷에 있지만, 들어오는 트래픽은 EKS가 관리하는 클러스터 보안 그룹만 허용한다. 모든 자원에 `component=sova-response-hybrid-source`, `RunId`, `ExpiresAt` 태그가 붙는다. EBS CSI가 동적으로 만드는 DB 볼륨은 Terraform 기본 태그가 닿지 않으므로, EBS CSI 애드온의 `extraVolumeTags`로 같은 태그를 붙인다.
