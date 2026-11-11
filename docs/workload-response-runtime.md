@@ -237,7 +237,16 @@ python3 -m audit_shipper.worm --state $H/runtime --bucket <audit_bucket> --write
 
 ## 비용과 정리
 
-하이브리드 출발지는 EKS 제어 평면, t4g.medium 2대, EBS, 로그 3일 보관으로 시간당 약 0.2달러다. NAT 게이트웨이는 쓰지 않는다. 노드는 공개 서브넷에 있지만, 들어오는 트래픽은 EKS가 관리하는 클러스터 보안 그룹만 허용한다. 모든 자원에 `component=sova-response-hybrid-source`, `RunId`, `ExpiresAt` 태그가 붙는다. EBS CSI가 동적으로 만드는 DB 볼륨은 Terraform 기본 태그가 닿지 않으므로, EBS CSI 애드온의 `extraVolumeTags`로 같은 태그를 붙인다.
+하이브리드 출발지는 시간당 약 0.20달러다. 2026-11-12 AWS Price List API의 서울 리전 온디맨드 단가 기준이다.
+
+| 항목 | 단가 | 시간당 |
+|---|---|---|
+| EKS 클러스터 | 0.10달러/시간 | 0.100 |
+| t4g.medium 2대 | 0.0416달러/시간 | 0.083 |
+| 노드 공개 IPv4 2개 | 0.005달러/시간 | 0.010 |
+| EBS gp3 41GB(노드 20GB 2개, DB 1GB) | 0.0912달러/GB-월 | 0.005 |
+
+제어 평면 로그(3일 보관), ECR 저장, 데이터 전송은 이번 실행에서 미미했으나 측정값은 아니다. 실제 청구는 Cost Explorer로 하루 뒤 확인한다. NAT 게이트웨이는 쓰지 않는다. 노드는 공개 서브넷에 있지만, 들어오는 트래픽은 EKS가 관리하는 클러스터 보안 그룹만 허용한다. 모든 자원에 `component=sova-response-hybrid-source`, `RunId`, `ExpiresAt` 태그가 붙는다. EBS CSI가 동적으로 만드는 DB 볼륨은 Terraform 기본 태그가 닿지 않으므로, EBS CSI 애드온의 `extraVolumeTags`로 같은 태그를 붙인다.
 
 정리 순서:
 
