@@ -159,6 +159,19 @@ python3 -m local_response.security_approver approve --state $H/runtime --key-dir
 
 기반 이미지 교체는 이 패치의 범위가 아니다.
 
+## 출발지 독립 시험
+
+데이터 전환을 마친 뒤 `exit drill`(콘솔 명령, 한 번)은 목적지가 출발지 없이 운영되는지 확인한다(명세 §20, AT-35). 순서는 다음과 같다.
+
+1. 하이브리드에서는 목적지와 진입점의 유일한 출발지 경로(`bridge-egress`)를 거둔다. 그리고 목적지 Pod에서 출발지 DB 터널이 실제로 막혔는지 확인한다.
+2. 목적지 api를 새 인스턴스로 다시 띄운다.
+3. 새 인스턴스가 업무 쓰기를 닫은 상태로 시작하는지 진입점의 쓰기 거부로 확인한다(§15.6, AT-32).
+4. 단일 writer를 다시 확인한다. 목적지 앱 로그인은 열려 있고 출발지 앱 로그인은 닫혀 있어야 한다. 확인한 뒤에만 쓰기를 연다.
+5. 진입점으로 새 쓰기를 넣고 목적지 DB에서 읽어 확인한다.
+6. 거둔 경로를 복원한다.
+
+하이브리드 결과는 `COMPUTE_INDEPENDENT`, `DATA_IDENTITY_INDEPENDENT`, `RESTART_VERIFIED`로 기록한다. 로컬 배치는 출발지 경로가 따로 없어 `RESTART_VERIFIED`만 기록한다. 백업, 복원, 신규 배포까지 포함한 `OPERATIONS_VERIFIED`, 사업자 탈출(`PROVIDER_EXIT_VERIFIED`)은 범위가 아니다.
+
 ## 자격 기록과 지원 선언
 
 9개 유형을 모두 통과한 실행에서만 자격 기록(`support-record-*.json`, 명세 §28.4)을 만든다. 기록에 들어가는 항목은 다음과 같다.

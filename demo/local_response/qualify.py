@@ -119,6 +119,9 @@ def qualify(root, scenarios, drill_keys=None):
             ):
                 command(runtime, value)
                 print("CONFIRMED " + scenario + " " + value, flush=True)
+            if scenario == "migrate":
+                command(runtime, "exit drill")
+                print("CONFIRMED migrate exit drill", flush=True)
             if scenario in {"isolate", "segment"}:
                 for value in ("recovery start", "recovery verify", "recovery finalize"):
                     command(runtime, value)

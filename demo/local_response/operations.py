@@ -398,6 +398,115 @@ p.write_text(json.dumps(r));print(json.dumps(r))
             time.sleep(0.3)
         require(False, "pre_rotation_session_not_established")
 
+    def exit_drill(self):
+        """Source independence drill after a completed migration (§20, AT-35).
+
+        Withdraw the only cross-cluster allow (hybrid), start a fresh target
+        API, prove it starts with business writes closed (quarantined until
+        authority is re-verified), re-verify the single writer, reopen and
+        write and read through the entry. The bridge allow is restored after.
+        """
+        require(
+            self.state["scenario"] == "migrate"
+            and self.state["phase"] == "complete"
+            and self.state["evidence"].get("migration_authority") == "target",
+            "exit_drill_requires_completed_migration",
+        )
+        hybrid = PROFILE["name"] == "hybrid-aws"
+        saved = {}
+        drill = {"source_path_cut": hybrid, "started_at": now()}
+        try:
+            if hybrid:
+                for side in ("target", "control"):
+                    policy = self.kube.get(side, "networkpolicy", "bridge-egress")
+                    policy.pop("status", None)
+                    saved[side] = policy["spec"]["egress"]
+                    policy["spec"]["egress"] = []
+                    self.kube.apply(policy, side=side)
+                require(
+                    self.until_ok(lambda: not self.bridge_reachable("target")),
+                    "source_path_cut_unconfirmed",
+                )
+            before = self.current_uids()["target"]["api"]
+            self.restart("target", "api")
+            after = self.current_uids()["target"]["api"]
+            require(after and after != before, "fresh_target_instance_unconfirmed")
+            probe = {
+                "id": secrets.token_hex(16),
+                "body": "출발지 차단 후 재기동 직후 쓰기",
+            }
+            quarantined = self.kube.request("control", "edge", "/messages", body=probe)
+            require(
+                quarantined["status"] == 503, "restarted_instance_opened_writes_early"
+            )
+            login = {
+                side: self.sql(
+                    side, "SELECT rolcanlogin FROM pg_roles WHERE rolname='app'"
+                )[0][0]
+                for side in ("source", "target")
+            }
+            require(
+                login["target"] and not login["source"], "single_writer_unconfirmed"
+            )
+            require(
+                self.admin("target", "api", "write", {"enabled": True})["status"]
+                == 200,
+                "target_write_gate_unconfirmed",
+            )
+            canary = {
+                "id": secrets.token_hex(16),
+                "body": "출발지 차단 상태의 새 업무 쓰기",
+            }
+            require(
+                self.kube.request("control", "edge", "/messages", body=canary)["status"]
+                == 200,
+                "write_without_source_unconfirmed",
+            )
+            require(
+                self.sql(
+                    "target",
+                    "SELECT count(*) FROM messages WHERE id=%s",
+                    [canary["id"]],
+                )
+                == [[1]],
+                "write_not_in_target_database",
+            )
+            require(
+                self.kube.request("control", "edge", "/messages")["status"] == 200,
+                "read_without_source_unconfirmed",
+            )
+            drill.update(
+                fresh_instance=after,
+                restart_quarantined=True,
+                single_writer=login,
+                write_and_read=True,
+                states=[
+                    "COMPUTE_INDEPENDENT",
+                    "DATA_IDENTITY_INDEPENDENT",
+                    "RESTART_VERIFIED",
+                ]
+                if hybrid
+                else ["RESTART_VERIFIED"],
+                completed_at=now(),
+            )
+            self.state["evidence"]["exit_drill"] = drill
+        finally:
+            for side, egress in saved.items():
+                policy = self.kube.get(side, "networkpolicy", "bridge-egress")
+                policy.pop("status", None)
+                policy["spec"]["egress"] = egress
+                self.kube.apply(policy, side=side)
+
+    def bridge_reachable(self, side):
+        code = (
+            "import json,socket,sys;v=json.load(sys.stdin)\n"
+            "try:\n socket.create_connection((v['host'],5432),timeout=3).close();print(json.dumps({'reachable':True}))\n"
+            "except OSError:print(json.dumps({'reachable':False}))"
+        )
+        return json.loads(
+            self.kube.execute(side, "api", code, {"host": host(side, "db", "source")})
+        )["reachable"]
+
     def image_scan(self, image):
         """Registry findings for a pinned image; NOT_RUN where there is none."""
         if PROFILE["name"] != "hybrid-aws":

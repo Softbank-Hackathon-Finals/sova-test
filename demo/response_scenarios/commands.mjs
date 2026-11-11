@@ -29,6 +29,8 @@ export function nextCommand(session) {
   const phase = currentPhase(session);
   if (phase === "normal") return injectionCommand(session.scenario);
   if (recoveryAvailable(session)) return "recovery start";
+  if (session.scenario === "migrate" && phase === "complete" && session.evidence && !session.evidence.exit_drill)
+    return "exit drill";
   return (
     {
       detected: "response plan",
@@ -138,6 +140,10 @@ export function parseCommand(raw, session) {
         };
   }
   if (name === "response reset") return { kind: "reset" };
+  if (name === "exit drill")
+    return session.scenario === "migrate" && currentPhase(session) === "complete" && !session.evidence?.exit_drill
+      ? { kind: "exit_drill" }
+      : { kind: "error", message: "완료된 이전에서 한 번만, 출발지 경로를 끊고 목적지 독립성을 확인할 수 있습니다." };
   if (name === "recovery start")
     return recoveryAvailable(session)
       ? { kind: "recover" }

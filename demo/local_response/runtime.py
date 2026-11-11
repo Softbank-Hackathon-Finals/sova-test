@@ -320,6 +320,13 @@ class Runtime(ResponseOperations, RuntimeObservation):
             and phase == "complete"
         ):
             return
+        if (
+            command == "exit drill"
+            and self.state["scenario"] == "migrate"
+            and phase == "complete"
+            and "exit_drill" not in self.state["evidence"]
+        ):
+            return
         if command != expected:
             raise ValueError("command_not_allowed_in_current_phase")
 
@@ -417,6 +424,13 @@ class Runtime(ResponseOperations, RuntimeObservation):
             return
         if command == "response reset":
             self.reset()
+            return
+        if command == "exit drill":
+            self.exit_drill()
+            self.event(
+                "exit_drilled",
+                "출발지 경로를 끊은 상태에서 새 목적지 인스턴스가 쓰기 보류로 시작하고, 단일 writer 확인 뒤 업무 쓰기·읽기가 되는 것을 확인했습니다. 경로는 복원했습니다.",
+            )
             return
         if command.startswith("inject "):
             self.inject()

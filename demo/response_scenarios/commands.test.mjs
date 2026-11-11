@@ -197,3 +197,12 @@ test("a security hold admits only an approved release, and only live", () => {
   assert.equal(parseCommand("security release rel-0123abcd", normal).kind, "error");
   assert.equal(nextCommand(held), "security release <승인ID>");
 });
+
+test("the exit drill runs once, only after a completed migration", () => {
+  const done = {...createSession("migrate"), phase: "complete", evidence: {}};
+  assert.equal(parseCommand("exit drill", done).kind, "exit_drill");
+  assert.equal(nextCommand(done), "exit drill");
+  assert.equal(parseCommand("exit drill", {...done, evidence: {exit_drill: {}}}).kind, "error");
+  assert.equal(parseCommand("exit drill", createSession("migrate")).kind, "error");
+  assert.equal(parseCommand("exit drill", {...createSession("isolate"), phase: "complete"}).kind, "error");
+});
