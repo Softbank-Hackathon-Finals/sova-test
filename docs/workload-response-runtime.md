@@ -73,6 +73,17 @@ python3 -m local_response.http_qualify --state $H/runtime --until <ISO 시각>
 
 `http_qualify`는 브라우저와 같은 경로로 실행한다. 즉 일회용 접속 토큰 교환, 세션 쿠키, CSRF 헤더를 거쳐 `/api/scenario`·`/api/command`·`/api/state`를 호출한다. 일회용 토큰을 쓰므로, 끝나면 사람이 쓸 수 있도록 서버를 다시 띄운다.
 
+## 콘솔과 서버 동작
+
+- 콘솔은 서버의 명령 원장을 그대로 따른다. 모든 명령은 `request_id`(멱등 키)와 현재 `revision`(낙관적 동시성)을 함께 보낸다. 같은 요청을 다시 보내면 한 번만 실행되고, 오래된 revision은 거부된다(명세 §24.1의 Idempotency-Key, If-Match에 해당).
+- 콘솔은 명령을 보내기 직전에 상태를 다시 읽는다. 이전 명령의 실행과 다시 읽기가 끝나지 않았으면 최대 15초 기다렸다가 한 번만 보낸다. 자동 재시도는 하지 않는다.
+- `security hold`, `security release`, `exit drill`은 실제 실행기 연결에서만 받는다. 정적 시연 화면은 거부한다.
+- 서버는 SIGTERM이나 SIGINT를 받으면 새 명령을 거부한다(`runner_shutting_down`). 실행 중인 명령은 최대 120초 기다려 끝낸 뒤 종료한다. 강제 종료로 끊긴 명령은 다음 시작 때 `held`(효과 불명)로 남고 자동 재실행하지 않는다.
+- `demo/response_scenarios/live-browser-check.mjs`는 격리한 headless Chrome으로 실제 실행기에 접속해 다음을 확인한다.
+  - 실시간 상태 표시, 일회용 토큰 제거
+  - 터미널에서 건 보안 보류의 표시, 보류 중 초기화 거부
+  - 별도 승인자 서명으로 해제, 페이지 예외 없음
+
 ## 증거
 
 상태 폴더에 남는다. 값이 아닌 판정만 기록한다.
