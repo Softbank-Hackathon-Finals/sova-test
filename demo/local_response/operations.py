@@ -1059,12 +1059,14 @@ print(json.dumps({'copied':True}))
         )
         self.kube.scale("target", "api", 0)
         # The restored allow (including the bridge ingress in hybrid) reaches
-        # the dataplane asynchronously; observe the entry, bounded.
+        # the dataplane asynchronously; observe the entry, bounded. The EKS VPC
+        # CNI once took over 45 s to admit node addresses to a new api pod.
         require(
             self.until_ok(
                 lambda: (
                     self.kube.request("control", "edge", "/messages")["status"] == 200
-                )
+                ),
+                timeout=150,
             ),
             "entry_to_recovered_source_unconfirmed",
         )
