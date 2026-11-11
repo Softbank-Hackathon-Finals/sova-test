@@ -11,9 +11,12 @@ import sqlite3
 import threading
 import time
 
+from .evidence import ResponseEvidence, sha
 from .kube import Kube, Unconfirmed
 from .manifests import NAMESPACES, PROFILE, configure, placement
 from .provision import private_json
+
+from sova_security.contracts.commands import ContractError
 
 from .contracts import SCENARIOS, SIGNALS, now, digest, require
 from .operations import ResponseOperations
@@ -26,6 +29,9 @@ class Runtime(ResponseOperations, RuntimeObservation):
         self.settings = json.loads((self.root / "settings.private.json").read_text())
         configure(self.settings.get("topology", "local"))
         self.kube = kube or Kube.from_settings(self.settings)
+        self.evidence = ResponseEvidence(
+            self.root, tenant=PROFILE["owner"], namespace=NAMESPACES["source"]
+        )
         self.lock = threading.RLock()
         self.observation = None
         self.busy = False
@@ -94,6 +100,57 @@ class Runtime(ResponseOperations, RuntimeObservation):
         require(self.kube.identity() == self.settings["cluster_uid"], "cluster_changed")
         for side, uid in self.settings["namespace_uids"].items():
             require(self.kube.owned(side) == uid, "namespace_changed")
+
+    def environment_digest(self):
+        """Clusters, owned namespaces and the exact pods and images now running."""
+        pods = {}
+        for side in ("source", "target"):
+            pods[side] = sorted(
+                [
+                    p["metadata"]["uid"],
+                    p["metadata"].get("labels", {}).get("sova.io/role"),
+                    [
+                        c.get("imageID") or c.get("image")
+                        for c in p.get("status", {}).get("containerStatuses", [])
+                    ],
+                ]
+                for p in self.kube.get(side, "pods")["items"]
+                if not p["metadata"].get("deletionTimestamp")
+            )
+        return sha(
+            {
+                "clusters": self.settings["cluster_uid"],
+                "namespaces": self.settings["namespace_uids"],
+                "pods": pods,
+            }
+        )
+
+    def attested_verify(self, stage):
+        """Verify, then sign the readback (PASS or FAIL) bound to plan and environment."""
+        try:
+            self.verify()
+        except Unconfirmed:
+            if self.state.get("checks"):
+                self.sign_checks(stage)
+            raise
+        return self.sign_checks(stage)
+
+    def sign_checks(self, stage):
+        receipt = self.evidence.issue(
+            run_id=self.state["run_id"],
+            scenario=self.state["scenario"],
+            stage=stage,
+            revision=self.state["revision"],
+            plan_digest=self.state["plan"]["digest"],
+            environment=self.environment_digest(),
+            checks=self.state["checks"],
+        )
+        self.state["evidence"].setdefault("signed", {})[stage] = receipt
+        self.db.execute(
+            "INSERT INTO journal(at,kind,body) VALUES(?,?,?)",
+            (now(), "evidence", json.dumps(receipt, ensure_ascii=False)),
+        )
+        return receipt
 
     def image(self, side, version):
         """Pinned image reference for `version` on the cluster hosting `side`."""
@@ -352,7 +409,7 @@ class Runtime(ResponseOperations, RuntimeObservation):
                 "승인된 실제 변경을 적용했습니다. 독립적인 결과 검증은 다음 명령에서 수행합니다.",
             )
         elif command == "response verify":
-            self.verify()
+            self.attested_verify("verify")
             self.phase(
                 "verifying",
                 "실제 HTTP·DB·Pod·정책 결과를 확인했습니다. 최종 명령 전에는 전환 완료로 표시하지 않습니다.",
@@ -363,7 +420,21 @@ class Runtime(ResponseOperations, RuntimeObservation):
                 and all(item["passed"] for item in self.state["checks"]),
                 "checks_not_passed",
             )
-            self.verify()  # fresh readback immediately before the final effect
+            # Fresh readback immediately before the final effect. Both the
+            # verify-time and this envelope must still bind to the approved
+            # plan and to the environment as observed right now.
+            final = self.attested_verify("finalize")
+            environment = self.environment_digest()
+            plan = self.state["plan"]["digest"]
+            try:
+                for receipt in (self.state["evidence"]["signed"]["verify"], final):
+                    self.evidence.accept(
+                        receipt, plan_digest=plan, environment=environment
+                    )
+            except (ContractError, KeyError, OSError, ValueError) as error:
+                raise Unconfirmed(
+                    "signed_evidence_rejected: " + str(error)[:120]
+                ) from error
             self.finalize()
             self.state["outcome"] = "pass"
             self.phase(

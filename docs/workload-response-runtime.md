@@ -48,6 +48,8 @@ flowchart LR
 
 ## 실행 순서
 
+실행기는 `cryptography`(Ed25519)와 팀 `sova-security` 계약(이 레포의 고정 의존 버전 0.11.1)을 쓴다. 전용 가상환경에 `cryptography==50.0.2`를 설치하고, `PYTHONPATH`에 `demo`와 `security/src`를 둔다. 아래 `python3`는 그 가상환경의 인터프리터를 뜻한다.
+
 ```bash
 H=<개인 상태 폴더>   # 예: .local-notes/validation/hybrid-response-YYYYMMDD
 # 1. AWS 출발지 (개인 계정, 실행 전용)
@@ -91,6 +93,30 @@ python3 -m local_response.http_qualify --state $H/runtime --until <ISO 시각>
 - 새 자격이 동작하는지
 
 앱 수준 토큰이나 외부 API 세션의 회수는 이 시험 범위가 아니다.
+
+## 서명된 증거와 완료 게이트
+
+검증할 때마다 결과를 팀 `sova-security`의 증거 봉투(`EvidenceRecord`, Ed25519)로 서명한다. 결속하는 값은 다음과 같다.
+
+- 승인된 계획 digest(`configuration`)
+- 관측된 환경(`environment`): 두 클러스터 UID, 소유 namespace UID, 실행 중인 Pod UID와 imageID
+- 실행기 코드(`source`)
+- 유형별 검증 계약(`policy`)
+- run, 단계, 5분 유효기간
+
+FAIL도 서명해 남긴다.
+
+`response finalize`는 최종 효과 직전에 다시 읽어 새 봉투를 만든다. verify 때의 봉투와 이번 봉투가 모두 아래 조건을 충족할 때만 진행한다.
+
+1. 서명이 검증된다.
+2. 만료되지 않았다.
+3. 같은 계획에 결속돼 있다.
+4. 결속된 환경이 지금 관측한 환경과 같다.
+5. 실행기 코드가 같다.
+
+하나라도 어긋나면 `signed_evidence_rejected`로 보류한다. 위조, 다른 run의 영수증, 만료, 드리프트, 코드 변경, FAIL 결과를 거부하는지는 단위 시험으로 고정했다. 실행기 코드 digest는 실행 중인 프로세스가 불러온 코드 기준이다.
+
+서명 키는 이 Mac의 실행기 상태 폴더(0600)에 있고 실행기 자신이 서명한다. 관측의 출처와 이후 변조는 확인할 수 있지만, 독립 검증기 신원이나 KMS에 보관한 키는 아니다.
 
 ## 비용과 정리
 

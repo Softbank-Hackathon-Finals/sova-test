@@ -411,3 +411,94 @@ def test_patch_retries_only_an_atomic_test_rejection(monkeypatch):
     with pytest.raises(module.Unconfirmed) as raised:
         Fake().patch("source", "deployment", "worker", {"spec": {}})
     assert raised.value.kind == "forbidden" and len(calls) == 3
+
+
+def signed(tmp_path, clock=None):
+    from .evidence import ResponseEvidence
+
+    evidence = ResponseEvidence(
+        tmp_path,
+        tenant="owner",
+        namespace="sova-hybrid-source",
+        **({"clock": clock} if clock else {}),
+    )
+    checks = [
+        {"name": "worker_new_connection_denied", "passed": True, "evidence": None}
+    ]
+    receipt = evidence.issue(
+        run_id="run1",
+        scenario="isolate",
+        stage="verify",
+        revision=3,
+        plan_digest="a" * 64,
+        environment="b" * 64,
+        checks=checks,
+    )
+    return evidence, receipt
+
+
+def test_signed_evidence_round_trip_and_bindings(tmp_path):
+    from sova_security.contracts.commands import ContractError
+
+    evidence, receipt = signed(tmp_path)
+    assert evidence.accept(receipt, plan_digest="a" * 64, environment="b" * 64)
+    assert (tmp_path / "evidence-signing.private.json").stat().st_mode & 0o077 == 0
+    for plan, environment in (("c" * 64, "b" * 64), ("a" * 64, "c" * 64)):
+        with pytest.raises(ContractError):
+            evidence.accept(receipt, plan_digest=plan, environment=environment)
+
+
+def test_tampered_replayed_or_expired_evidence_is_rejected(tmp_path):
+    from datetime import UTC, datetime, timedelta
+    from sova_security.contracts.commands import ContractError
+
+    now = [datetime(2026, 11, 12, tzinfo=UTC)]
+    evidence, receipt = signed(tmp_path, clock=lambda: now[0])
+    path = tmp_path / "evidence" / (receipt["evidence_id"] + ".json")
+    original = path.read_text()
+    document = json.loads(original)
+    document["evidence"]["result"] = "pass"
+    document["evidence"]["artifact_digest"] = "f" * 64  # swap the checks
+    path.write_text(json.dumps(document))
+    with pytest.raises(ContractError):
+        evidence.accept(receipt, plan_digest="a" * 64, environment="b" * 64)
+    path.write_text(original)
+    # A receipt pointing at another run's envelope fails the fingerprint binding.
+    with pytest.raises(ContractError):
+        evidence.accept(
+            {**receipt, "fingerprint": "0" * 64},
+            plan_digest="a" * 64,
+            environment="b" * 64,
+        )
+    now[0] += timedelta(minutes=6)
+    with pytest.raises(ContractError):
+        evidence.accept(receipt, plan_digest="a" * 64, environment="b" * 64)
+
+
+def test_failed_checks_sign_as_fail_and_never_pass_the_gate(tmp_path):
+    from .evidence import ResponseEvidence
+    from sova_security.contracts.commands import ContractError
+
+    evidence = ResponseEvidence(tmp_path, tenant="owner", namespace="ns")
+    receipt = evidence.issue(
+        run_id="run1",
+        scenario="egress",
+        stage="verify",
+        revision=1,
+        plan_digest="a" * 64,
+        environment="b" * 64,
+        checks=[{"name": "controlled_external_endpoint_unreachable", "passed": False}],
+    )
+    assert receipt["result"] == "fail"
+    with pytest.raises(ContractError):
+        evidence.accept(receipt, plan_digest="a" * 64, environment="b" * 64)
+
+
+def test_runner_code_change_invalidates_evidence(tmp_path, monkeypatch):
+    from . import evidence as module
+    from sova_security.contracts.commands import ContractError
+
+    evidence, receipt = signed(tmp_path)
+    monkeypatch.setattr(module, "producer_digest", lambda: "e" * 64)
+    with pytest.raises(ContractError):
+        evidence.accept(receipt, plan_digest="a" * 64, environment="b" * 64)
