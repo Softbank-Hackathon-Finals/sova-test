@@ -21,6 +21,11 @@ export const PHASE_LABELS = {
   recovery_restoring: "원본 복귀 진행",
   recovered: "원본 복귀 확인",
   recovery_held: "복구 보류 · 격리 유지",
+  // Live-runtime journal events that are not response phases.
+  security_hold: "보안 보류",
+  security_released: "보안 보류 해제",
+  security_rejected: "보안 명령 거부",
+  exit_drilled: "출발지 독립 시험",
 };
 export const HEALTH_LABELS = {
   healthy: "정상",

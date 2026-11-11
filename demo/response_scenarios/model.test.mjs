@@ -223,3 +223,9 @@ test("an unverified response and invalid recovery outcome cannot start a return"
   const completed = toPhase("segment", "complete");
   assert.equal(requestRecovery(completed, { outcome: "skip" }), completed);
 });
+
+test("every live journal event kind has a console label", async () => {
+  const {PHASE_LABELS} = await import("./model.mjs");
+  for (const phase of ["security_hold", "security_released", "security_rejected", "exit_drilled", "held", "normal"])
+    assert.equal(typeof PHASE_LABELS[phase], "string", phase);
+});
