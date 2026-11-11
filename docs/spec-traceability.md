@@ -74,7 +74,7 @@
 |---|---|---|
 | P-G3 승인 결속 | 실환경 | 계획 digest와 이미지 digest 고정 |
 | P-G5 재검증, P-AT-04 | 실환경 | ECR 재스캔으로 해소·잔존·신규 분류. 이번 실행: 통제 결함 해소, 이미지 81개 잔존(NOT_RESOLVED) |
-| P-AT-03 승인 후 diff 변경 | 구현 | 이미지는 digest로 지정. 변경 주입 시험 없음 |
+| P-AT-03 승인 후 diff 변경 | 단위 | 계획 결속에 배포할 이미지 digest와 실행기 코드 digest가 들어간다. 승인 시 다시 계산해 다르면 `approved_effect_changed_replan_required` |
 | AI 패치 제안·격리 리허설 | 없음 | 실행기에 AI 경로 없음 |
 
 ## Part IV 보안·거버넌스
