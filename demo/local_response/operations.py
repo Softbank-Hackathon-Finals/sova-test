@@ -276,10 +276,16 @@ class ResponseOperations:
         elif s == "restart":
             self.restart("source", "worker")
         elif s == "scale":
-            require(
-                self.admin("source", "worker", "fault", {"enabled": False})["status"]
-                == 200
+            # A faulted worker fails readiness and leaves the Service, so the
+            # Service name no longer reaches it. Clear the fault on each pod.
+            cleared = self.admin_each_pod(
+                "source", "worker", "fault", {"enabled": False}
             )
+            require(
+                all(item["status"] == 200 for item in cleared.values()),
+                "worker_fault_clear_unconfirmed",
+            )
+            self.state["evidence"]["scale_fault_cleared"] = sorted(cleared)
             self.kube.scale("source", "worker", 2)
             self.kube.wait("source", "worker")
             self.state["evidence"]["scale_distribution_jobs"] = self.seed_jobs(
@@ -352,6 +358,28 @@ path.write_text(json.dumps(result));print(json.dumps(result))
             require(opened, "existing_stream_not_established")
             futures[role] = future
         return futures
+
+    def admin_each_pod(self, side, role, path, body):
+        """Send an admin call to every current pod by IP, bypassing the Service."""
+        pods = [
+            pod
+            for pod in self.pods(side, role)
+            if not pod["metadata"].get("deletionTimestamp")
+        ]
+        require(pods, "pod_required")
+        results = {}
+        for pod in pods:
+            address = pod.get("status", {}).get("podIP")
+            require(address, "pod_address_unconfirmed")
+            results[pod["metadata"]["uid"]] = self.kube.request(
+                side,
+                role,
+                "/admin/" + path,
+                body=body,
+                admin=self.settings["admin"],
+                host_ip=address,
+            )
+        return results
 
     def restart(self, side, role):
         self.kube.patch(
