@@ -12,17 +12,20 @@ import threading
 import time
 
 from .kube import Kube, Unconfirmed
+from .manifests import NAMESPACES, PROFILE, configure, placement
 from .provision import private_json
 
 from .contracts import SCENARIOS, SIGNALS, now, digest, require
 from .operations import ResponseOperations
 from .observation import RuntimeObservation
 
+
 class Runtime(ResponseOperations, RuntimeObservation):
     def __init__(self, root, kube=None):
         self.root = Path(root)
         self.settings = json.loads((self.root / "settings.private.json").read_text())
-        self.kube = kube or Kube()
+        configure(self.settings.get("topology", "local"))
+        self.kube = kube or Kube.from_settings(self.settings)
         self.lock = threading.RLock()
         self.observation = None
         self.busy = False
@@ -92,6 +95,28 @@ class Runtime(ResponseOperations, RuntimeObservation):
         for side, uid in self.settings["namespace_uids"].items():
             require(self.kube.owned(side) == uid, "namespace_changed")
 
+    def image(self, side, version):
+        """Pinned image reference for `version` on the cluster hosting `side`."""
+        by_cluster = self.settings.get("images_by_cluster")
+        if by_cluster:
+            return by_cluster[placement(side)][version]
+        return self.settings["images"][version]["image"]
+
+    def topology(self):
+        hybrid = PROFILE["name"] == "hybrid-aws"
+        labels = {
+            "source": "AWS EKS 출발지" if hybrid else "로컬 출발지",
+            "target": "이 Mac 온프렘",
+            "control": "로컬 제어",
+        }
+        db_hosts = {
+            "db." + NAMESPACES["source"]: "source",
+            "db." + NAMESPACES["target"]: "target",
+        }
+        if hybrid:
+            db_hosts["source-db." + NAMESPACES["control"]] = "source"
+        return {"name": PROFILE["name"], "labels": labels, "db_hosts": db_hosts}
+
     def admin(self, side, role, path, body):
         return self.kube.request(
             side, role, "/admin/" + path, body=body, admin=self.settings["admin"]
@@ -150,7 +175,12 @@ class Runtime(ResponseOperations, RuntimeObservation):
             return {
                 "kind": "sova.local-response.v1",
                 "actual_execution": True,
-                "scope": "이 Mac의 전용 RKE2 · 로컬 출발지/목적지 · 팀 운영/T10 승인과 분리",
+                "scope": (
+                    "개인 AWS 계정의 전용 EKS 출발지 · 이 Mac RKE2 목적지 · 팀 운영/T10 승인과 분리"
+                    if PROFILE["name"] == "hybrid-aws"
+                    else "이 Mac의 전용 RKE2 · 로컬 출발지/목적지 · 팀 운영/T10 승인과 분리"
+                ),
+                "topology": self.topology(),
                 "busy": self.busy,
                 "session": json.loads(json.dumps(self.state)),
                 "observation": self.observation,
@@ -363,4 +393,3 @@ class Runtime(ResponseOperations, RuntimeObservation):
                 "recovered",
                 "원본 앱 응답·DB·경로 복귀를 확인했습니다. 사고 이력은 남깁니다.",
             )
-

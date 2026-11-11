@@ -65,3 +65,20 @@ test("expired snapshots clear live classifications even when their last HTTP res
   assert.equal(v.fresh, false);
   assert.match(v.route, /미확인/);
 });
+test("hybrid placement labels the EKS source and maps the bridged source DB host", async () => {
+  const value = envelope();
+  value.topology = {
+    name: "hybrid-aws",
+    labels: {source: "AWS EKS 출발지", target: "이 Mac 온프렘", control: "로컬 제어"},
+    db_hosts: {"db.sova-hybrid-source": "source", "db.sova-hybrid-target": "target", "source-db.sova-hybrid-control": "source"},
+  };
+  value.observation.entry = {status: 200, body: {environment: "aws-source"}};
+  value.observation.http["target/api"] = {status: 200, identity_echo: true, body: {write_open: true, db_host: "source-db.sova-hybrid-control"}};
+  value.observation.database_app_login = {source: true, target: false};
+  const v = await graph(value);
+  assert.equal(v.route, "AWS EKS 출발지 API");
+  assert.equal(v.writer, "AWS EKS 출발지 DB");
+  assert.match(v.nodes.find(node => node.id === "api").subtitle, /^AWS EKS 출발지 · /);
+  value.observation.entry = {status: 200, body: {environment: "local-target"}};
+  assert.equal((await graph(value)).route, "이 Mac 온프렘 API");
+});

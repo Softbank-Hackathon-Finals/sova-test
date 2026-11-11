@@ -4,14 +4,15 @@ import json
 import time
 from .contracts import now
 from .kube import BATCH_HTTP_PROBE
-from .manifests import NAMESPACES
+from .manifests import NAMESPACES, probe_side
+
 
 class RuntimeObservation:
     def observe(self):
         generation = self.state["revision"]
         self.identity()
         inventory = {}
-        for side in NAMESPACES:
+        for side in ("source", "target", "control"):
             pods = self.kube.get(side, "pods")["items"]
             inventory[side] = [
                 {
@@ -44,9 +45,15 @@ class RuntimeObservation:
             }.items()
             for role in roles
         }
-        http = json.loads(
-            self.kube.execute("control", "probe", BATCH_HTTP_PROBE, endpoints)
-        )
+        # Probe each endpoint from inside its own cluster.
+        http = {}
+        groups = {}
+        for key, address in endpoints.items():
+            groups.setdefault(probe_side(key.split("/", 1)[0]), {})[key] = address
+        for prober, group in groups.items():
+            http.update(
+                json.loads(self.kube.execute(prober, "probe", BATCH_HTTP_PROBE, group))
+            )
         writers = {
             side: self.sql(
                 side, "SELECT rolcanlogin FROM pg_roles WHERE rolname='app'"
@@ -70,9 +77,12 @@ class RuntimeObservation:
             },
             "state_revision": generation,
         }
+        if self.topology()["name"] == "hybrid-aws":
+            from .bridge import read_status
+
+            observed["bridge"] = read_status(self.root)
         if self.state["revision"] != generation:
             observed["current"] = False
             observed["error"] = "changed_during_observation"
         self.observation = observed
         return self.observation
-

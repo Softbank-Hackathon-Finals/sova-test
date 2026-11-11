@@ -63,6 +63,8 @@ tests/integration/ # 공통 통합 시험과 공유 PostgreSQL fixture
 
 `demo/`는 개인 검증 경로다. 시연 HTTP API와 일회용 인증은 이곳에 있으며 팀 플랫폼의 인증·API와 연결할 때 별도로 조정한다. 새 제어면과의 연결 여부를 [구현 현황](docs/implementation-status.md)에 구분한다. [이전 프리뷰 안내](docs/preview-guide.md)의 과거 검증이 현재 서버 가동을 의미하지 않는다.
 
+워크로드 대응 화면의 9개 유형을 실제 클러스터에서 실행하는 경로는 [워크로드 대응 실제 실행기](docs/workload-response-runtime.md)를 따른다. 로컬 RKE2 하나로 도는 기준선과, 실행 전용 EKS 출발지에서 이 Mac의 RKE2 목적지로 가는 하이브리드 배치를 지원한다.
+
 등록한 Kubernetes API를 직접 조회하는 운영자 CLI는 [읽기 전용 조사 안내](docs/kubernetes-discovery.md)를 따른다. 전용 로컬 k3s에서 제한된 RBAC·격리 시험을 마쳤으며 기업 OIDC와 다중 환경 운영 자격은 아직 연결하지 않았다.
 
 ## 설계

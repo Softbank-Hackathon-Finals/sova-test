@@ -9,8 +9,8 @@ from pathlib import Path
 import secrets
 import subprocess
 
-from .kube import Kube, NAMESPACES, OWNER, VM, Unconfirmed
-from .manifests import documents, ROLES
+from .kube import Kube, NAMESPACES, VM, Unconfirmed
+from .manifests import OWNER, documents, ROLES
 
 PG_BASE = (
     "postgres@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636"
@@ -188,9 +188,8 @@ print(json.dumps({'initialized':True}))
 """
     for side in ("source", "target"):
         value = json.loads(
-            kube.execute(
-                "control",
-                "probe",
+            kube.probe(
+                side,
                 code,
                 {"host": "db." + NAMESPACES[side], "password": password},
             )

@@ -1,10 +1,17 @@
-"""Pinned local VM adapter. Never uses the caller's current kube context."""
+"""Pinned cluster adapter. Never uses the caller's current kube context.
+
+Each side of the response (source, target, control) is placed on one pinned
+cluster: the local RKE2 VM, or in the hybrid topology the run-owned EKS cluster
+reached through a private kubeconfig. Every call names its side, and the
+adapter checks the cluster identity and namespace ownership on that cluster.
+"""
 
 import json
 import re
 import subprocess
 import time
-from .manifests import NAMESPACES, OWNER
+from . import manifests
+from .manifests import NAMESPACES, placement, probe_side
 
 VM = "sova-rke2-target"
 CLUSTER_UID = "9de35591-57a3-4759-bd73-6340e2de0b61"
@@ -24,49 +31,141 @@ class Unconfirmed(RuntimeError):
     """An effect or its observation could not be confirmed; never auto-retry."""
 
 
-def run(args, value=None, timeout=35):
+def run(args, value=None, timeout=35, *, prefix=None, label="local"):
     result = subprocess.run(
-        PREFIX + args, input=value, capture_output=True, text=True, timeout=timeout
+        (prefix or PREFIX) + args,
+        input=value,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
     )
     if result.returncode:
         # kubectl stderr may include credential payloads; keep it private.
-        error = Unconfirmed("local_kubernetes_request_failed")
+        error = Unconfirmed(label + "_kubernetes_request_failed")
         error.private_detail = result.stderr
         raise error
     if len(result.stdout) > 2_000_000:
-        raise Unconfirmed("local_response_too_large")
+        raise Unconfirmed(label + "_response_too_large")
     return result.stdout
 
 
+class Cluster:
+    """One pinned cluster: a fixed kubectl invocation and its expected UID."""
+
+    def __init__(self, name, prefix, uid):
+        self.name, self.prefix, self.uid = name, prefix, uid
+
+    def run(self, args, value=None, timeout=35):
+        return run(args, value, timeout, prefix=self.prefix, label=self.name)
+
+
+def eks_cluster(kubeconfig, context, uid):
+    # Private kubeconfig whose user execs `aws eks get-token`; no static token.
+    return Cluster(
+        "aws",
+        [
+            "kubectl",
+            "--kubeconfig",
+            str(kubeconfig),
+            "--context",
+            context,
+            "--request-timeout=15s",
+        ],
+        uid,
+    )
+
+
 class Kube:
+    def __init__(self, clusters=None):
+        self.clusters = clusters or {"local": Cluster("local", PREFIX, CLUSTER_UID)}
+
+    @classmethod
+    def from_settings(cls, settings):
+        if settings.get("topology", "local") == "local":
+            return cls()
+        aws = settings["clusters"]["aws"]
+        return cls(
+            {
+                "local": Cluster("local", PREFIX, settings["clusters"]["local"]["uid"]),
+                "aws": eks_cluster(aws["kubeconfig"], aws["context"], aws["uid"]),
+            }
+        )
+
+    def cluster(self, side):
+        return self.clusters[placement(side)]
+
+    def run(self, side, args, value=None, timeout=35):
+        return self.cluster(side).run(args, value, timeout)
+
+    def verify(self, name):
+        cluster = self.clusters[name]
+        value = json.loads(
+            cluster.run(["get", "namespace", "kube-system", "-o", "json"])
+        )
+        if value["metadata"]["uid"] != cluster.uid:
+            raise Unconfirmed(name + "_cluster_identity_mismatch")
+        return cluster.uid
+
     def identity(self):
-        value = json.loads(run(["get", "namespace", "kube-system", "-o", "json"]))
-        if value["metadata"]["uid"] != CLUSTER_UID:
-            raise Unconfirmed("local_cluster_identity_mismatch")
-        return CLUSTER_UID
+        found = {name: self.verify(name) for name in self.clusters}
+        # The local-only topology keeps its original scalar identity.
+        return found["local"] if list(found) == ["local"] else found
+
+    def sides(self):
+        return list(NAMESPACES)
+
+    def probe_sides(self):
+        return [side for side in NAMESPACES if side in {"control", "source-control"}]
 
     def owned(self, side):
         ns = NAMESPACES[side]
-        value = json.loads(run(["get", "namespace", ns, "-o", "json"]))
-        if value["metadata"].get("labels", {}).get("sova.io/owner") != OWNER:
+        value = json.loads(self.run(side, ["get", "namespace", ns, "-o", "json"]))
+        if (
+            value["metadata"].get("labels", {}).get("sova.io/owner")
+            != manifests.PROFILE["owner"]
+        ):
             raise Unconfirmed("namespace_ownership_mismatch")
         return value["metadata"]["uid"]
 
-    def apply(self, document, *, bootstrap=False):
+    def side_for(self, namespace, cluster):
+        matches = [
+            side
+            for side, ns in NAMESPACES.items()
+            if ns == namespace and placement(side) == cluster
+        ]
+        if len(matches) != 1:
+            raise ValueError("namespace_out_of_scope")
+        return matches[0]
+
+    def apply(self, document, *, bootstrap=False, side=None):
+        """Apply owned documents to one cluster: `side`'s, or the only one."""
         docs = document if isinstance(document, list) else [document]
-        self.identity()
+        if side is not None:
+            cluster = placement(side)
+        elif len(self.clusters) == 1:
+            cluster = next(iter(self.clusters))
+        else:
+            namespaces = {item.get("metadata", {}).get("namespace") for item in docs}
+            candidates = {
+                placement(s) for s, ns in NAMESPACES.items() if ns in namespaces
+            }
+            if None in namespaces or len(candidates) != 1:
+                raise ValueError("cluster_side_required")
+            cluster = candidates.pop()
+        self.verify(cluster)
         for item in docs:
             metadata = item.get("metadata", {})
-            if metadata.get("labels", {}).get("sova.io/owner") != OWNER:
+            if (
+                metadata.get("labels", {}).get("sova.io/owner")
+                != manifests.PROFILE["owner"]
+            ):
                 raise ValueError("owned_manifest_required")
             ns = metadata.get("namespace")
-            if ns and ns not in NAMESPACES.values():
-                raise ValueError("namespace_out_of_scope")
-            if not bootstrap and ns:
-                self.owned(
-                    next(key for key, value in NAMESPACES.items() if value == ns)
-                )
-        return run(
+            if ns:
+                owner_side = self.side_for(ns, cluster)
+                if not bootstrap:
+                    self.owned(owner_side)
+        return self.clusters[cluster].run(
             ["apply", "-f", "-"],
             json.dumps({"apiVersion": "v1", "kind": "List", "items": docs}),
             timeout=90,
@@ -74,7 +173,8 @@ class Kube:
 
     def get(self, side, kind, name=None):
         return json.loads(
-            run(
+            self.run(
+                side,
                 [
                     "-n",
                     NAMESPACES[side],
@@ -83,15 +183,18 @@ class Kube:
                     *([name] if name else []),
                     "-o",
                     "json",
-                ]
+                ],
             )
         )
 
     def patch(self, side, kind, name, patch):
-        self.identity()
+        self.verify(placement(side))
         self.owned(side)
         old = self.get(side, kind, name)
-        if old["metadata"].get("labels", {}).get("sova.io/owner") != OWNER:
+        if (
+            old["metadata"].get("labels", {}).get("sova.io/owner")
+            != manifests.PROFILE["owner"]
+        ):
             raise Unconfirmed("resource_ownership_mismatch")
 
         def merge(original, change):
@@ -124,7 +227,8 @@ class Kube:
                 }
             )
         return json.loads(
-            run(
+            self.run(
+                side,
                 [
                     "-n",
                     NAMESPACES[side],
@@ -136,7 +240,7 @@ class Kube:
                     json.dumps(operations),
                     "-o",
                     "json",
-                ]
+                ],
             )
         )
 
@@ -185,9 +289,11 @@ class Kube:
     def execute(self, side, role, code, value=None):
         if side not in NAMESPACES or not re.fullmatch("[a-z-]+", role):
             raise ValueError("registered_workload_required")
-        self.identity()
+        # Check the cluster this call runs on; Runtime.identity() checks both.
+        self.verify(placement(side))
         self.owned(side)
-        return run(
+        return self.run(
+            side,
             [
                 "-n",
                 NAMESPACES[side],
@@ -210,14 +316,17 @@ class Kube:
             raise ValueError("fixed_path_required")
         host = host_ip or role + "." + NAMESPACES[side]
         value = {"host": host, "path": path, "body": body, "admin": admin}
-        return json.loads(self.execute("control", "probe", HTTP_PROBE, value))
+        return json.loads(self.probe(side, HTTP_PROBE, value))
+
+    def probe(self, side, code, value=None):
+        """Run fixed probe code beside `side`, in the same cluster as it."""
+        return self.execute(probe_side(side), "probe", code, value)
 
     def sql(self, side, sql, parameters=None, *, admin=False, password=None):
         # SQL text is generated by the fixed runtime, never accepted by the UI.
         return json.loads(
-            self.execute(
-                "control",
-                "probe",
+            self.probe(
+                side,
                 SQL_PROBE,
                 {
                     "host": "db." + NAMESPACES[side],

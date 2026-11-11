@@ -43,7 +43,12 @@ def qualify(root, scenarios):
         "base_commit": revision,
         "producer_files_sha256": files,
         "cluster_uid": runtime.settings["cluster_uid"],
-        "scope": "actual local RKE2; two namespaces on the same Mac, no AWS/production/pentest qualification",
+        "topology": runtime.topology()["name"],
+        "scope": (
+            "actual EKS source in the operator's own AWS account and actual local RKE2 target on this Mac; no production/pentest qualification"
+            if runtime.topology()["name"] == "hybrid-aws"
+            else "actual local RKE2; two namespaces on the same Mac, no AWS/production/pentest qualification"
+        ),
         "results": [],
     }
     filename = root / ("qualification-" + secrets.token_hex(4) + ".json")

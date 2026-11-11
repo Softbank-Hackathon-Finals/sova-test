@@ -5,12 +5,13 @@ import secrets
 import time
 from concurrent.futures import ThreadPoolExecutor
 from .contracts import now, require
-from .manifests import NAMESPACES, labels, meta
+from .manifests import NAMESPACES, PROFILE, host, labels, meta
 from .provision import private_json
+
 
 class ResponseOperations:
     def set_image(self, side, role, version):
-        image = self.settings["images"][version]["image"]
+        image = self.image(side, version)
         container = self.container(side, role)
         container["image"] = image
         self.kube.patch(
@@ -107,6 +108,21 @@ class ResponseOperations:
             else {}
         )
         self.kube.apply(source)
+        if PROFILE["name"] == "hybrid-aws":
+            # The SSM bridge enters from node addresses. An isolated role must
+            # leave that allow too, or bridged traffic would still reach it.
+            bridge = self.kube.get("source", "networkpolicy", "bridge-ingress")
+            bridge.pop("status", None)
+            bridge["spec"]["podSelector"] = {
+                "matchExpressions": [
+                    {
+                        "key": "sova.io/role",
+                        "operator": "In",
+                        "values": [r for r in ("api", "db") if r not in roles],
+                    }
+                ]
+            }
+            self.kube.apply(bridge)
         for role in roles:
             spec = {
                 "podSelector": {"matchLabels": labels(role)},
@@ -193,7 +209,7 @@ class ResponseOperations:
                 self.policy(roles)
                 denials = {}
                 for role in roles:
-                    response = self.kube.request("source", role)
+                    response = self.denied_while_running(role)
                     require(
                         response["status"] is None and bool(self.pods("source", role)),
                         "running_pod_ingress_denial_unconfirmed",
@@ -230,7 +246,7 @@ class ResponseOperations:
                                         self.container(
                                             "target",
                                             "api",
-                                            db_host="db." + NAMESPACES["source"],
+                                            db_host=host("target", "db", "source"),
                                         )
                                     ]
                                 }
@@ -252,7 +268,7 @@ class ResponseOperations:
                                         self.container(
                                             "target",
                                             "worker",
-                                            db_host="db." + NAMESPACES["source"],
+                                            db_host=host("target", "db", "source"),
                                         )
                                     ]
                                 }
@@ -339,16 +355,12 @@ path.write_text(json.dumps(result));print(json.dumps(result))
                 "host": role + "." + NAMESPACES["source"],
             }
             future = pool.submit(
-                lambda value=value: json.loads(
-                    self.kube.execute("control", "probe", code, value)
-                )
+                lambda value=value: json.loads(self.kube.probe("source", code, value))
             )
             until = time.monotonic() + 10
             opened = False
             while time.monotonic() < until:
-                receipt = json.loads(
-                    self.kube.execute("control", "probe", reader, value)
-                )
+                receipt = json.loads(self.kube.probe("source", reader, value))
                 if receipt.get("opened"):
                     opened = True
                     break
@@ -358,6 +370,20 @@ path.write_text(json.dumps(result));print(json.dumps(result))
             require(opened, "existing_stream_not_established")
             futures[role] = future
         return futures
+
+    def denied_while_running(self, role, timeout=45):
+        """Wait, bounded, until the running pod is observed refusing new
+        connections. Policy agents program the dataplane asynchronously (the
+        EKS VPC CNI takes seconds), so a write alone is not enforcement."""
+        until = time.monotonic() + timeout
+        attempts = 0
+        while True:
+            attempts += 1
+            response = self.kube.request("source", role)
+            if response["status"] is None or time.monotonic() >= until:
+                response["attempts"] = attempts
+                return response
+            time.sleep(2)
 
     def admin_each_pod(self, side, role, path, body):
         """Send an admin call to every current pod by IP, bypassing the Service."""
@@ -428,9 +454,8 @@ print(json.dumps({'rotated':True}))
         for side in ("source", "target"):
             require(
                 json.loads(
-                    self.kube.execute(
-                        "control",
-                        "probe",
+                    self.kube.probe(
+                        side,
                         code,
                         {"host": "db." + NAMESPACES[side], "password": new},
                     )
@@ -447,13 +472,15 @@ print(json.dumps({'rotated':True}))
                         "admin": self.settings["admin"],
                         "dbadmin": self.settings["dbadmin"],
                     },
-                }
+                },
+                side=side,
             )
         self.settings["password"] = new
         private_json(self.root / "settings.private.json", self.settings)
         for role in ("api", "worker"):
             self.restart("source", role)
-        self.restart("control", "probe")
+        for side in self.kube.probe_sides():
+            self.restart(side, "probe")
         self.state["evidence"]["credential_old_denied"] = not self.kube.sql(
             "source", "SELECT 1", password=old
         )["ok"]
@@ -526,9 +553,8 @@ print(json.dumps({'copied':True}))
 """
         require(
             json.loads(
-                self.kube.execute(
-                    "control",
-                    "probe",
+                self.kube.probe(
+                    target,
                     code,
                     {
                         "host": "db." + NAMESPACES[target],
@@ -637,7 +663,7 @@ print(json.dumps({'copied':True}))
                 response,
             )
             pods = self.pods("source", "api")
-            image = self.settings["images"][expected]["image"]
+            image = self.image("source", expected)
             check(
                 "exact_image_spec",
                 bool(pods)
@@ -940,4 +966,3 @@ print(json.dumps({'copied':True}))
             "normal",
             "로컬 원본 앱·DB·작업자·경로를 확인했습니다. 이전 기록과 데이터는 보존합니다.",
         )
-

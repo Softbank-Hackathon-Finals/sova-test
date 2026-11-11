@@ -214,3 +214,146 @@ def test_zero_replicas_waits_for_old_pod_to_disappear(monkeypatch):
     monkeypatch.setattr("time.sleep", lambda _seconds: None)
     kube.wait("source", "worker")
     assert reads.count("pods") == 2
+
+
+def test_http_qualify_stays_on_loopback_and_runs_every_stage():
+    from .http_qualify import Console, ORDER, steps
+
+    with pytest.raises(ValueError):
+        Console("http://192.168.0.10:18142")
+    with pytest.raises(ValueError):
+        Console("https://127.0.0.1:18142")
+    assert sorted(ORDER) == sorted(
+        [
+            "isolate",
+            "segment",
+            "egress",
+            "credentials",
+            "patch",
+            "restart",
+            "scale",
+            "migrate",
+            "rollback",
+        ]
+    )
+    for scenario in ORDER:
+        values = steps(scenario)
+        assert values[1:6] == [
+            "response plan",
+            "response submit",
+            "response approve",
+            "response verify",
+            "response finalize",
+        ]
+        assert (values[-1] == "recovery finalize") == (
+            scenario in {"isolate", "segment"}
+        )
+
+
+@pytest.fixture
+def hybrid():
+    from . import manifests
+
+    manifests.configure("hybrid-aws")
+    try:
+        yield manifests
+    finally:
+        manifests.configure("local")
+
+
+def test_hybrid_paths_cross_clusters_only_through_the_bridge(hybrid):
+    assert hybrid.probe_side("source") == "source-control"
+    assert hybrid.probe_side("target") == "control"
+    assert hybrid.host("target", "db", "source") == "source-db.sova-hybrid-control"
+    assert hybrid.host("control", "api", "source") == "source-api.sova-hybrid-control"
+    assert hybrid.host("source", "db", "source") == "db.sova-hybrid-source"
+    # Nothing on the EKS source can call into this Mac.
+    with pytest.raises(ValueError):
+        hybrid.host("source", "api", "target")
+    with pytest.raises(ValueError):
+        hybrid.host("target", "auth", "source")
+    with pytest.raises(ValueError):
+        hybrid.bridge_documents("aws", ["0.0.0.0/0"])
+    froms = hybrid.bridge_documents("aws", ["172.28.10.12", "172.28.10.11"])[0]["spec"][
+        "ingress"
+    ][0]["from"]
+    assert [f["ipBlock"]["cidr"] for f in froms] == [
+        "172.28.10.11/32",
+        "172.28.10.12/32",
+    ]
+
+
+def test_hybrid_manifests_split_by_cluster_and_pin_images(hybrid):
+    ecr = "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/sova-response-hy1112a@sha256:"
+    local = "localhost/sova-response/app@sha256:" + "a" * 64
+    with pytest.raises(ValueError):
+        hybrid.documents(
+            local,
+            local,
+            "p",
+            "a",
+            "d",
+            cluster="aws",
+            node_ips=["172.28.10.11", "172.28.10.12"],
+        )
+    aws = hybrid.documents(
+        ecr + "a" * 64,
+        ecr + "b" * 64,
+        "p",
+        "a",
+        "d",
+        cluster="aws",
+        node_ips=["172.28.10.11", "172.28.10.12"],
+    )
+    here = hybrid.documents(
+        local, local.replace("app", "db"), "p", "a", "d", cluster="local"
+    )
+
+    def names(docs):
+        return {d["metadata"].get("namespace") for d in docs} - {None}
+
+    assert names(aws) == {"sova-hybrid-source", "sova-hybrid-control"}
+    assert names(here) == {"sova-hybrid-target", "sova-hybrid-control"}
+    assert all(
+        d["metadata"]["labels"]["sova.io/owner"] == "sova-hybrid-response-20261112"
+        for d in aws + here
+    )
+    assert not any(d["kind"] == "PersistentVolume" for d in aws)
+    pulls = {
+        d["metadata"]["name"]: d["spec"]["template"]["spec"]["containers"][0][
+            "imagePullPolicy"
+        ]
+        for d in aws
+        if d["kind"] == "Deployment"
+    }
+    assert set(pulls.values()) == {"IfNotPresent"}
+    edge = next(
+        d for d in here if d["kind"] == "Deployment" and d["metadata"]["name"] == "edge"
+    )
+    env = {
+        e["name"]: e.get("value")
+        for e in edge["spec"]["template"]["spec"]["containers"][0]["env"]
+    }
+    assert env["SOURCE_API"] == "source-api.sova-hybrid-control"
+    slices = [d for d in here if d["kind"] == "EndpointSlice"]
+    assert {s["endpoints"][0]["addresses"][0] for s in slices} == {hybrid.LIMA_HOST}
+
+
+def test_isolated_role_leaves_the_bridge_allow(hybrid, tmp_path):
+    from .operations import ResponseOperations
+
+    applied = []
+
+    class Fake:
+        def get(self, side, kind, name):
+            assert side == "source"
+            return {"metadata": {"name": name}, "spec": {"podSelector": {}}}
+
+        def apply(self, document, **_):
+            applied.append(document)
+
+    ops = ResponseOperations()
+    ops.kube, ops.state = Fake(), {"evidence": {}}
+    ops.policy(("api", "worker"))
+    bridge = next(d for d in applied if d["metadata"]["name"] == "bridge-ingress")
+    assert bridge["spec"]["podSelector"]["matchExpressions"][0]["values"] == ["db"]

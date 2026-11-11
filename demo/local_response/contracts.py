@@ -45,4 +45,3 @@ def require(value, error="verification_failed"):
     if not value:
         raise Unconfirmed(error)
     return value
-
