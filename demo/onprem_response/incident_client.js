@@ -32,15 +32,19 @@ panel.append(
   ),
 );
 const phase = el("p", "접속 확인 중", "terminal-phase");
+const policyNote = el("p", "", "muted");
 phase.setAttribute("role", "status");
 const consentLabel = el("label", undefined, "terminal-consent"),
-  consent = el("input");
+  consent = el("input"),
+  consentText = document.createTextNode("");
 consent.type = "checkbox";
-consentLabel.append(
-  consent,
-  document.createTextNode(
-    "전용 시험 자원 생성 또는 표시된 대응 계획의 격리·대체 전환을 승인합니다. 제품 T10 승인이 아닌 개인 시험 승인입니다.",
-  ),
+consentLabel.append(consent, consentText);
+const prepareConsentLabel = el("label", undefined, "terminal-consent"),
+  prepareConsent = el("input");
+prepareConsent.type = "checkbox";
+prepareConsentLabel.append(
+  prepareConsent,
+  document.createTextNode("전용 시험 자원 생성을 허용합니다."),
 );
 const buttons = el("div", undefined, "terminal-actions"),
   prepare = el("button", "1. 시험 준비"),
@@ -79,6 +83,8 @@ grid.append(canvas, inspect);
 const stages = el("ol", undefined, "terminal-stages");
 panel.append(
   phase,
+  policyNote,
+  prepareConsentLabel,
   consentLabel,
   approvalScope,
   buttons,
@@ -105,6 +111,10 @@ const renderer = createWorkloadRenderer(svg, {
 });
 const labels = {
   awaiting_respond: "선택한 구성 요소 격리·fencing·대체 기동 승인 대기",
+  awaiting_arm: "자동 대응 범위·조건의 사전 승인 필요",
+  armed: "자동 대응 활성 · 터미널에서 금지된 발신 접근을 주입하세요",
+  automatic_containment: "사전 승인 정책으로 격리·기존 연결 종료·대체 기동 중",
+  policy_revoked: "자동 대응 정책 철회 · 추가 자동 변경 중지",
   awaiting_recheck: "대체 검증 실패 · 경로 유지 · 별도 재검증 승인 대기",
   awaiting_return: "대체 경로 확인 · 새 원본 검증·복귀 승인 대기",
   idle: "시험 준비 전",
@@ -123,22 +133,45 @@ function draw() {
   phase.textContent =
     (labels[status?.phase] ?? "현재 시험 상태 미확인") +
     (status?.remaining_seconds > 0
-      ? ` · 남은 ${status.remaining_seconds}초`
+      ? ` · 시험 만료까지 ${status.remaining_seconds}초`
       : "");
+  policyNote.textContent = status?.automatic_mode
+    ? "지정된 탐지 조건이 확인되면 추가 확인 없이 격리합니다. 격리 해제와 원본 복귀는 별도 승인이 필요합니다. 이 시험의 탐지 조건은 시험 워크로드의 금지된 발신 접근이며, 단순 403 응답만으로 격리하지 않습니다."
+    : "";
+  prepareConsentLabel.hidden = !status?.can_prepare;
+  prepareConsent.disabled = busy || !status?.can_prepare;
+  consentLabel.hidden = !status?.can_respond;
+  consent.disabled = busy || !status?.can_respond;
+  consentText.textContent =
+    status?.pending_kind === "arm"
+      ? "선택한 시험 워크로드에 자동 격리를 허용합니다. 표시된 범위의 기존 연결 종료와 대체 실행 준비를 포함합니다."
+      : status?.pending_kind === "recheck"
+        ? "표시된 변경으로 대체 실행을 재검증하고, 검증 통과 후 경로를 전환하도록 승인합니다."
+        : status?.pending_kind === "return"
+          ? "새 원본의 검증과 원본 경로 복귀를 승인합니다. 사건 보류는 유지됩니다."
+          : "선택한 시험 워크로드의 격리·기존 연결 종료·대체 실행 준비를 승인합니다.";
   respond.textContent =
-    status?.pending_kind === "recheck"
-      ? "4. 실패 원인 해소·재검증·대체 전환 승인"
-      : status?.pending_kind === "return"
-        ? "5. 새 원본 검증·경로 복귀 별도 승인"
-        : "3. 선택 범위 격리·기존 연결 종료 승인";
+    status?.pending_kind === "arm"
+      ? "2. 자동 격리 정책 사전 승인·활성화"
+      : status?.pending_kind === "recheck"
+        ? "4. 실패 원인 해소·재검증·대체 전환 승인"
+        : status?.pending_kind === "return"
+          ? "5. 새 원본 검증·경로 복귀 별도 승인"
+          : "3. 선택 범위 격리·기존 연결 종료 승인";
   approvalDetails.textContent = status?.approval_scope
     ? JSON.stringify(status.approval_scope, null, 2)
     : "시험 준비 후 정확한 선택 범위·계획이 표시됩니다.";
-  prepare.disabled = busy || !consent.checked || !status?.can_prepare;
+  prepare.disabled = busy || !prepareConsent.checked || !status?.can_prepare;
   respond.disabled = busy || !consent.checked || !status?.can_respond;
   stop.disabled = busy || !status?.can_stop;
+  copy.disabled = status?.automatic_mode && !status?.can_attempt;
   command.textContent =
-    status?.terminal_command ?? "개인 세션을 확인해 주세요.";
+    status?.automatic_mode && !status?.can_attempt && !status?.attack_observed
+      ? "자동 대응 범위를 먼저 승인하면 터미널 명령이 표시됩니다."
+      : (status?.terminal_command ?? "개인 세션을 확인해 주세요.");
+  stop.textContent = status?.automatic_mode
+    ? "자동 대응 철회·시험 종료·자원 정리"
+    : "시험 종료·자원 정리";
   if (status?.attack) {
     const a = status.attack;
     receipt.textContent = `실제 요청 ID: ${a.nonce}\n내부 보호 API: HTTP ${a.upstream_status}\n행동 주체 Pod UID: ${a.actor_pod_uid}\nPod UID/IP 대조: ${a.actor_identity_verified ? "확인" : "미확인"}\n독립 감사 대조: ${a.independent_audit_verified ? "확인" : "미확인"}`;
@@ -197,7 +230,9 @@ async function act(action) {
         request_id: crypto.randomUUID().replaceAll("-", ""),
         session_id: status.session_id,
         plan_digest: status.plan_digest,
-        approved: action === "stop" || consent.checked,
+        approved:
+          action === "stop" ||
+          (action === "prepare" ? prepareConsent.checked : consent.checked),
       }),
       signal: AbortSignal.timeout(15000),
     });
@@ -205,6 +240,7 @@ async function act(action) {
       throw Error("요청을 확정하지 못했습니다. 자동 재시도하지 않습니다.");
     feedback.textContent = "요청 접수 · 실제 실행 결과를 기다립니다.";
     consent.checked = false;
+    prepareConsent.checked = false;
   } catch (e) {
     feedback.textContent = e.message;
   } finally {
@@ -216,6 +252,7 @@ prepare.onclick = () => act("prepare");
 respond.onclick = () => act("respond");
 stop.onclick = () => act("stop");
 consent.onchange = draw;
+prepareConsent.onchange = draw;
 copy.onclick = async () => {
   try {
     await navigator.clipboard.writeText(command.textContent);
@@ -237,9 +274,12 @@ async function poll() {
       throw Error("scope");
     if (
       status?.plan_digest !== next.plan_digest ||
-      status?.session_id !== next.session_id
-    )
+      status?.session_id !== next.session_id ||
+      status?.pending_kind !== next.pending_kind
+    ) {
       consent.checked = false;
+      prepareConsent.checked = false;
+    }
     status = next;
     if (status.session_id && status.plan_id) {
       const f = await fetch("/__trial/feed", {
@@ -274,6 +314,8 @@ async function poll() {
       }
     } else raw = null;
   } catch {
+    consent.checked = false;
+    prepareConsent.checked = false;
     status = null;
     raw = null;
     renderer.reset();

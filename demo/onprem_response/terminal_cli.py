@@ -36,6 +36,12 @@ def submit(root, action):
         status["attack_observed"] or (state / "attempt-intent.private.json").exists()
     ):
         raise ValueError("Attempt already dispatched; inspect its recorded result")
+    if action == "attempt" and status.get("automatic_mode") is True and (
+        status.get("policy_armed") is not True
+        or status.get("phase") != "armed"
+        or (directory / "stop.private.json").exists()
+    ):
+        raise ValueError("Approve the exact automatic policy in the UI before the attempt")
     if action == "approve":
         binding = private_json(state / "response-plan.private.json")
         if not status["attack_observed"] or binding is None:
