@@ -1,35 +1,43 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "repository": "Softbank-Hackathon-Finals/sova-test",
-  "created_on": "2026-11-09",
+  "created_on": "2026-11-13",
   "asset": {
     "path": "docs/assets/thumbnail.png",
-    "width": 1600,
-    "height": 900,
-    "sha256": "6d9272323efc2b1d7c6e6659a4b4cd42679824a25837687736976c46a8c1b0b4"
-  },
-  "capture": {
-    "path": "docs/assets/workload-verified-capture.png",
-    "width": 800,
-    "height": 393,
-    "sha256": "62a8b890dae12b6d1ad53a4a8994a5d8d913412da7f6d49f89c1ad9b142e0184"
+    "width": 2880,
+    "height": 5722,
+    "sha256": "f69d5d0b8a320da9a91815c05751996808d20f7c79253f600d046edd9240535f"
   },
   "source": {
-    "kind": "historical-actual-cluster-ui-screenshot-crop",
-    "verified_on": "2026-11-08",
-    "original_screenshot_sha256": "8dc9aeef52fd454cc92deb3b792ea4e59228b0cce02ece37b4000f18aa72d97d",
-    "crop_pixels": {
-      "x": 22,
-      "y": 531,
-      "width": 800,
-      "height": 393
-    },
-    "producer_revision": "3ab5dd3aa2aaf4bc2169526f67e9de3f1d4cf7ba",
-    "reviewed_platform_ui_revision": "fc1125d2d59d215cc1310ab462b1ae534384137a",
-    "reviewed_platform_ui_revision_is_execution_proof": false
+    "kind": "live-console-full-page-capture",
+    "captured_at": "2026-11-13T04:16+09:00",
+    "page": "Sova 워크로드 대응 콘솔 전체 페이지(작업 공간 메뉴·요약·대응 유형·운영 콘솔·워크로드 지도·구성 요소 상세·범위와 승인·대응 타임라인)",
+    "browser": "headless Chrome, CSS 1440px wide, device scale 2, viewport as tall as the page",
+    "topology": "hybrid-aws: run-owned EKS source (ap-northeast-2) -> this Mac's RKE2 target and control probe, joined only by an IAM-authenticated SSM tunnel",
+    "scenario": "segment (연관 구간 부분 격리)",
+    "phase": "결과 확인 (after response verify, before response finalize)",
+    "commands": ["inject", "response plan", "response submit", "response approve", "response verify"],
+    "observation": "captured only while the served Kubernetes/HTTP/DB observation was fresh (20 s validity)",
+    "selected_component": "api",
+    "producer_revision": "22ce74df1cb13293aeb24e36c90a51c2b0da4a15",
+    "evidence": {
+      "verify": "097d0c9e750c6c53.segment.verify.r954 · pass",
+      "finalize": "097d0c9e750c6c53.segment.finalize.r955 · pass",
+      "support_record": "sq-ffb851b452105571"
+    }
+  },
+  "redaction": {
+    "rule": "12-digit AWS account numbers in page text replaced with <AWS 계정 가림> before paint",
+    "visible_in_capture": 0,
+    "other_changes": "none"
   },
   "actual_cluster_validation": true,
   "current_live_observation": false,
   "production_workflow_qualified": false,
-  "description": "**실제 검증 환경:** 2026년 11월 8일, 온프렘 Kubernetes 클러스터의 전용 무상태 시험앱에서 검증한 워크로드 지도입니다. 실제 HTTP 403·독립 감사 대조, 승인 후 원본 격리, Green 기동·응답 및 시험 경로 전환을 확인했습니다. 당시 저장한 화면이며 현재 실시간 상태나 AWS→온프렘 이전·운영 T10 완료를 뜻하지 않습니다. [검증 범위·코드·출처](docs/assets/workload-verification.md)"
+  "previous": {
+    "path": "docs/assets/workload-verified-capture.png",
+    "kind": "historical-actual-cluster-ui-screenshot-crop",
+    "verified_on": "2026-11-08"
+  },
+  "description": "**실제 실행 화면:** 2026년 11월 13일, 실행 전용 EKS(출발지)와 이 Mac의 RKE2(목적지)에서 「연관 구간 부분 격리」를 운영 콘솔 명령으로 실제 실행하던 중 저장한 Sova 콘솔 전체 페이지입니다. 단계·지도·검사 결과는 서버가 관측한 실제 Kubernetes·HTTP·DB 값입니다. 당시 저장한 화면이며 현재 실시간 상태나 팀 운영 환경 이전·운영 T10 완료를 뜻하지 않습니다. [촬영 범위·출처](docs/assets/workload-verification.md)"
 }
