@@ -222,3 +222,21 @@ body[data-observation-only][data-live-view]:not([data-live-view="topology"])
     grid-template-columns: 1fr;
   }
 }
+
+.sova-app-form {
+  display: grid;
+  gap: 12px;
+  max-width: 720px;
+}
+.sova-app-form input,
+.sova-migration-resource input:not([type="checkbox"]) {
+  padding: 12px;
+  border: 1px solid #cbd8f0;
+  border-radius: 8px;
+  max-width: 100%;
+  min-width: 0;
+}
+.sova-migration-resource label {
+  display: block;
+  margin: 16px 0;
+}

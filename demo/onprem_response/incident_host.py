@@ -21,6 +21,7 @@ def compose(console, manager, *, authorize, terminal_command, host_factory):
     )
     for name, mime in (
         ("migration_view.js", "application/javascript"),
+        ("app_deployment.js", "application/javascript"),
         ("workspace_navigation.js", "application/javascript"),
         ("workspace_navigation.css", "text/css"),
     ):

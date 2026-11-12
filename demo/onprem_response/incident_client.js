@@ -96,7 +96,9 @@ panel.append(
   grid,
   stages,
 );
-document.querySelector("#response-workspace").prepend(panel);
+const trialArchive = el("details", undefined, "sova-trial-archive");
+trialArchive.append(el("summary", "고급 · 기존 무상태 대응 시험 도구"), panel);
+document.querySelector("#response-workspace").append(trialArchive);
 const workspace = mountWorkspace({ trialPanel: panel });
 let status = null,
   raw = null,

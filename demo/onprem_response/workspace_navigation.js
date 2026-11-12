@@ -1,3 +1,4 @@
+import { mountApps } from "/__trial/app_deployment.js";
 import { observedTopology } from "/console/observation-model.js";
 import { stageLabels, responseLabels } from "/console/workload-model.js";
 import {
@@ -8,6 +9,7 @@ import {
 } from "/__trial/migration_view.js";
 
 const views = {
+  apps: ["앱 배포", "앱을 등록하고 AWS 출발지에 배포합니다."],
   overview: ["워크스페이스", "실제 관측과 전용 시험의 연결 상태를 확인합니다."],
   migration: [
     "환경 이전",
@@ -162,7 +164,13 @@ export function mountWorkspace({ trialPanel }) {
       planConnectionState(migrationConnection).fresh,
       migrationSnapshot(observation).map((lane) => lane.current),
     ]);
-    if (key === lastRender) return;
+    if (
+      key === lastRender ||
+      (active === "apps" &&
+        authorized &&
+        content.querySelector(".sova-app-form"))
+    )
+      return;
     lastRender = key;
     retained.hidden = active !== "security" || !authorized;
     if (active === "topology") return;
@@ -178,6 +186,11 @@ export function mountWorkspace({ trialPanel }) {
     const nodes = graph?.nodes ?? [],
       edges = graph?.edges ?? [];
     if (active === "overview") {
+      const appEntry = card(
+        "내 앱 배포",
+        "팀 demo-app 연결 · ZIP·GitHub 앱 등록 · AWS 출발지 배포",
+      );
+      appEntry.append(button("팀 앱·배포 관리", "apps"));
       renderJourney(content, {
         observation,
         connection: migrationConnection,
@@ -234,6 +247,8 @@ export function mountWorkspace({ trialPanel }) {
         ["환경", "수집 상태", "Service", "관측 시각"],
         environmentRows(),
       );
+    } else if (active === "apps") {
+      mountApps(content);
     } else if (active === "security") {
       const c = card(
         "격리·재검증·복귀",
@@ -395,7 +410,10 @@ export function mountWorkspace({ trialPanel }) {
     document.querySelector(".scope-pill").textContent =
       "실제 관측 · 전용 시험 · 연결 범위 표시";
     render();
-    if (id === "topology") trialPanel.scrollIntoView({ block: "start" });
+    if (id === "topology")
+      document
+        .querySelector("#response-workspace")
+        .scrollIntoView({ block: "start" });
     document.getElementById("view-title").focus({ preventScroll: true });
   }
 
@@ -456,6 +474,10 @@ export function mountWorkspace({ trialPanel }) {
     }
   }
 
+  const appNav = node("button", "＋  앱 배포");
+  appNav.type = "button";
+  appNav.dataset.view = "apps";
+  document.querySelector("nav button[data-view]")?.before(appNav);
   for (const b of document.querySelectorAll("nav button[data-view]")) {
     b.disabled = false;
     b.onclick = () => select(b.dataset.view);
