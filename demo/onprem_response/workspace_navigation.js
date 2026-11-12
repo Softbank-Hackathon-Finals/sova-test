@@ -1,6 +1,11 @@
 import { observedTopology } from "/console/observation-model.js";
 import { stageLabels, responseLabels } from "/console/workload-model.js";
-import { renderMigration } from "/__trial/migration_view.js";
+import {
+  renderMigration,
+  renderJourney,
+  planConnectionState,
+  migrationSnapshot,
+} from "/__trial/migration_view.js";
 
 const views = {
   overview: ["워크스페이스", "실제 관측과 전용 시험의 연결 상태를 확인합니다."],
@@ -154,6 +159,8 @@ export function mountWorkspace({ trialPanel }) {
       trialView?.fresh,
       authorized,
       migrationConnection,
+      planConnectionState(migrationConnection).fresh,
+      migrationSnapshot(observation).map((lane) => lane.current),
     ]);
     if (key === lastRender) return;
     lastRender = key;
@@ -171,6 +178,13 @@ export function mountWorkspace({ trialPanel }) {
     const nodes = graph?.nodes ?? [],
       edges = graph?.edges ?? [];
     if (active === "overview") {
+      renderJourney(content, {
+        observation,
+        connection: migrationConnection,
+        trial,
+        trialView,
+        onNavigate: select,
+      });
       const c = card(
         "실제 연결 상태",
         "클러스터 관측, 전용 시험, 제품 운영 연결은 각각 확인합니다.",
@@ -195,8 +209,8 @@ export function mountWorkspace({ trialPanel }) {
           ],
           [
             "운영 계획·승인·이전",
-            "이 호스트에 미연결",
-            "기존 T10·T19·실행기 인수 필요",
+            planConnectionState(migrationConnection).label,
+            "운영 콘솔 연결 준비 · 실제 계획·승인·실행 인수 필요",
           ],
           [
             "IaC·고객 동기화 / AI / 비용",
