@@ -29,4 +29,22 @@ def compose(console, manager, *, authorize, terminal_command, host_factory):
             Path(__file__).with_name(name).read_bytes(),
             mime,
         )
+    # Separate, static-only preview. Never replace the live console or trial routes.
+    preview = Path(__file__).resolve().parents[1] / "response_scenarios"
+    for name, mime in (
+        ("index.html", "text/html; charset=utf-8"),
+        ("model.mjs", "text/javascript"),
+        ("motion.mjs", "text/javascript"),
+        ("layout.mjs", "text/javascript"),
+        ("commands.mjs", "text/javascript"),
+        ("injection_console.mjs", "text/javascript"),
+        ("view.mjs", "text/javascript"),
+        ("styles.css", "text/css"),
+    ):
+        host.assets["/__mock/response/" + name] = ((preview / name).read_bytes(), mime)
+    host.assets["/__mock/response/"] = host.assets["/__mock/response/index.html"]
+    host.assets["/__mock/response/base.css"] = (
+        (preview.parents[1] / "console" / "src" / "styles.css").read_bytes(),
+        "text/css",
+    )
     return host

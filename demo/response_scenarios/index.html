@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Sova · 워크로드 대응</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/__mock/response/base.css" />
+    <link rel="stylesheet" href="/__mock/response/styles.css" />
+  </head>
+  <body class="response-preview">
+    <aside
+      class="sidebar"
+      id="workspace-sidebar"
+      aria-label="워크스페이스 탐색"
+    >
+      <div class="sidebar-heading">
+        <a class="brand" href="#overview"
+          ><span class="brand-mark">S</span
+          ><strong>Sova<span>.</span></strong></a
+        ><button id="sidebar-close" type="button" aria-label="사이드바 닫기">
+          ×
+        </button>
+      </div>
+      <div class="workspace-label">
+        <span class="workspace-avatar">S</span>
+        <div><b>Sova workspace</b><small>워크로드 대응 설계</small></div>
+      </div>
+      <span class="nav-caption">WORKSPACE</span>
+      <nav aria-label="워크스페이스 메뉴">
+        <button data-section="overview">▦ <span>워크스페이스</span></button>
+        <button data-section="map" class="active" aria-current="page">
+          ◇ <span>워크로드 대응</span><i class="nav-dot"></i>
+        </button>
+        <button data-section="governance">⬡ <span>보안·거버넌스</span></button>
+        <button data-section="timeline">◷ <span>실행 타임라인</span></button>
+      </nav>
+      <div class="sidebar-help">
+        <span class="preview-symbol">◇</span><b>대응을 먼저 설계합니다</b>
+        <p>대상과 영향 범위를 선택하고 대응 순서와 결과를 확인합니다.</p>
+      </div>
+      <div class="sidebar-bottom">
+        <span class="tiny-dot"></span> Sova workspace<small
+          >WORKLOAD RESPONSE</small
+        >
+      </div>
+    </aside>
+    <button
+      id="sidebar-backdrop"
+      type="button"
+      tabindex="-1"
+      aria-label="사이드바 닫기"
+      hidden
+    ></button>
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="topbar-navigation">
+          <button
+            id="sidebar-toggle"
+            class="sidebar-toggle"
+            type="button"
+            aria-controls="workspace-sidebar"
+            aria-expanded="true"
+            aria-label="사이드바 접기"
+            title="사이드바 접기"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="3" />
+              <path d="M9 4v16M5.5 8h1M5.5 11h1M5.5 14h1" />
+            </svg>
+          </button>
+          <div class="breadcrumb">
+            Workspace <span>/</span><b>워크로드 대응</b>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button
+            id="studio-view-toggle"
+            type="button"
+            class="button secondary"
+            aria-pressed="false"
+          >
+            한 화면 보기
+          </button>
+          <span class="header-note">워크로드 대응</span
+          ><span class="avatar">S</span>
+        </div>
+      </header>
+      <main id="overview">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">WORKLOAD RESPONSE STUDIO</p>
+            <h1>문제가 생겼을 때, 어떻게 대응할까요?</h1>
+            <p>
+              전체를 멈추는 대신 필요한 범위를 고르고, 대응과 검증 과정을
+              지도에서 확인합니다.
+            </p>
+          </div>
+          <span class="scope-chip">업무 앱 · API / 작업자 / 데이터</span>
+        </div>
+        <section class="response-stats" aria-label="상태 요약">
+          <article>
+            <small>대응 단계</small><strong id="stat-phase"></strong
+            ><span id="stat-scenario"></span>
+          </article>
+          <article>
+            <small>서비스 영향</small><strong id="stat-availability"></strong
+            ><span>서비스 영향과 연결 상태</span>
+          </article>
+          <article>
+            <small>격리 / 차단 연결</small><strong id="stat-isolation"></strong
+            ><span>선택한 구성 요소 범위에만 적용</span>
+          </article>
+          <article>
+            <small>현재 요청 경로</small><strong id="stat-route"></strong
+            ><span id="stat-writer"></span>
+          </article>
+        </section>
+        <div class="studio-layout">
+          <section class="scenario-panel" aria-labelledby="scenario-heading">
+            <p class="eyebrow">RESPONSE PLAYBOOKS</p>
+            <h2 id="scenario-heading">대응 유형</h2>
+            <p class="panel-intro">유형을 바꾸면 이전 실행은 초기화됩니다.</p>
+            <div id="scenario-list"></div>
+          </section>
+          <div class="studio-main">
+            <section class="scenario-summary" aria-labelledby="scenario-title">
+              <div>
+                <span id="scenario-group" class="eyebrow"></span>
+                <h2 id="scenario-title"></h2>
+                <p id="scenario-english" lang="en"></p>
+                <p id="scenario-description"></p>
+              </div>
+            </section>
+            <section
+              id="map"
+              class="response-map-card"
+              aria-label="워크로드 지도"
+            >
+              <div class="flow-console-heading">
+                <div>
+                  <p class="eyebrow">RESPONSE FLOW & OPERATIONS CONSOLE</p>
+                  <h2>대응 흐름 · 운영 콘솔</h2>
+                </div>
+              </div>
+              <div class="flow-console-grid">
+                <section class="response-flow" aria-label="대응 흐름">
+                  <h3>대응 흐름</h3>
+                  <p class="flow-english" lang="en">Response Flow</p>
+                  <div id="phase-track" class="phase-track"></div>
+                  <div id="approval-panel" class="approval-panel" hidden></div>
+                </section>
+                <section
+                  class="injection-console"
+                  aria-labelledby="injection-title"
+                >
+                  <header class="injection-heading">
+                    <div>
+                      <span class="terminal-lights" aria-hidden="true"
+                        ><i></i><i></i><i></i
+                      ></span>
+                      <h3 id="injection-title">운영 콘솔</h3>
+                      <span class="terminal-english" lang="en"
+                        >Operations Console</span
+                      >
+                    </div>
+                    <span id="injection-state"></span>
+                  </header>
+                  <div class="injection-scope">
+                    대상 <span id="injection-targets"></span>
+                  </div>
+                  <div
+                    id="injection-output"
+                    class="injection-output"
+                    role="log"
+                    aria-label="주입과 대응 기록"
+                    aria-live="polite"
+                  ></div>
+                  <form id="injection-form" autocomplete="off">
+                    <label for="injection-command" class="console-prompt"
+                      >sova &gt;</label
+                    ><input
+                      id="injection-command"
+                      type="text"
+                      aria-label="운영 명령"
+                      maxlength="256"
+                      spellcheck="false"
+                      autocomplete="off"
+                    /><button type="submit" class="injection-submit">
+                      실행 ↵
+                    </button>
+                  </form>
+                  <div class="injection-tools">
+                    <button
+                      type="button"
+                      data-console-command="workload status"
+                    >
+                      상태
+                    </button>
+                    <button
+                      type="button"
+                      data-console-command="incident inspect"
+                    >
+                      사고
+                    </button>
+                    <button type="button" data-console-command="response watch">
+                      관찰
+                    </button>
+                    <button
+                      type="button"
+                      data-console-command="response approve"
+                    >
+                      승인
+                    </button>
+                    <button type="button" data-console-command="recovery start">
+                      복귀
+                    </button>
+                  </div>
+                  <div class="injection-tools">
+                    <button id="injection-example" type="button">
+                      주입 명령 채우기</button
+                    ><button id="injection-clear" type="button">
+                      로그 지우기</button
+                    ><span>help · status · clear</span>
+                  </div>
+                  <p
+                    id="injection-feedback"
+                    class="injection-feedback"
+                    role="status"
+                  ></p>
+                </section>
+              </div>
+              <div class="map-toolbar map-view-toolbar">
+                <p class="eyebrow">WORKLOAD FLOW</p>
+                <div class="map-tools">
+                  <button
+                    id="inspector-toggle"
+                    type="button"
+                    aria-controls="node-inspector"
+                    aria-expanded="false"
+                  >
+                    자원 상세
+                  </button>
+                  <button id="motion-toggle" type="button" aria-pressed="false">
+                    움직임 정지
+                  </button>
+                  <button id="zoom-out" aria-label="지도 축소">−</button
+                  ><button id="zoom-fit" aria-label="지도 크기 맞추기">
+                    맞춤</button
+                  ><button id="zoom-in" aria-label="지도 확대">+</button>
+                </div>
+              </div>
+              <p
+                id="motion-caption"
+                class="motion-caption"
+                aria-live="polite"
+              ></p>
+              <div class="map-layout">
+                <div class="map-viewport" id="map-viewport">
+                  <svg
+                    id="workload-map"
+                    viewBox="0 0 1400 800"
+                    role="group"
+                    aria-label="AWS와 온프렘 워크로드 관계"
+                  ></svg>
+                </div>
+                <aside
+                  class="node-inspector"
+                  id="node-inspector"
+                  aria-label="선택한 자원 설명"
+                ></aside>
+              </div>
+              <div class="map-legend">
+                <span><i class="flow"></i>정상 경로</span
+                ><span><i class="warning"></i>영향 가능</span
+                ><span><i class="cut"></i>차단</span
+                ><span><i class="sync"></i>동기화</span
+                ><span><i class="idle"></i>대기</span
+                ><small
+                  >노드를 선택해 대응 범위와 연결 상태를 확인하세요.</small
+                >
+              </div>
+            </section>
+          </div>
+        </div>
+        <div id="scenario-settings" hidden>
+          <select id="outcome" aria-label="검증 결과">
+            <option value="pass">통과</option>
+            <option value="fail">실패</option>
+            <option value="unknown">결과 불명확</option>
+          </select>
+          <select id="recovery-outcome" aria-label="복귀 검증 결과" disabled>
+            <option value="pass">통과</option>
+            <option value="fail">실패</option>
+            <option value="unknown">결과 불명확</option>
+          </select>
+        </div>
+        <div class="response-bottom">
+          <section id="governance" class="governance-card">
+            <p class="eyebrow">BOUNDARIES & APPROVAL</p>
+            <h2>대응 범위와 승인</h2>
+            <p id="scope-description"></p>
+            <dl id="scope-facts"></dl>
+            <label class="policy-option"
+              ><input id="preapproved" type="checkbox" /><span
+                ><b>범위가 고정된 사전 승인 정책</b
+                ><small id="policy-description"></small></span
+            ></label>
+            <p class="boundary-note">
+              일반 승인은 사고 보류를 해제하지 않습니다. 실패·불명확 결과는
+              완료로 처리하지 않습니다.
+            </p>
+          </section>
+          <section id="timeline" class="timeline-card">
+            <div class="timeline-heading">
+              <div>
+                <p class="eyebrow">RESPONSE JOURNAL</p>
+                <h2>대응 타임라인</h2>
+              </div>
+              <button id="export" class="button secondary">기록 JSON</button>
+            </div>
+            <ol id="event-list"></ol>
+          </section>
+        </div>
+        <footer class="preview-footer">
+          <span>Sova · Workload Response Studio</span
+          ><span>API / 작업자 / 데이터</span>
+        </footer>
+      </main>
+    </div>
+    <script type="module" src="/__mock/response/view.mjs"></script>
+  </body>
+</html>

@@ -2,7 +2,7 @@
 
 [![Sova 워크로드 대응 콘솔](docs/assets/thumbnail.png)](docs/assets/thumbnail.png)
 
-**실제 검증 환경:** 2026년 11월 8일, 온프렘 Kubernetes 클러스터의 전용 무상태 시험앱에서 검증한 워크로드 지도입니다. 실제 HTTP 403·독립 감사 대조, 승인 후 원본 격리, Green 기동·응답 및 시험 경로 전환을 확인했습니다. 당시 저장한 화면이며 현재 실시간 상태나 AWS→온프렘 이전·운영 T10 완료를 뜻하지 않습니다. [검증 범위·코드·출처](docs/assets/workload-verification.md)
+**실제 실행 화면:** 2026년 11월 13일, 실행 전용 EKS(출발지)와 이 Mac의 RKE2(목적지)에서 「연관 구간 부분 격리」를 운영 콘솔 명령으로 실제 실행하던 중 저장한 Sova 콘솔 전체 페이지입니다. 단계·지도·검사 결과는 서버가 관측한 실제 Kubernetes·HTTP·DB 값입니다. 당시 저장한 화면이며 현재 실시간 상태나 팀 운영 환경 이전·운영 T10 완료를 뜻하지 않습니다. [촬영 범위·출처](docs/assets/workload-verification.md)
 
 운영 중인 서비스를 다른 환경으로 이전하고, 기능·데이터·보안의 보존 여부를 검증하는 독립 제어 플랫폼.
 
@@ -66,6 +66,8 @@ tests/integration/ # 공통 통합 시험과 공유 PostgreSQL fixture
 팀 보안 통합의 시작점은 [통합 명세](integration/security/manifest.json)다. 보안 판정·저장소 어댑터는 독립 `sova-security` 패키지를 사용한다. 공통 scope·계획·증거는 패키지의 v1 경계 계약으로 연결하며 승인·작업 원장·실제 실행은 Sova가 담당한다. `qualification/`은 등록된 시험 환경 전용이며 일반 고객 환경의 프로덕션 어댑터로 간주하지 않는다. Harbor runner 구현은 기존 담당 경계를 유지한다.
 
 `demo/`는 개인 검증 경로다. 시연 HTTP API와 일회용 인증은 이곳에 있으며 팀 플랫폼의 인증·API와 연결할 때 별도로 조정한다. 새 제어면과의 연결 여부를 [구현 현황](docs/implementation-status.md)에 구분한다. [이전 프리뷰 안내](docs/preview-guide.md)의 과거 검증이 현재 서버 가동을 의미하지 않는다.
+
+워크로드 대응 화면의 9개 유형을 실제 클러스터에서 실행하는 경로는 [워크로드 대응 실제 실행기](docs/workload-response-runtime.md)를 따른다. 로컬 RKE2 하나로 도는 기준선과, 실행 전용 EKS 출발지에서 이 Mac의 RKE2 목적지로 가는 하이브리드 배치를 지원한다.
 
 등록한 Kubernetes API를 직접 조회하는 운영자 CLI는 [읽기 전용 조사 안내](docs/kubernetes-discovery.md)를 따른다. 전용 로컬 k3s에서 제한된 RBAC·격리 시험을 마쳤으며 기업 OIDC와 다중 환경 운영 자격은 아직 연결하지 않았다.
 
