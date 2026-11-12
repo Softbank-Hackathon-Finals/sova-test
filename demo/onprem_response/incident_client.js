@@ -1,4 +1,5 @@
 import { createWorkloadRenderer } from "/console/workload-motion.js";
+import { mountWorkspace } from "/__trial/workspace_navigation.js";
 import {
   workloadGraph,
   projectedWorkload,
@@ -15,6 +16,10 @@ const css = el("link");
 css.rel = "stylesheet";
 css.href = "/__trial/style.css";
 document.head.append(css);
+const workspaceCss = el("link");
+workspaceCss.rel = "stylesheet";
+workspaceCss.href = "/__trial/workspace_navigation.css";
+document.head.append(workspaceCss);
 const panel = el("section", undefined, "terminal-trial");
 panel.id = "terminal-response-workspace";
 panel.append(
@@ -57,8 +62,12 @@ const receipt = el(
 );
 const feedback = el("p", "", "muted");
 feedback.setAttribute("role", "status");
-const approvalScope = el("details"), approvalDetails = el("pre");
-approvalScope.append(el("summary", "승인할 변경 범위·이미지·기한"), approvalDetails);
+const approvalScope = el("details"),
+  approvalDetails = el("pre");
+approvalScope.append(
+  el("summary", "승인할 변경 범위·이미지·기한"),
+  approvalDetails,
+);
 const grid = el("div", undefined, "response-grid"),
   canvas = el("div", undefined, "response-canvas"),
   inspect = el("aside", undefined, "response-inspector");
@@ -82,6 +91,7 @@ panel.append(
   stages,
 );
 document.querySelector("#response-workspace").prepend(panel);
+const workspace = mountWorkspace({ trialPanel: panel });
 let status = null,
   raw = null,
   selected = new Set(),
@@ -115,8 +125,15 @@ function draw() {
     (status?.remaining_seconds > 0
       ? ` · 남은 ${status.remaining_seconds}초`
       : "");
-  respond.textContent = status?.pending_kind === "recheck" ? "4. 실패 원인 해소·재검증·대체 전환 승인" : status?.pending_kind === "return" ? "5. 새 원본 검증·경로 복귀 별도 승인" : "3. 선택 범위 격리·기존 연결 종료 승인";
-  approvalDetails.textContent = status?.approval_scope ? JSON.stringify(status.approval_scope, null, 2) : "시험 준비 후 정확한 선택 범위·계획이 표시됩니다.";
+  respond.textContent =
+    status?.pending_kind === "recheck"
+      ? "4. 실패 원인 해소·재검증·대체 전환 승인"
+      : status?.pending_kind === "return"
+        ? "5. 새 원본 검증·경로 복귀 별도 승인"
+        : "3. 선택 범위 격리·기존 연결 종료 승인";
+  approvalDetails.textContent = status?.approval_scope
+    ? JSON.stringify(status.approval_scope, null, 2)
+    : "시험 준비 후 정확한 선택 범위·계획이 표시됩니다.";
   prepare.disabled = busy || !consent.checked || !status?.can_prepare;
   respond.disabled = busy || !consent.checked || !status?.can_respond;
   stop.disabled = busy || !status?.can_stop;
@@ -133,6 +150,7 @@ function draw() {
     raw = null;
   }
   renderer.draw(view, { selected });
+  workspace.updateTrial(status, view);
   for (const label of svg.querySelectorAll(".response-lane-label")) {
     if (label.textContent === "출발 환경")
       label.textContent = "격리 대상 · 전용 시험";
@@ -217,7 +235,11 @@ async function poll() {
     const next = await r.json();
     if (next.qualification_only !== true || next.authorizes_execution !== false)
       throw Error("scope");
-    if (status?.plan_digest !== next.plan_digest || status?.session_id !== next.session_id) consent.checked = false;
+    if (
+      status?.plan_digest !== next.plan_digest ||
+      status?.session_id !== next.session_id
+    )
+      consent.checked = false;
     status = next;
     if (status.session_id && status.plan_id) {
       const f = await fetch("/__trial/feed", {

@@ -1,0 +1,43 @@
+{
+  "kind": "sova-workspace-navigation-qualification.v1",
+  "producer_revision": "c1db8ab58732811bc7726a94b254839e95ad70bb",
+  "qualification_only": true,
+  "product_workflow_qualified": false,
+  "local_regression_passed": 86,
+  "sidebar": {
+    "checked": [
+      "overview",
+      "migration",
+      "topology",
+      "network",
+      "security",
+      "delivery",
+      "monitoring",
+      "timeline",
+      "analysis",
+      "ai",
+      "costs"
+    ],
+    "actual_observed_environments": 2,
+    "actual_observed_resources": 29,
+    "navigation_mutations": 0,
+    "mobile_overflow": false
+  },
+  "checks": {
+    "failure_held": true,
+    "revalidation_verified": true,
+    "source_return_verified": true,
+    "incident_hold_preserved": true,
+    "cleanup_verified": true,
+    "session_revocation_withdraws_trial": true,
+    "sidebar_revoked": true,
+    "page_errors": [],
+    "mobile_overflow": false
+  },
+  "private_evidence_sha256": {
+    "browser-result.private.json": "c077e4c2fc357420e7b9d49c46f232e5620fca359aa985801f5048b2a50343e5",
+    "sidebar-before-trial.private.json": "81b35651f8c1f843d44f5b70945767d29b5324c1515b8eeded602b161c2bab11",
+    "sidebar-result.private.json": "81b35651f8c1f843d44f5b70945767d29b5324c1515b8eeded602b161c2bab11",
+    "returned-feed.private.json": "ac14025b97f1c197e05048164d89703f43df92c4f75c7a8f9408e17eb0ea479c"
+  }
+}

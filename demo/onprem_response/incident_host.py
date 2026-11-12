@@ -19,4 +19,12 @@ def compose(console, manager, *, authorize, terminal_command, host_factory):
         Path(__file__).with_name("incident_client.js").read_bytes(),
         "application/javascript",
     )
+    for name, mime in (
+        ("workspace_navigation.js", "application/javascript"),
+        ("workspace_navigation.css", "text/css"),
+    ):
+        host.assets["/__trial/" + name] = (
+            Path(__file__).with_name(name).read_bytes(),
+            mime,
+        )
     return host
