@@ -71,7 +71,7 @@ jobs:
           enable-cache: false
       - name: Install the producer's locked qualification dependencies
         working-directory: .local-notes/security-source
-        run: uv sync --locked --extra dev --no-install-project --no-build --python '3.12'
+        run: uv sync --locked --extra dev --extra platform-test --no-install-project --no-build --python '3.12'
       - name: Build and install the pinned wheel and consumer without package index fallback
         run: |
           PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
@@ -93,6 +93,16 @@ jobs:
       - name: Verify offline T14/T33 intake through the installed wheel
         run: |
           "$PWD/.local-notes/security-source/.venv/bin/python" -m pytest -q tests/unit/test_security_intake_cli.py tests/unit/test_security_program_cli.py tests/security/test_module_boundary.py
+      - name: Verify owned workload response protocols and failure boundaries
+        if: matrix.runtime == 'process'
+        run: |
+          PYTHON="$PWD/.local-notes/security-source/.venv/bin/python"
+          "$PYTHON" -m ruff check demo/onprem_response
+          "$PYTHON" -m pytest -q demo/onprem_response \
+            tests/security/unit/test_response_selector.py \
+            tests/security/unit/test_response_probe_identity.py
+          # These are protocol/loopback checks. No cluster credential is present;
+          # CI success is not an operational isolation or migration qualification.
       - name: Build the exact producer service image for container mode
         if: matrix.runtime == 'container'
         run: |

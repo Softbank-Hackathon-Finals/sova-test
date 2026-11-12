@@ -44,6 +44,7 @@ def test_actual_actor_request_is_denied_and_independently_audited(tmp_path):
                 ENVIRONMENT="blue",
                 COMPONENT=component,
                 POD_UID=uid,
+                POD_IP="127.0.0.1",
                 LISTEN_HOST="127.0.0.1",
                 LISTEN_PORT=str(port),
                 NEIGHBOR_HOST="127.0.0.1",
@@ -73,6 +74,20 @@ def test_actual_actor_request_is_denied_and_independently_audited(tmp_path):
             neighbor = f"http://127.0.0.1:{ports[0]}"
             assert client.get(actor + "/health").status_code == 200
             assert client.get(neighbor + "/health").status_code == 200
+            preflight = client.post(actor + "/egress-check", json={"nonce": "d" * 32})
+            assert preflight.status_code == 200
+            assert (
+                preflight.json()["connected"] is True
+                and preflight.json()["http_ok"] is True
+            )
+            assert preflight.json()["peer_pod_uid"] == "neighbor-pod"
+            assert preflight.json()["peer_ip"] == "127.0.0.1"
+            assert (
+                client.post(
+                    actor + "/egress-check", json={"nonce": "e" * 32, "ip": "192.0.2.9"}
+                ).status_code
+                == 400
+            )
             r = client.post(actor + "/attempt", json={"nonce": nonce})
             assert r.status_code == 200 and r.json()["authorization_denied"] is True
             assert (
@@ -97,6 +112,19 @@ def test_actual_actor_request_is_denied_and_independently_audited(tmp_path):
                     json={"nonce": "b" * 32, "target": "https://unregistered.invalid"},
                 ).status_code
                 == 400
+            )
+            processes[0].terminate()
+            processes[0].wait(timeout=3)
+            stopped_peer = client.post(
+                actor + "/egress-check", json={"nonce": "f" * 32}
+            ).json()
+            assert (
+                stopped_peer["baseline_cached"] is True
+                and stopped_peer["connected"] is False
+            )
+            assert (
+                stopped_peer["peer_pod_uid"] == "neighbor-pod"
+                and stopped_peer["peer_ip"] == "127.0.0.1"
             )
     finally:
         for process in processes:
@@ -149,6 +177,7 @@ def test_actual_http_proxy_forwards_attempt_and_audit(tmp_path):
                 ENVIRONMENT="blue",
                 COMPONENT=component,
                 POD_UID=component + "-pod",
+                POD_IP="127.0.0.1",
                 LISTEN_HOST="127.0.0.1",
                 LISTEN_PORT=str(port),
                 NEIGHBOR_HOST="127.0.0.1",

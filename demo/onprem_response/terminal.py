@@ -12,12 +12,14 @@ import re
 import secrets
 import signal
 import time
+from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
 
-from sova.domain.contracts import ContractError
+from sova.domain.contracts import ContractError, canonical_json
 
 from .controls import read
+from .egress import EgressProbe
 from .terminal_fixture import terminal_manifests
 from .trial import Adapter, Routes, Trial, atomic_json, now
 
@@ -51,6 +53,10 @@ class ProxyRoutes(Routes):
 
 
 class ProxyAdapter(Adapter):
+    def __init__(self, *, egress_probe, **kwargs):
+        super().__init__(**kwargs)
+        self.egress_probe = egress_probe
+
     def probe(self, target):
         if target not in {"blue", "green"}:
             raise ContractError("Fixed trial probe target required")
@@ -85,6 +91,9 @@ class ProxyAdapter(Adapter):
             raise ContractError(
                 "Healthy neighbor control failed; isolation unconfirmed"
             )
+        if command.action == "apply_isolation":
+            proof = self.egress_probe.denied()
+            value = replace(value, evidence_json=canonical_json(value.evidence | proof))
         return value
 
 
@@ -146,6 +155,14 @@ class TerminalTrial(Trial):
     def bind_response(self, source, target, hold_reason):
         # Reuse compilation, guard and effect ledger; replace only the existing
         # owned adapter's transport with the same fixed API connection.
+        self.egress_probe = EgressProbe(
+            self.api,
+            application_id=self.app,
+            actor_uid=self.attack["actor_pod_uid"],
+            peer_deployment_uid=self.neighbor["metadata"]["uid"],
+        )
+        baseline = self.egress_probe.baseline()
+        atomic_json(self.root / "egress-baseline.private.json", baseline)
         super().bind_response(source, target, hold_reason)
         self.adapter = ProxyAdapter(
             kubeconfig=os.environ["KUBECONFIG"],
@@ -155,6 +172,7 @@ class TerminalTrial(Trial):
             probe_port=0,
             routes=self.routes,
             api=self.api,
+            egress_probe=self.egress_probe,
         )
 
     def authorize(self, command, permit, at, mutation):
