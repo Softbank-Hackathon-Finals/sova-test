@@ -236,6 +236,20 @@ export function mountWorkspace({ trialPanel }) {
         ]),
       );
     } else if (active === "migration") {
+      const native = card(
+        "실제 계획·SSE·운영 승인",
+        "팀 플랫폼의 기존 계획·이벤트·승인 화면을 같은 Sova 디자인으로 연결합니다. 운영자 권한과 실행 구간은 서버에서 확인합니다.",
+      );
+      const nativeLink = node(
+        "a",
+        "실제 운영 계획 콘솔 열기",
+        "sova-live-link",
+      );
+      nativeLink.href = "/__native/console/";
+      nativeLink.target = "_blank";
+      nativeLink.rel = "noopener noreferrer";
+      native.append(nativeLink);
+      content.append(native);
       renderMigration(content, observation, migrationConnection);
       const c = card(
         "전용 시험의 전환·복귀",
