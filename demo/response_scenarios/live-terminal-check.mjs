@@ -54,6 +54,10 @@ await call("Page.enable");
 await call("Page.navigate", { url: consoleUrl });
 await until(async () => (await text("stat-phase")) && (await text("stat-phase")) !== "실제 연결 확인 중", "live state", 60);
 
+if ((await text("stat-phase")) !== "정상 흐름") {
+  await submit("response reset");
+  await until(async () => (await text("stat-phase")) === "정상 흐름", "reset to normal");
+}
 await evaluate(`document.querySelector('[data-scenario=${JSON.stringify(scenario)}]').click()`);
 await until(async () => (await evaluate(`document.querySelector('[data-scenario=${JSON.stringify(scenario)}]').classList.contains("active") || document.querySelector('[data-scenario=${JSON.stringify(scenario)}]').getAttribute("aria-pressed") === "true"`)) || (await text("injection-command")) !== null, "scenario selected", 30);
 await sleep(3000);
@@ -64,7 +68,7 @@ for (const raw of ["help", "status", "workload status", "response watch", "incid
   await submit(raw);
   await sleep(700);
   const added = (await lines()).slice(before);
-  readOnly[raw] = added.slice(0, 4);
+  readOnly[raw] = raw === "help" ? added.filter((l) => l.includes("security hold") || l.includes("exit drill")) : added.slice(0, 4);
   assert.ok(added.length >= 2, raw + " printed nothing");
   assert.ok(!added.some((l) => l.includes("처리할 수 없는 명령")), raw + " was not handled");
 }
@@ -81,8 +85,15 @@ for (let step = 0; step < 14; step++) {
   transcript.push({ command: suggested, phase: await text("stat-phase") });
 }
 assert.equal(await text("stat-phase"), "대응 완료", "response completed through the terminal");
+const before = (await lines()).length;
+await submit("incident inspect");
+await sleep(700);
+const inspect = (await lines()).slice(before);
+assert.ok(inspect.some((l) => l.includes("계획(실제)")), "inspect shows the live plan");
+assert.ok(inspect.some((l) => l.includes("서명 증거(verify): PASS")), "inspect shows signed evidence");
+assert.ok(readOnly.help.length >= 1);
 assert.deepEqual(exceptions, [], "no uncaught page exceptions");
-const result = { scenario, readOnly, transcript, exceptions };
+const result = { scenario, readOnly, transcript, inspect, exceptions };
 await writeFile(join(output, "terminal-result.json"), JSON.stringify(result, null, 2));
 console.log(JSON.stringify(result));
 socket.close();

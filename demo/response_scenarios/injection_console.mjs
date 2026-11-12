@@ -73,6 +73,15 @@ export function mountInjectionConsole({ getSession, onCommand, getSnapshot = sna
         "info",
         "response reset: 현재 유형 새 실행 / clear: 콘솔 표시만 지우기. 다음 단계는 명령 실행으로만 진행합니다.",
       );
+      const live = session.source === "local-rke2";
+      line(
+        "info",
+        `security hold <사유> → security release <승인ID>: 보안 보류·별도 승인자 서명 해제${live ? "" : " (실제 실행기 연결에서만)"}`,
+      );
+      line(
+        "info",
+        `exit drill: 환경 전환 완료 뒤 출발지 경로를 끊고 목적지 독립 운영 확인${live ? "" : " (실제 실행기 연결에서만)"}`,
+      );
       return;
     }
     if (["status", "workload_status", "watch"].includes(command.kind)) {
@@ -103,8 +112,34 @@ export function mountInjectionConsole({ getSession, onCommand, getSnapshot = sna
     }
     if (command.kind === "incident_inspect") {
       const spec = definition(session.scenario);
+      if (session.security?.active)
+        line("event", `보안 보류 유지 · ${session.security.hold?.hold_id ?? ""} · 사유 ${session.security.hold?.reason ?? ""} · 별도 승인자 해제 필요`);
       if (session.phase === "normal") {
         line("info", "현재 주입된 이상이 없습니다.");
+        return;
+      }
+      if (session.source === "local-rke2") {
+        // Live runner record, not the design description.
+        const detected = session.history.find((event) => event.phase === "detected");
+        if (detected) line("info", `근거(실제): ${detected.message}`);
+        const plan = session.plan;
+        if (plan?.digest)
+          line(
+            "info",
+            `계획(실제): ${plan.digest.slice(0, 12)}… · Pod·클러스터·이미지·실행기 코드 결속 · 만료 ${new Date(plan.binding.expires_at * 1000).toLocaleTimeString("ko-KR")}${plan.binding.effect?.deploy ? " · 배포 " + Object.values(plan.binding.effect.deploy)[0].split("@sha256:")[1].slice(0, 12) + "…" : ""}`,
+          );
+        const checks = session.checks || [];
+        if (checks.length)
+          line(
+            "info",
+            `검사(실제): ${checks.filter((c) => c.passed).length}/${checks.length} 통과${checks.some((c) => !c.passed) ? " · 실패 " + checks.filter((c) => !c.passed).map((c) => c.name).join(", ") : ""}`,
+          );
+        for (const [stage, receipt] of Object.entries(session.evidence?.signed || {}))
+          line(
+            "info",
+            `서명 증거(${stage}): ${String(receipt.result).toUpperCase()} · 지문 ${receipt.fingerprint.slice(0, 12)}… · ${new Date(receipt.valid_until).toLocaleTimeString("ko-KR")}까지 유효`,
+          );
+        line("info", `승인: ${session.approved ? "명시 승인 확인" : "대기"} · 설계 기준: ${spec.verify}`);
         return;
       }
       line("info", `근거: ${spec.signal}`);
