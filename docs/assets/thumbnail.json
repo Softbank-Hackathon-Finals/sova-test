@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "repository": "Softbank-Hackathon-Finals/sova-test",
+  "created_on": "2026-11-09",
+  "asset": {
+    "path": "docs/assets/thumbnail.png",
+    "width": 1600,
+    "height": 900,
+    "sha256": "6d9272323efc2b1d7c6e6659a4b4cd42679824a25837687736976c46a8c1b0b4"
+  },
+  "capture": {
+    "path": "docs/assets/workload-verified-capture.png",
+    "width": 800,
+    "height": 393,
+    "sha256": "62a8b890dae12b6d1ad53a4a8994a5d8d913412da7f6d49f89c1ad9b142e0184"
+  },
+  "source": {
+    "kind": "historical-actual-cluster-ui-screenshot-crop",
+    "verified_on": "2026-11-08",
+    "original_screenshot_sha256": "8dc9aeef52fd454cc92deb3b792ea4e59228b0cce02ece37b4000f18aa72d97d",
+    "crop_pixels": {
+      "x": 22,
+      "y": 531,
+      "width": 800,
+      "height": 393
+    },
+    "producer_revision": "3ab5dd3aa2aaf4bc2169526f67e9de3f1d4cf7ba",
+    "reviewed_platform_ui_revision": "fc1125d2d59d215cc1310ab462b1ae534384137a",
+    "reviewed_platform_ui_revision_is_execution_proof": false
+  },
+  "actual_cluster_validation": true,
+  "current_live_observation": false,
+  "production_workflow_qualified": false,
+  "description": "**실제 검증 환경:** 2026년 11월 8일, 온프렘 Kubernetes 클러스터의 전용 무상태 시험앱에서 검증한 워크로드 지도입니다. 실제 HTTP 403·독립 감사 대조, 승인 후 원본 격리, Green 기동·응답 및 시험 경로 전환을 확인했습니다. 당시 저장한 화면이며 현재 실시간 상태나 AWS→온프렘 이전·운영 T10 완료를 뜻하지 않습니다. [검증 범위·코드·출처](docs/assets/workload-verification.md)"
+}
